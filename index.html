@@ -1,0 +1,163 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="My Schedule">
+<title>My Schedule</title>
+<style>
+  :root{--bg:#0e0e12;--surface:#17171d;--surface2:#1f1f27;--border:#2c2c38;--text:#f0f0f5;--muted:#6b6b80;--green:#4ade80;--mon:#3b82f6;--tue:#f59e0b;--wed:#10b981;--thu:#8b5cf6;--fri:#ef4444;--sat:#06b6d4;--sun:#f43f5e;}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif;min-height:100vh;}
+  .header{position:sticky;top:0;z-index:100;background:rgba(14,14,18,0.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:14px 16px 10px;}
+  .header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .app-title{font-family:Georgia,serif;font-size:22px;font-weight:700;}
+  .date-badge{font-size:11px;color:var(--muted);background:var(--surface2);padding:4px 10px;border-radius:20px;border:1px solid var(--border);}
+  .day-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+  .day-tabs::-webkit-scrollbar{display:none;}
+  .day-tab{flex-shrink:0;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);color:var(--muted);background:transparent;transition:all 0.18s;white-space:nowrap;}
+  .day-tab.active{color:#fff;border-color:transparent;}
+  .day-tab[data-i="0"].active{background:var(--mon);}
+  .day-tab[data-i="1"].active{background:var(--tue);}
+  .day-tab[data-i="2"].active{background:var(--wed);}
+  .day-tab[data-i="3"].active{background:var(--thu);}
+  .day-tab[data-i="4"].active{background:var(--fri);}
+  .day-tab[data-i="5"].active{background:var(--sat);}
+  .day-tab[data-i="6"].active{background:var(--sun);}
+  .progress-wrap{padding:10px 16px 0;display:flex;align-items:center;gap:10px;}
+  .progress-track{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+  .progress-fill{height:100%;border-radius:2px;background:var(--green);transition:width 0.4s ease;}
+  .progress-label{font-size:11px;color:var(--muted);min-width:48px;text-align:right;}
+  .save-row{text-align:center;font-size:10px;color:var(--green);padding:5px 0 0;letter-spacing:0.5px;}
+  .reset-btn{display:block;margin:12px 16px 0;padding:13px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;text-align:center;width:calc(100% - 32px);-webkit-appearance:none;}
+  .reset-btn:active{background:rgba(239,68,68,0.12);border-color:#ef4444;color:#ef4444;}
+  .all-done{display:none;margin:10px 16px 0;background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);border-radius:12px;padding:13px 16px;text-align:center;font-size:14px;font-weight:600;color:var(--green);}
+  .schedule{padding:12px 16px 100px;}
+  .hour-group{margin-bottom:4px;}
+  .hour-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;padding:12px 4px 5px;display:flex;align-items:center;gap:8px;}
+  .hour-line{flex:1;height:1px;background:var(--border);}
+  .slot{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;margin-bottom:4px;background:var(--surface);border:1px solid var(--border);cursor:pointer;min-height:52px;transition:background 0.15s,border-color 0.15s;}
+  .slot.checked{background:rgba(74,222,128,0.07);border-color:rgba(74,222,128,0.28);}
+  .slot.empty{opacity:0.25;pointer-events:none;}
+  .slot:active{transform:scale(0.98);}
+  .slot-time{font-size:11px;font-weight:600;color:var(--muted);min-width:60px;font-variant-numeric:tabular-nums;}
+  .slot-circle{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px;font-weight:800;color:transparent;transition:all 0.2s;}
+  .slot.checked .slot-circle{background:var(--green);border-color:var(--green);color:#000;}
+  .slot-task{font-size:14px;font-weight:500;flex:1;line-height:1.3;}
+  .slot.checked .slot-task{text-decoration:line-through;color:var(--muted);}
+  .toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(90px);background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:11px 24px;border-radius:24px;font-size:14px;font-weight:600;transition:transform 0.3s cubic-bezier(.34,1.56,.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 40px rgba(0,0,0,0.6);pointer-events:none;}
+  .toast.show{transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-top">
+    <div class="app-title">My Schedule</div>
+    <div class="date-badge" id="date-badge"></div>
+  </div>
+  <div class="day-tabs" id="day-tabs"></div>
+</div>
+<div class="progress-wrap">
+  <div class="progress-track"><div class="progress-fill" id="pfill" style="width:0%"></div></div>
+  <div class="progress-label" id="plabel">—</div>
+</div>
+<div class="save-row" id="save-row"></div>
+<button class="reset-btn" id="reset-btn">↺ Reset This Day</button>
+<div class="all-done" id="all-done">🎉 All tasks done!</div>
+<div class="schedule" id="schedule"></div>
+<div class="toast" id="toast"></div>
+<script>
+const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const SHORT=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+function genTimes(){const s=[];let h=8,m=0;while(true){const p=h<12?"AM":"PM",dh=h===0?12:h>12?h-12:h;s.push(`${dh}:${String(m).padStart(2,"0")} ${p}`);if(h===22&&m===30)break;m+=10;if(m===60){m=0;h++;}}return s;}
+const TIMES=genTimes();
+
+const SCHED={
+  Monday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:30 PM":"Fascial Head Massage","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth"},
+  Tuesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:30 PM":"Fascial Head Massage","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Retinol Therapy"},
+  Wednesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","4:00 PM":"Neck Exercises","4:30 PM":"FaceTime Family","5:00 PM":"Relaxation (Reading / Video Games / Walk)","6:00 PM":"Shampoo","6:10 PM":"Deep Conditioner","6:20 PM":"Fascial Head Massage","7:00 PM":"Ketamine Assisted Therapy","9:00 PM":"Brush Teeth"},
+  Thursday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:30 PM":"Fascial Head Massage","5:00 PM":"Take Out Trash","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Retinol Therapy"},
+  Friday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:30 PM":"Fascial Head Massage","4:00 PM":"Shampoo","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth"},
+  Saturday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Neck Exercises","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:30 PM":"Fascial Head Massage","5:00 PM":"Gym (5–6 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth"},
+  Sunday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Biking","11:00 AM":"FaceTime Family","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","1:00 PM":"Laundry","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","5:00 PM":"Take Out Trash","7:00 PM":"Meal Prep","8:00 PM":"Shampoo","8:10 PM":"Coconut Oil / Castor Oil","8:20 PM":"Rice Water Mix","8:30 PM":"Hair Mask","8:40 PM":"Fascial Head Massage","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Retinol Therapy"},
+};
+
+function todayIdx(){const d=new Date().getDay();return d===0?6:d-1;}
+function parseHour(t){const[time,p]=t.split(" ");let[h]=time.split(":").map(Number);if(p==="PM"&&h!==12)h+=12;if(p==="AM"&&h===12)h=0;return h;}
+function getWeekKey(){const now=new Date(),day=now.getDay(),mon=new Date(now);mon.setDate(now.getDate()-(day===0?6:day-1));return`${mon.getFullYear()}-${String(mon.getMonth()+1).padStart(2,"0")}-${String(mon.getDate()).padStart(2,"0")}`;}
+
+let activeDay=todayIdx(),checks={};
+
+function loadState(){
+  const thisWeek=getWeekKey(),savedWeek=localStorage.getItem("sched_week");
+  if(savedWeek!==thisWeek){checks={};localStorage.setItem("sched_week",thisWeek);localStorage.setItem("sched_checks","{}");}
+  else{try{checks=JSON.parse(localStorage.getItem("sched_checks")||"{}");}catch(e){checks={};}}
+  document.getElementById("save-row").textContent="✓ Saves between visits";
+}
+
+function saveState(){try{localStorage.setItem("sched_checks",JSON.stringify(checks));}catch(e){}}
+
+let toastTimer;
+function showToast(msg){const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2300);}
+
+function renderTabs(){
+  const wrap=document.getElementById("day-tabs");wrap.innerHTML="";
+  const ti=todayIdx();
+  DAYS.forEach((d,i)=>{const t=document.createElement("div");t.className="day-tab"+(i===activeDay?" active":"");t.dataset.i=i;t.textContent=SHORT[i]+(i===ti?" ·":"");t.onclick=()=>{activeDay=i;render();};wrap.appendChild(t);});
+}
+
+function renderProgress(){
+  const day=DAYS[activeDay],tasks=SCHED[day],total=Object.keys(tasks).length,done=Object.keys(tasks).filter(t=>checks[`${day}|${t}`]).length,pct=total?Math.round(done/total*100):0;
+  document.getElementById("pfill").style.width=pct+"%";
+  document.getElementById("plabel").textContent=`${done} / ${total}`;
+  document.getElementById("all-done").style.display=(done===total&&total>0)?"block":"none";
+}
+
+function renderSchedule(){
+  const wrap=document.getElementById("schedule");wrap.innerHTML="";
+  const day=DAYS[activeDay],tasks=SCHED[day],groups={};
+  TIMES.forEach(t=>{const h=parseHour(t);if(!groups[h])groups[h]=[];groups[h].push(t);});
+  Object.entries(groups).forEach(([h,slots])=>{
+    const hN=parseInt(h),p=hN<12?"AM":"PM",dh=hN===0?12:hN>12?hN-12:hN;
+    const grp=document.createElement("div");grp.className="hour-group";
+    grp.innerHTML=`<div class="hour-label">${dh}:00 ${p}<div class="hour-line"></div></div>`;
+    slots.forEach(t=>{
+      const task=tasks[t]||"",key=`${day}|${t}`,on=!!checks[key];
+      const slot=document.createElement("div");
+      slot.className=`slot${task?" filled":" empty"}${on?" checked":""}`;
+      slot.dataset.key=key;
+      slot.innerHTML=`<div class="slot-time">${t}</div><div class="slot-circle">${on?"✓":""}</div><div class="slot-task">${task||"—"}</div>`;
+      if(task)slot.addEventListener("click",()=>toggle(key));
+      grp.appendChild(slot);
+    });
+    wrap.appendChild(grp);
+  });
+}
+
+function renderDateBadge(){const now=new Date();document.getElementById("date-badge").textContent=`${DAYS[activeDay]}, ${now.toLocaleDateString("en-US",{month:"short",day:"numeric"})}`;}
+function render(){renderTabs();renderSchedule();renderProgress();renderDateBadge();}
+
+function toggle(key){
+  checks[key]=!checks[key];saveState();
+  const on=checks[key],slot=document.querySelector(`[data-key="${key}"]`);
+  if(slot){slot.classList.toggle("checked",on);slot.querySelector(".slot-circle").textContent=on?"✓":"";slot.querySelector(".slot-task").style.textDecoration=on?"line-through":"none";slot.querySelector(".slot-task").style.color=on?"#6b6b80":"#f0f0f5";}
+  renderProgress();
+  const day=DAYS[activeDay],tasks=SCHED[day],done=Object.keys(tasks).filter(t=>checks[`${day}|${t}`]).length;
+  if(done===Object.keys(tasks).length)showToast("🎉 All done today!");
+}
+
+document.getElementById("reset-btn").addEventListener("click",()=>{
+  const day=DAYS[activeDay];Object.keys(SCHED[day]).forEach(t=>delete checks[`${day}|${t}`]);
+  saveState();render();showToast(`↺ ${day} reset`);
+});
+
+loadState();render();
+const now=new Date(),ch=now.getHours(),cp=ch<12?"AM":"PM",cdh=ch===0?12:ch>12?ch-12:ch,target=`${cdh}:00 ${cp}`;
+setTimeout(()=>{document.querySelectorAll(".slot-time").forEach(el=>{if(el.textContent.trim()===target)el.closest(".slot").scrollIntoView({behavior:"smooth",block:"center"});});},400);
+</script>
+</body>
+</html>
