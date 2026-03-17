@@ -50,6 +50,18 @@
   .slot.checked .slot-task{text-decoration:line-through;color:var(--muted);}
   .toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(90px);background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:11px 24px;border-radius:24px;font-size:14px;font-weight:600;transition:transform 0.3s cubic-bezier(.34,1.56,.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 40px rgba(0,0,0,0.6);pointer-events:none;}
   .toast.show{transform:translateX(-50%) translateY(0);}
+  .admin-btn{position:fixed;bottom:24px;right:16px;width:44px;height:44px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:200;}
+  .admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;align-items:center;justify-content:center;padding:20px;}
+  .admin-overlay.open{display:flex;}
+  .admin-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;width:100%;max-width:400px;}
+  .admin-title{font-family:Georgia,serif;font-size:18px;font-weight:700;margin-bottom:6px;}
+  .admin-sub{font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.5;}
+  .admin-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px;font-family:-apple-system,sans-serif;margin-bottom:10px;outline:none;box-sizing:border-box;}
+  .admin-input:focus{border-color:#4ade80;}
+  .admin-submit{width:100%;padding:13px;border-radius:12px;border:none;background:#4ade80;color:#000;font-size:14px;font-weight:700;cursor:pointer;font-family:-apple-system,sans-serif;margin-bottom:10px;}
+  .admin-submit:disabled{background:var(--border);color:var(--muted);cursor:default;}
+  .admin-cancel{width:100%;padding:13px;border-radius:12px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;font-family:-apple-system,sans-serif;}
+  .admin-status{text-align:center;font-size:12px;padding:8px 0;min-height:20px;color:#4ade80;}
 </style>
 </head>
 <body>
@@ -69,6 +81,20 @@
 <div class="all-done" id="all-done">🎉 All tasks done!</div>
 <div class="schedule" id="schedule"></div>
 <div class="toast" id="toast"></div>
+
+<button class="admin-btn" id="admin-btn" title="Update Schedule">⚙️</button>
+
+<div class="admin-overlay" id="admin-overlay">
+  <div class="admin-box">
+    <div class="admin-title">Update Schedule</div>
+    <div class="admin-sub">Type what you want to change in plain English. Example: "Add yoga on Mondays at 6am" or "Remove gym on Saturdays"</div>
+    <input class="admin-input" type="password" id="admin-password" placeholder="Enter your password" />
+    <textarea class="admin-input" id="admin-instruction" placeholder="What would you like to change?" rows="3" style="resize:none;"></textarea>
+    <div class="admin-status" id="admin-status"></div>
+    <button class="admin-submit" id="admin-submit">Update My Schedule</button>
+    <button class="admin-cancel" id="admin-cancel">Cancel</button>
+  </div>
+</div>
 <script>
 const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const SHORT=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
@@ -153,6 +179,48 @@ function toggle(key){
 document.getElementById("reset-btn").addEventListener("click",()=>{
   const day=DAYS[activeDay];Object.keys(SCHED[day]).forEach(t=>delete checks[`${day}|${t}`]);
   saveState();render();showToast(`↺ ${day} reset`);
+});
+
+const SERVER_URL = "https://schedule-server-knk2.onrender.com";
+
+document.getElementById("admin-btn").addEventListener("click",()=>{
+  document.getElementById("admin-overlay").classList.add("open");
+});
+document.getElementById("admin-cancel").addEventListener("click",()=>{
+  document.getElementById("admin-overlay").classList.remove("open");
+  document.getElementById("admin-status").textContent="";
+});
+document.getElementById("admin-submit").addEventListener("click", async()=>{
+  const password = document.getElementById("admin-password").value;
+  const instruction = document.getElementById("admin-instruction").value;
+  const status = document.getElementById("admin-status");
+  const btn = document.getElementById("admin-submit");
+  if(!password||!instruction){status.textContent="Please fill in both fields.";status.style.color="#ef4444";return;}
+  btn.disabled=true;
+  btn.textContent="Updating…";
+  status.textContent="Sending to Claude… this takes ~30 seconds ⏳";
+  status.style.color="#f59e0b";
+  try{
+    const res = await fetch(`${SERVER_URL}/update`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({password,instruction})
+    });
+    const data = await res.json();
+    if(data.success){
+      status.textContent="✓ Done! Your app will update in ~30 seconds. Refresh to see changes.";
+      status.style.color="#4ade80";
+      document.getElementById("admin-instruction").value="";
+    } else {
+      status.textContent=data.error||"Something went wrong.";
+      status.style.color="#ef4444";
+    }
+  }catch(e){
+    status.textContent="Could not reach server. Try again.";
+    status.style.color="#ef4444";
+  }
+  btn.disabled=false;
+  btn.textContent="Update My Schedule";
 });
 
 loadState();render();
