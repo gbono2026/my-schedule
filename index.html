@@ -232,6 +232,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .lightbox img{max-width:100%;max-height:80vh;object-fit:contain;border-radius:12px;}
 .lightbox-close{position:absolute;top:20px;right:20px;font-size:28px;color:white;cursor:pointer;opacity:0.7;}
 .lightbox-label{margin-top:12px;font-size:12px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+/* Admin */
 .admin-btn{position:fixed;bottom:80px;right:16px;width:42px;height:42px;border-radius:50%;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:200;box-shadow:0 4px 20px rgba(0,0,0,0.4);}
 .admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-end;justify-content:center;padding:0;}
 .admin-overlay.open{display:flex;}
@@ -263,4 +264,822 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <div class="day-tabs" id="day-tabs"></div>
   </div>
   <div class="prog-wrap">
-    <div class="prog-track"><div class="prog-fill" id
+    <div class="prog-track"><div class="prog-fill" id="pfill" style="width:0%"></div></div>
+    <div class="prog-label" id="plabel">—</div>
+  </div>
+  <div style="padding:0 16px;">
+    <button class="reset-btn" id="reset-btn">↺ Reset This Day</button>
+    <div class="all-done" id="all-done">🎉 All done today!</div>
+  </div>
+  <div class="schedule" id="schedule"></div>
+</div>
+
+<!-- HEALTH VIEW -->
+<div class="view" id="view-health">
+  <div class="page-header">
+    <div class="page-eyebrow">Dashboard</div>
+    <div class="page-title" id="greeting-text">Good morning</div>
+    <div class="page-subtitle" id="greeting-date"></div>
+  </div>
+
+  <div class="dash-wrap">
+    <div class="setup-banner" id="setup-banner">
+      <div class="setup-title">🔗 Connect Health Auto Export</div>
+      <div class="setup-text">Install <strong>Health Auto Export</strong> on iPhone → Automations → REST API → <strong>https://schedule-server-knk2.onrender.com/health</strong> to auto-sync your Apple Health data daily.</div>
+    </div>
+
+    <button class="refresh-btn" onclick="loadHealthData()">↻ Refresh Data</button>
+
+    <div class="dash-section"><div class="dash-section-label">Body</div><div class="dash-section-line"></div></div>
+    <div class="metric-grid">
+      <div class="metric-card" id="card-weight">
+        <div class="metric-accent" style="background:var(--green)"></div>
+        <span class="metric-icon">⚖️</span>
+        <div class="metric-label">Weight</div>
+        <div class="metric-value-row"><div class="metric-value" id="m-weight"><span class="metric-empty-val">—</span></div><div class="metric-unit">lbs</div></div>
+        <div class="metric-trend" id="t-weight"></div>
+      </div>
+      <div class="metric-card" id="card-bodyfat">
+        <div class="metric-accent" style="background:var(--blue)"></div>
+        <span class="metric-icon">💪</span>
+        <div class="metric-label">Body Fat</div>
+        <div class="metric-value-row"><div class="metric-value" id="m-bodyfat"><span class="metric-empty-val">—</span></div><div class="metric-unit">%</div></div>
+        <div class="metric-trend" id="t-bodyfat"></div>
+      </div>
+    </div>
+
+    <div class="dash-section"><div class="dash-section-label">Activity</div><div class="dash-section-line"></div></div>
+    <div class="metric-grid">
+      <div class="metric-card" id="card-steps">
+        <div class="metric-accent" style="background:var(--orange)"></div>
+        <span class="metric-icon">👟</span>
+        <div class="metric-label">Steps</div>
+        <div class="metric-value-row"><div class="metric-value" id="m-steps"><span class="metric-empty-val">—</span></div></div>
+        <div class="metric-trend" id="t-steps"></div>
+      </div>
+      <div class="metric-card" id="card-activecal">
+        <div class="metric-accent" style="background:var(--red)"></div>
+        <span class="metric-icon">🔥</span>
+        <div class="metric-label">Active Cal</div>
+        <div class="metric-value-row"><div class="metric-value" id="m-activecal"><span class="metric-empty-val">—</span></div><div class="metric-unit">kcal</div></div>
+      </div>
+    </div>
+
+    <div class="dash-section"><div class="dash-section-label">Recovery</div><div class="dash-section-line"></div></div>
+    <div class="metric-grid">
+      <div class="metric-card" id="card-sleep">
+        <div class="metric-accent" style="background:var(--purple)"></div>
+        <span class="metric-icon">😴</span>
+        <div class="metric-label">Sleep</div>
+        <div class="metric-value-row"><div class="metric-value" id="m-sleep"><span class="metric-empty-val">—</span></div><div class="metric-unit">hrs</div></div>
+        <div class="metric-trend" id="t-sleep"></div>
+      </div>
+      <div class="metric-card" id="card-hrv">
+        <div class="metric-accent" style="background:var(--teal)"></div>
+        <span class="metric-icon">💓</span>
+        <div class="metric-label">HRV</div>
+        <div class="metric-value-row"><div class="metric-value" id="m-hrv"><span class="metric-empty-val">—</span></div><div class="metric-unit">ms</div></div>
+        <div class="metric-trend" id="t-hrv"></div>
+      </div>
+    </div>
+
+    <div class="dash-section"><div class="dash-section-label">Nutrition</div><div class="dash-section-line"></div></div>
+    <div class="macro-card">
+      <div class="macro-header">
+        <div class="macro-title">Daily Macros</div>
+        <div class="macro-cals" id="m-calories">— kcal</div>
+      </div>
+      <div class="macro-row">
+        <div class="macro-top"><span class="macro-name">Protein</span><span class="macro-val" id="m-protein">—</span></div>
+        <div class="macro-bar-bg"><div class="macro-bar-fill" id="bar-protein" style="width:0%;background:var(--green)"></div></div>
+      </div>
+      <div class="macro-row">
+        <div class="macro-top"><span class="macro-name">Carbohydrates</span><span class="macro-val" id="m-carbs">—</span></div>
+        <div class="macro-bar-bg"><div class="macro-bar-fill" id="bar-carbs" style="width:0%;background:var(--blue)"></div></div>
+      </div>
+      <div class="macro-row">
+        <div class="macro-top"><span class="macro-name">Fat</span><span class="macro-val" id="m-fat">—</span></div>
+        <div class="macro-bar-bg"><div class="macro-bar-fill" id="bar-fat" style="width:0%;background:var(--orange)"></div></div>
+      </div>
+    </div>
+
+    <!-- FUNCTION HEALTH BIOMARKERS -->
+    <div class="dash-section"><div class="dash-section-label">Function Health Labs</div><div class="dash-section-line"></div></div>
+
+    <div id="biomarker-categories"></div>
+
+    <!-- MANUAL ENTRY -->
+    <div class="manual-card">
+      <div class="manual-title">Manual Entry</div>
+      <div class="manual-sub">Enter your data manually. Function Health labs only need updating when you get new results.</div>
+      <div class="manual-tabs">
+        <div class="manual-tab active" onclick="switchManualTab('daily',this)">Daily</div>
+        <div class="manual-tab" onclick="switchManualTab('heart',this)">Heart</div>
+        <div class="manual-tab" onclick="switchManualTab('hormones',this)">Hormones</div>
+        <div class="manual-tab" onclick="switchManualTab('thyroid',this)">Thyroid</div>
+        <div class="manual-tab" onclick="switchManualTab('other',this)">More</div>
+      </div>
+
+      <div class="manual-panel active" id="mp-daily">
+        <div class="manual-grid">
+          <div class="mf"><label>Weight (lbs)</label><input type="number" id="in-weight" placeholder="175"></div>
+          <div class="mf"><label>Body Fat %</label><input type="number" id="in-bodyfat" placeholder="18"></div>
+          <div class="mf"><label>Steps</label><input type="number" id="in-steps" placeholder="8500"></div>
+          <div class="mf"><label>Sleep (hrs)</label><input type="number" id="in-sleep" placeholder="7.5"></div>
+          <div class="mf"><label>HRV (ms)</label><input type="number" id="in-hrv" placeholder="45"></div>
+          <div class="mf"><label>Active Cal</label><input type="number" id="in-activecal" placeholder="450"></div>
+          <div class="mf"><label>Protein (g)</label><input type="number" id="in-protein" placeholder="180"></div>
+          <div class="mf"><label>Carbs (g)</label><input type="number" id="in-carbs" placeholder="220"></div>
+          <div class="mf"><label>Fat (g)</label><input type="number" id="in-fat" placeholder="65"></div>
+          <div class="mf"><label>Calories</label><input type="number" id="in-calories" placeholder="2200"></div>
+        </div>
+        <button class="save-btn" onclick="saveManual('daily')">Save Daily Data</button>
+      </div>
+
+      <div class="manual-panel" id="mp-heart">
+        <div class="manual-grid">
+          <div class="mf"><label>ApoB (mg/dL)</label><input type="number" id="in-apob" placeholder="80"></div>
+          <div class="mf"><label>LDL (mg/dL)</label><input type="number" id="in-ldl" placeholder="100"></div>
+          <div class="mf"><label>HDL (mg/dL)</label><input type="number" id="in-hdl" placeholder="55"></div>
+          <div class="mf"><label>Triglycerides</label><input type="number" id="in-trig" placeholder="100"></div>
+          <div class="mf"><label>hs-CRP (mg/L)</label><input type="number" id="in-crp" placeholder="0.8"></div>
+          <div class="mf"><label>Homocysteine</label><input type="number" id="in-homocys" placeholder="8"></div>
+          <div class="mf"><label>Lp(a) (nmol/L)</label><input type="number" id="in-lpa" placeholder="50"></div>
+          <div class="mf"><label>Resting HR</label><input type="number" id="in-rhr" placeholder="58"></div>
+        </div>
+        <button class="save-btn" onclick="saveManual('heart')">Save Heart Data</button>
+      </div>
+
+      <div class="manual-panel" id="mp-hormones">
+        <div class="manual-grid">
+          <div class="mf"><label>Testosterone (ng/dL)</label><input type="number" id="in-testo" placeholder="600"></div>
+          <div class="mf"><label>Free Testo (pg/mL)</label><input type="number" id="in-freetesto" placeholder="15"></div>
+          <div class="mf"><label>Cortisol (mcg/dL)</label><input type="number" id="in-cortisol" placeholder="15"></div>
+          <div class="mf"><label>DHEA-S (mcg/dL)</label><input type="number" id="in-dhea" placeholder="300"></div>
+          <div class="mf"><label>Estradiol (pg/mL)</label><input type="number" id="in-estradiol" placeholder="25"></div>
+          <div class="mf"><label>IGF-1 (ng/mL)</label><input type="number" id="in-igf1" placeholder="180"></div>
+          <div class="mf"><label>Insulin (mcIU/mL)</label><input type="number" id="in-insulin" placeholder="5"></div>
+          <div class="mf"><label>HbA1c (%)</label><input type="number" id="in-hba1c" placeholder="5.2"></div>
+        </div>
+        <button class="save-btn" onclick="saveManual('hormones')">Save Hormone Data</button>
+      </div>
+
+      <div class="manual-panel" id="mp-thyroid">
+        <div class="manual-grid">
+          <div class="mf"><label>TSH (mIU/L)</label><input type="number" id="in-tsh" placeholder="2.0"></div>
+          <div class="mf"><label>Free T3 (pg/mL)</label><input type="number" id="in-ft3" placeholder="3.2"></div>
+          <div class="mf"><label>Free T4 (ng/dL)</label><input type="number" id="in-ft4" placeholder="1.2"></div>
+          <div class="mf"><label>TPO Ab (IU/mL)</label><input type="number" id="in-tpo" placeholder="10"></div>
+        </div>
+        <button class="save-btn" onclick="saveManual('thyroid')">Save Thyroid Data</button>
+      </div>
+
+      <div class="manual-panel" id="mp-other">
+        <div class="manual-grid">
+          <div class="mf"><label>Vitamin D (ng/mL)</label><input type="number" id="in-vitd" placeholder="50"></div>
+          <div class="mf"><label>Vitamin B12 (pg/mL)</label><input type="number" id="in-b12" placeholder="600"></div>
+          <div class="mf"><label>Ferritin (ng/mL)</label><input type="number" id="in-ferritin" placeholder="100"></div>
+          <div class="mf"><label>Iron (mcg/dL)</label><input type="number" id="in-iron" placeholder="100"></div>
+          <div class="mf"><label>Creatinine (mg/dL)</label><input type="number" id="in-creatinine" placeholder="0.9"></div>
+          <div class="mf"><label>eGFR</label><input type="number" id="in-egfr" placeholder="90"></div>
+          <div class="mf"><label>ALT (U/L)</label><input type="number" id="in-alt" placeholder="25"></div>
+          <div class="mf"><label>AST (U/L)</label><input type="number" id="in-ast" placeholder="22"></div>
+          <div class="mf"><label>Glucose (mg/dL)</label><input type="number" id="in-glucose" placeholder="90"></div>
+          <div class="mf"><label>Omega-3 Index %</label><input type="number" id="in-omega3" placeholder="8"></div>
+        </div>
+        <button class="save-btn" onclick="saveManual('other')">Save Lab Data</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PROGRESS PHOTOS VIEW -->
+<div class="view" id="view-progress">
+  <div class="photo-header">
+    <div class="page-eyebrow">Visual Journey</div>
+    <div class="page-title">Progress Photos</div>
+    <div class="page-subtitle" id="photo-next-due">Monthly — taken on the 1st</div>
+  </div>
+  <div class="photo-wrap">
+    <div class="photo-month-banner" id="photo-banner">
+      <div class="photo-month-icon">📸</div>
+      <div class="photo-month-text">
+        <div class="photo-month-title">Time for your monthly photos!</div>
+        <div class="photo-month-sub">Front, side, and back — takes about 2 minutes</div>
+      </div>
+    </div>
+    <button class="capture-btn" onclick="startCapture()">
+      <span>📷</span> Take This Month's Photos
+    </button>
+    <div class="sessions-title">Photo History</div>
+    <div id="sessions-list"></div>
+  </div>
+</div>
+
+<!-- CAPTURE MODAL -->
+<div class="capture-overlay" id="capture-overlay">
+  <div class="capture-top">
+    <span class="capture-close" onclick="closeCapture()">✕</span>
+    <span class="capture-step" id="capture-step-label">Step 1 of 3</span>
+    <span style="width:32px"></span>
+  </div>
+  <div class="capture-progress">
+    <div class="capture-pip active" id="pip-0"></div>
+    <div class="capture-pip" id="pip-1"></div>
+    <div class="capture-pip" id="pip-2"></div>
+  </div>
+  <div class="capture-body">
+    <div class="capture-preview" id="capture-preview">
+      <video id="capture-video" autoplay playsinline muted style="display:none;width:100%;height:100%;object-fit:cover;"></video>
+      <img id="capture-img" style="display:none;width:100%;height:100%;object-fit:cover;" />
+      <div id="capture-placeholder" style="text-align:center;padding:20px;">
+        <div style="font-size:48px;margin-bottom:12px;">🪞</div>
+        <div style="font-size:13px;color:var(--muted);">Camera will appear here</div>
+      </div>
+    </div>
+    <div class="capture-guide">
+      <div class="capture-guide-title" id="capture-guide-title">Front View</div>
+      <div class="capture-guide-sub" id="capture-guide-sub">Stand straight, arms at sides, face the camera</div>
+    </div>
+    <div class="capture-actions" id="capture-actions-shoot">
+      <button class="shutter-btn" onclick="shootPhoto()">📷 Take Photo</button>
+    </div>
+    <div class="capture-actions" id="capture-actions-review" style="display:none;">
+      <button class="retake-btn" onclick="retakePhoto()">Retake</button>
+      <button class="next-btn" id="capture-next-btn" onclick="nextStep()">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <span class="lightbox-close">✕</span>
+  <img id="lightbox-img" src="" />
+  <div class="lightbox-label" id="lightbox-label"></div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="nav-item active" id="nav-schedule" onclick="switchView('schedule')">
+    <span class="nav-icon">📅</span>
+    <span class="nav-label">SCHEDULE</span>
+  </div>
+  <div class="nav-item" id="nav-health" onclick="switchView('health')">
+    <span class="nav-icon">❤️</span>
+    <span class="nav-label">HEALTH</span>
+  </div>
+  <div class="nav-item" id="nav-progress" onclick="switchView('progress')">
+    <span class="nav-icon">📸</span>
+    <span class="nav-label">PROGRESS</span>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<button class="admin-btn" id="admin-btn">⚙️</button>
+<div class="admin-overlay" id="admin-overlay">
+  <div class="admin-box">
+    <div class="admin-handle"></div>
+    <div class="admin-title">Update Schedule</div>
+    <div class="admin-sub">Describe what you want to change in plain English. Example: "Add yoga on Mondays at 6am"</div>
+    <input class="admin-input" type="password" id="admin-password" placeholder="Password" />
+    <textarea class="admin-input" id="admin-instruction" placeholder="What would you like to change?" rows="3" style="resize:none;"></textarea>
+    <div class="admin-status" id="admin-status"></div>
+    <button class="admin-submit" id="admin-submit">Update My Schedule</button>
+    <button class="admin-cancel" id="admin-cancel">Cancel</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SERVER="https://my-schedule-server-production.up.railway.app";
+const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const SHORT=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+function genTimes(){const s=[];let h=8,m=0;while(true){const p=h<12?"AM":"PM",dh=h===0?12:h>12?h-12:h;s.push(`${dh}:${String(m).padStart(2,"0")} ${p}`);if(h===22&&m===30)break;m+=10;if(m===60){m=0;h++;}}return s;}
+const TIMES=genTimes();
+
+const SCHED={
+  Monday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Tuesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Wednesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","4:00 PM":"Neck Exercises","4:10 PM":"Scalp Stretch","4:30 PM":"FaceTime Family","5:00 PM":"Relaxation (Reading / Video Games / Walk)","6:00 PM":"Shampoo","6:10 PM":"Deep Conditioner","6:20 PM":"Fascial Head Massage","7:00 PM":"Peloton","7:30 PM":"Ketamine Assisted Therapy","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Thursday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","5:00 PM":"Take Out Trash","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Friday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","4:00 PM":"Shampoo","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Saturday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Neck Exercises","9:30 AM":"Scalp Stretch","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","5:00 PM":"Gym (5–6 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Sunday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Biking","11:00 AM":"FaceTime Family","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","1:00 PM":"Laundry","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","5:00 PM":"Take Out Trash","7:00 PM":"Meal Prep","8:00 PM":"Shampoo","8:10 PM":"Coconut Oil / Castor Oil","8:20 PM":"Rice Water Mix","8:30 PM":"Hair Mask","8:40 PM":"Fascial Head Massage","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+};
+
+// ── Biomarker definitions ──
+const BIOM_CATS = [
+  { id:"heart", icon:"❤️", name:"Heart & Cardiovascular", color:"var(--red)", markers:[
+    {id:"apob", name:"ApoB", unit:"mg/dL", optimal:[0,90], watch:[90,120]},
+    {id:"ldl", name:"LDL Cholesterol", unit:"mg/dL", optimal:[0,100], watch:[100,160]},
+    {id:"hdl", name:"HDL Cholesterol", unit:"mg/dL", optimal:[60,999], watch:[40,60]},
+    {id:"trig", name:"Triglycerides", unit:"mg/dL", optimal:[0,100], watch:[100,150]},
+    {id:"crp", name:"hs-CRP", unit:"mg/L", optimal:[0,1], watch:[1,3]},
+    {id:"homocys", name:"Homocysteine", unit:"µmol/L", optimal:[0,10], watch:[10,15]},
+    {id:"lpa", name:"Lp(a)", unit:"nmol/L", optimal:[0,75], watch:[75,125]},
+    {id:"rhr", name:"Resting Heart Rate", unit:"bpm", optimal:[40,60], watch:[60,70]},
+  ]},
+  { id:"hormones", icon:"🧬", name:"Hormones", color:"var(--purple)", markers:[
+    {id:"testo", name:"Testosterone (Total)", unit:"ng/dL", optimal:[600,999], watch:[400,600]},
+    {id:"freetesto", name:"Free Testosterone", unit:"pg/mL", optimal:[15,999], watch:[8,15]},
+    {id:"cortisol", name:"Cortisol (AM)", unit:"mcg/dL", optimal:[10,20], watch:[5,10]},
+    {id:"dhea", name:"DHEA-S", unit:"mcg/dL", optimal:[200,450], watch:[100,200]},
+    {id:"estradiol", name:"Estradiol", unit:"pg/mL", optimal:[20,40], watch:[10,20]},
+    {id:"igf1", name:"IGF-1", unit:"ng/mL", optimal:[150,250], watch:[100,150]},
+    {id:"insulin", name:"Fasting Insulin", unit:"mcIU/mL", optimal:[0,8], watch:[8,15]},
+    {id:"hba1c", name:"HbA1c", unit:"%", optimal:[0,5.3], watch:[5.3,5.7]},
+  ]},
+  { id:"thyroid", icon:"🦋", name:"Thyroid", color:"var(--teal)", markers:[
+    {id:"tsh", name:"TSH", unit:"mIU/L", optimal:[1,2.5], watch:[2.5,4]},
+    {id:"ft3", name:"Free T3", unit:"pg/mL", optimal:[3,4], watch:[2.3,3]},
+    {id:"ft4", name:"Free T4", unit:"ng/dL", optimal:[1,1.5], watch:[0.8,1]},
+    {id:"tpo", name:"TPO Antibodies", unit:"IU/mL", optimal:[0,9], watch:[9,34]},
+  ]},
+  { id:"inflammation", icon:"🔥", name:"Inflammation", color:"var(--orange)", markers:[
+    {id:"crp", name:"hs-CRP", unit:"mg/L", optimal:[0,1], watch:[1,3]},
+    {id:"homocys", name:"Homocysteine", unit:"µmol/L", optimal:[0,10], watch:[10,15]},
+  ]},
+  { id:"nutrients", icon:"🌿", name:"Nutrients & Vitamins", color:"var(--green)", markers:[
+    {id:"vitd", name:"Vitamin D", unit:"ng/mL", optimal:[50,80], watch:[30,50]},
+    {id:"b12", name:"Vitamin B12", unit:"pg/mL", optimal:[600,999], watch:[300,600]},
+    {id:"ferritin", name:"Ferritin", unit:"ng/mL", optimal:[50,150], watch:[20,50]},
+    {id:"iron", name:"Iron", unit:"mcg/dL", optimal:[70,130], watch:[50,70]},
+    {id:"omega3", name:"Omega-3 Index", unit:"%", optimal:[8,12], watch:[4,8]},
+  ]},
+  { id:"metabolic", icon:"⚡", name:"Metabolic & Diabetes", color:"var(--yellow)", markers:[
+    {id:"glucose", name:"Fasting Glucose", unit:"mg/dL", optimal:[70,90], watch:[90,100]},
+    {id:"hba1c", name:"HbA1c", unit:"%", optimal:[0,5.3], watch:[5.3,5.7]},
+    {id:"insulin", name:"Fasting Insulin", unit:"mcIU/mL", optimal:[0,8], watch:[8,15]},
+  ]},
+  { id:"kidney", icon:"🫘", name:"Kidney & Liver", color:"var(--blue)", markers:[
+    {id:"creatinine", name:"Creatinine", unit:"mg/dL", optimal:[0.7,1.1], watch:[1.1,1.3]},
+    {id:"egfr", name:"eGFR", unit:"mL/min", optimal:[90,999], watch:[60,90]},
+    {id:"alt", name:"ALT", unit:"U/L", optimal:[0,25], watch:[25,40]},
+    {id:"ast", name:"AST", unit:"U/L", optimal:[0,25], watch:[25,40]},
+  ]},
+];
+
+// ── State ──
+let activeDay=0,checks={},healthToday={},bioData={};
+function todayIdx(){const d=new Date().getDay();return d===0?6:d-1;}
+function parseHour(t){const[time,p]=t.split(" ");let[h]=time.split(":").map(Number);if(p==="PM"&&h!==12)h+=12;if(p==="AM"&&h===12)h=0;return h;}
+function getWeekKey(){const now=new Date(),day=now.getDay(),mon=new Date(now);mon.setDate(now.getDate()-(day===0?6:day-1));return`${mon.getFullYear()}-${String(mon.getMonth()+1).padStart(2,"0")}-${String(mon.getDate()).padStart(2,"0")}`;}
+
+function loadState(){
+  const wk=getWeekKey(),sw=localStorage.getItem("sched_week");
+  if(sw!==wk){checks={};localStorage.setItem("sched_week",wk);localStorage.setItem("sched_checks","{}");}
+  else{try{checks=JSON.parse(localStorage.getItem("sched_checks")||"{}");}catch(e){checks={};}}
+  try{bioData=JSON.parse(localStorage.getItem("bio_data")||"{}");}catch(e){bioData={};}
+}
+function saveState(){try{localStorage.setItem("sched_checks",JSON.stringify(checks));}catch(e){}}
+function saveBio(){try{localStorage.setItem("bio_data",JSON.stringify(bioData));}catch(e){}}
+
+// ── View switching ──
+let currentView="schedule";
+function switchView(v){
+  currentView=v;
+  document.querySelectorAll(".view").forEach(el=>el.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(el=>el.classList.remove("active"));
+  document.getElementById("view-"+v).classList.add("active");
+  document.getElementById("nav-"+v).classList.add("active");
+  if(v==="health") renderHealthView();
+  if(v==="progress") renderSessions();
+}
+
+// ── Greeting ──
+function setGreeting(){
+  const h=new Date().getHours();
+  const g=h<12?"Good morning ☀️":h<17?"Good afternoon 🌤️":"Good evening 🌙";
+  document.getElementById("greeting-text").textContent=g;
+  const now=new Date();
+  document.getElementById("greeting-date").textContent=now.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});
+}
+
+// ── Health data ──
+async function loadHealthData(){
+  showToast("Refreshing…");
+  try{
+    const res=await fetch(`${SERVER}/health`);
+    const data=await res.json();
+    healthToday=data.today||{};
+    if(Object.keys(healthToday).length>0) document.getElementById("setup-banner").style.display="none";
+    renderDailyMetrics();
+    showToast("✓ Data refreshed");
+  }catch(e){showToast("⚠ Using cached data");}
+}
+
+function renderHealthView(){
+  setGreeting();
+  renderDailyMetrics();
+  renderBiomarkers();
+}
+
+function renderDailyMetrics(){
+  const d=healthToday;
+  setM("m-weight", d.weight, 1);
+  setM("m-bodyfat", d.bodyFat, 1);
+  setM("m-steps", d.steps?Math.round(d.steps).toLocaleString():null);
+  setM("m-activecal", d.activeCalories?Math.round(d.activeCalories):null);
+  setM("m-sleep", d.sleep, 1);
+  setM("m-hrv", d.hrv?Math.round(d.hrv):null);
+
+  const protein=d.protein, carbs=d.carbs, fat=d.fat, cal=d.calories;
+  document.getElementById("m-protein").textContent=protein?`${Math.round(protein)}g`:"—";
+  document.getElementById("m-carbs").textContent=carbs?`${Math.round(carbs)}g`:"—";
+  document.getElementById("m-fat").textContent=fat?`${Math.round(fat)}g`:"—";
+  document.getElementById("m-calories").textContent=cal?`${Math.round(cal)} kcal`:"— kcal";
+  document.getElementById("bar-protein").style.width=protein?Math.min(protein/180*100,100)+"%":"0%";
+  document.getElementById("bar-carbs").style.width=carbs?Math.min(carbs/220*100,100)+"%":"0%";
+  document.getElementById("bar-fat").style.width=fat?Math.min(fat/65*100,100)+"%":"0%";
+}
+
+function setM(id,val,decimals){
+  const el=document.getElementById(id);
+  if(val!==null&&val!==undefined&&val!==""){
+    el.innerHTML=decimals!==undefined?parseFloat(val).toFixed(decimals):val;
+    el.closest(".metric-card")&&el.closest(".metric-card").classList.add("has-data");
+  }else{
+    el.innerHTML='<span class="metric-empty-val">—</span>';
+  }
+}
+
+function getStatus(val,marker){
+  if(!val) return "empty";
+  const[optLow,optHigh]=marker.optimal;
+  const[watchLow,watchHigh]=marker.watch;
+  if(val>=optLow&&val<=optHigh) return "optimal";
+  if(val>=watchLow&&val<=watchHigh) return "watch";
+  return "low";
+}
+
+function renderBiomarkers(){
+  const wrap=document.getElementById("biomarker-categories");
+  wrap.innerHTML="";
+  BIOM_CATS.forEach(cat=>{
+    const div=document.createElement("div");
+    div.className="biomarker-category";
+    const filledCount=cat.markers.filter(m=>bioData[m.id]).length;
+    div.innerHTML=`
+      <div class="biom-cat-header" onclick="toggleCat('cat-${cat.id}',this)">
+        <span class="biom-cat-icon">${cat.icon}</span>
+        <span class="biom-cat-name">${cat.name}</span>
+        <span class="biom-cat-count">${filledCount}/${cat.markers.length}</span>
+        <span class="biom-cat-arrow">›</span>
+      </div>
+      <div class="biom-items" id="cat-${cat.id}">
+        ${cat.markers.map(m=>{
+          const val=bioData[m.id];
+          const status=getStatus(val,m);
+          return`<div class="biom-item">
+            <div class="biom-dot ${status}"></div>
+            <div class="biom-name">${m.name}</div>
+            <div class="biom-value-wrap">
+              ${val?`<div class="biom-value" style="color:${status==='optimal'?'var(--green)':status==='watch'?'var(--yellow)':'var(--red)'}">${val}</div><div class="biom-range">${m.unit}</div>`:`<div class="biom-empty">Not entered</div>`}
+            </div>
+          </div>`;
+        }).join("")}
+      </div>`;
+    wrap.appendChild(div);
+  });
+}
+
+function toggleCat(id,header){
+  const el=document.getElementById(id);
+  el.classList.toggle("open");
+  header.classList.toggle("open");
+}
+
+// ── Manual save ──
+async function saveManual(type){
+  const pw=prompt("Enter your admin password:");
+  if(!pw) return;
+
+  let data={};
+  if(type==="daily"){
+    data={
+      weight:parseFloat(document.getElementById("in-weight").value)||null,
+      bodyFat:parseFloat(document.getElementById("in-bodyfat").value)||null,
+      steps:parseFloat(document.getElementById("in-steps").value)||null,
+      sleep:parseFloat(document.getElementById("in-sleep").value)||null,
+      hrv:parseFloat(document.getElementById("in-hrv").value)||null,
+      activeCalories:parseFloat(document.getElementById("in-activecal").value)||null,
+      protein:parseFloat(document.getElementById("in-protein").value)||null,
+      carbs:parseFloat(document.getElementById("in-carbs").value)||null,
+      fat:parseFloat(document.getElementById("in-fat").value)||null,
+      calories:parseFloat(document.getElementById("in-calories").value)||null,
+    };
+    Object.keys(data).forEach(k=>data[k]===null&&delete data[k]);
+    try{
+      const res=await fetch(`${SERVER}/health/manual`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:pw,data})});
+      const r=await res.json();
+      if(r.success){healthToday={...healthToday,...data};renderDailyMetrics();showToast("✓ Daily data saved!");}
+      else showToast("⚠ Wrong password");
+    }catch(e){showToast("⚠ Saved locally only");}
+  } else {
+    // Lab data — save locally
+    const fields=document.querySelectorAll(`#mp-${type} input`);
+    fields.forEach(f=>{
+      const val=parseFloat(f.value);
+      if(!isNaN(val)&&val!==0) bioData[f.id.replace("in-","")]=val;
+    });
+    saveBio();
+    renderBiomarkers();
+    showToast("✓ Lab data saved!");
+  }
+}
+
+function switchManualTab(tab, el){
+  document.querySelectorAll(".manual-tab").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll(".manual-panel").forEach(p=>p.classList.remove("active"));
+  el.classList.add("active");
+  document.getElementById("mp-"+tab).classList.add("active");
+}
+
+// ── Schedule ──
+let toastTimer;
+function showToast(msg){const el=document.getElementById("toast");el.textContent=msg;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2200);}
+
+function renderTabs(){
+  const wrap=document.getElementById("day-tabs");wrap.innerHTML="";
+  const ti=todayIdx();
+  DAYS.forEach((d,i)=>{
+    const t=document.createElement("div");t.className="day-tab"+(i===activeDay?" active":"");t.dataset.i=i;
+    t.textContent=SHORT[i]+(i===ti?" ·":"");t.onclick=()=>{activeDay=i;render();};wrap.appendChild(t);
+  });
+}
+
+function renderProgress(){
+  const day=DAYS[activeDay],tasks=SCHED[day],total=Object.keys(tasks).length;
+  const done=Object.keys(tasks).filter(t=>checks[`${day}|${t}`]).length;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById("pfill").style.width=pct+"%";
+  document.getElementById("plabel").textContent=`${done} / ${total}`;
+  document.getElementById("all-done").style.display=(done===total&&total>0)?"block":"none";
+}
+
+function renderSchedule(){
+  const wrap=document.getElementById("schedule");wrap.innerHTML="";
+  const day=DAYS[activeDay],tasks=SCHED[day],groups={};
+  TIMES.forEach(t=>{const h=parseHour(t);if(!groups[h])groups[h]=[];groups[h].push(t);});
+  Object.entries(groups).forEach(([h,slots])=>{
+    const hN=parseInt(h),p=hN<12?"AM":"PM",dh=hN===0?12:hN>12?hN-12:hN;
+    const grp=document.createElement("div");grp.className="hour-group";
+    grp.innerHTML=`<div class="hour-label">${dh}:00 ${p}<div class="hour-line"></div></div>`;
+    slots.forEach(t=>{
+      const task=tasks[t]||"",key=`${day}|${t}`,on=!!checks[key];
+      const slot=document.createElement("div");
+      slot.className=`slot${task?" filled":" empty"}${on?" checked":""}`;
+      slot.dataset.key=key;
+      slot.innerHTML=`<div class="slot-time">${t}</div><div class="slot-ring">${on?"✓":""}</div><div class="slot-task">${task||"—"}</div>`;
+      if(task)slot.addEventListener("click",()=>toggle(key));
+      grp.appendChild(slot);
+    });
+    wrap.appendChild(grp);
+  });
+}
+
+function renderDateBadge(){
+  const now=new Date();
+  document.getElementById("date-badge").textContent=`${DAYS[activeDay]}, ${now.toLocaleDateString("en-US",{month:"short",day:"numeric"})}`;
+}
+
+function render(){renderTabs();renderSchedule();renderProgress();renderDateBadge();}
+
+function toggle(key){
+  checks[key]=!checks[key];saveState();
+  const on=checks[key],slot=document.querySelector(`[data-key="${key}"]`);
+  if(slot){slot.classList.toggle("checked",on);slot.querySelector(".slot-ring").textContent=on?"✓":"";slot.querySelector(".slot-task").style.textDecoration=on?"line-through":"none";slot.querySelector(".slot-task").style.color=on?"var(--muted)":"var(--text)";}
+  else render();
+  renderProgress();
+  const day=DAYS[activeDay],tasks=SCHED[day];
+  if(Object.keys(tasks).filter(t=>checks[`${day}|${t}`]).length===Object.keys(tasks).length)showToast("🎉 All done today!");
+}
+
+document.getElementById("reset-btn").addEventListener("click",()=>{
+  const day=DAYS[activeDay];Object.keys(SCHED[day]).forEach(t=>delete checks[`${day}|${t}`]);
+  saveState();render();showToast(`↺ ${day} reset`);
+});
+
+// ── Admin ──
+document.getElementById("admin-btn").addEventListener("click",()=>document.getElementById("admin-overlay").classList.add("open"));
+document.getElementById("admin-cancel").addEventListener("click",()=>{document.getElementById("admin-overlay").classList.remove("open");document.getElementById("admin-status").textContent="";});
+document.getElementById("admin-submit").addEventListener("click",async()=>{
+  const pw=document.getElementById("admin-password").value;
+  const instr=document.getElementById("admin-instruction").value;
+  const status=document.getElementById("admin-status");
+  const btn=document.getElementById("admin-submit");
+  if(!pw||!instr){status.textContent="Please fill in both fields.";status.style.color="var(--red)";return;}
+  btn.disabled=true;btn.textContent="Updating…";
+  status.textContent="Sending to Claude… ~30 seconds ⏳";status.style.color="var(--yellow)";
+  try{
+    const res=await fetch(`${SERVER}/update`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:pw,instruction:instr})});
+    const data=await res.json();
+    if(data.success){status.textContent="✓ Done! Refresh in 30 seconds to see changes.";status.style.color="var(--green)";document.getElementById("admin-instruction").value="";}
+    else{status.textContent=data.error||"Something went wrong.";status.style.color="var(--red)";}
+  }catch(e){status.textContent="Could not reach server.";status.style.color="var(--red)";}
+  btn.disabled=false;btn.textContent="Update My Schedule";
+});
+
+// ── Progress Photos ──
+const ANGLES=[
+  {label:"Front",icon:"🧍",guide:"Stand straight, arms at sides, face the camera directly"},
+  {label:"Side",icon:"🧍",guide:"Turn 90° to the right, stand tall, arms relaxed"},
+  {label:"Back",icon:"🧍",guide:"Turn around completely, stand straight, arms at sides"},
+];
+let captureStep=0, capturedPhotos=[], captureStream=null, photoSessions=[];
+
+function loadPhotoSessions(){
+  try{photoSessions=JSON.parse(localStorage.getItem("photo_sessions")||"[]");}catch(e){photoSessions=[];}
+}
+function savePhotoSessions(){
+  try{localStorage.setItem("photo_sessions",JSON.stringify(photoSessions));}catch(e){showToast("⚠ Storage full — clear old photos");}
+}
+
+function checkMonthlyReminder(){
+  const now=new Date();
+  const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+  const hasThisMonth=photoSessions.some(s=>s.month===thisMonth);
+  const banner=document.getElementById("photo-banner");
+  const subtitle=document.getElementById("photo-next-due");
+  if(hasThisMonth){
+    banner.style.display="none";
+    const next=new Date(now.getFullYear(),now.getMonth()+1,1);
+    subtitle.textContent=`Next session: ${next.toLocaleDateString("en-US",{month:"long",day:"numeric"})}`;
+  } else {
+    banner.style.display="flex";
+    subtitle.textContent="Monthly — tap below to capture this month";
+  }
+}
+
+function renderSessions(){
+  loadPhotoSessions();
+  checkMonthlyReminder();
+  const list=document.getElementById("sessions-list");
+  if(photoSessions.length===0){
+    list.innerHTML=`<div class="no-sessions"><span class="no-sessions-icon">📷</span>No photos yet.<br>Take your first session to start<br>tracking your transformation.</div>`;
+    return;
+  }
+  list.innerHTML=[...photoSessions].reverse().map(session=>`
+    <div class="session-card">
+      <div class="session-header">
+        <div class="session-date">${session.dateLabel}</div>
+        ${session.weight?`<div class="session-weight">⚖️ ${session.weight} lbs</div>`:""}
+      </div>
+      <div class="session-photos">
+        ${ANGLES.map((a,i)=>session.photos[i]?`
+          <div class="session-photo" onclick="openLightbox('${session.photos[i]}','${a.label} — ${session.dateLabel}')">
+            <img src="${session.photos[i]}" loading="lazy"/>
+            <div class="session-photo-label">${a.label}</div>
+          </div>`:`
+          <div class="session-photo">
+            <div class="session-photo-empty">
+              <div class="session-photo-empty-icon">📷</div>
+              <div class="session-photo-empty-text">${a.label}</div>
+            </div>
+          </div>`
+        ).join("")}
+      </div>
+    </div>`).join("");
+}
+
+async function startCapture(){
+  captureStep=0; capturedPhotos=[];
+  document.getElementById("capture-overlay").classList.add("open");
+  updateCaptureUI();
+  await startCamera();
+}
+
+async function startCamera(){
+  try{
+    captureStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1080},height:{ideal:1440}},audio:false});
+    const video=document.getElementById("capture-video");
+    video.srcObject=captureStream;
+    video.style.display="block";
+    document.getElementById("capture-img").style.display="none";
+    document.getElementById("capture-placeholder").style.display="none";
+  }catch(e){
+    showToast("⚠ Camera access denied — use Upload instead");
+    document.getElementById("capture-placeholder").innerHTML=`<div style="font-size:13px;color:var(--muted);text-align:center;padding:20px;">Camera not available.<br><br><button onclick="uploadPhoto()" style="background:var(--green);color:#000;border:none;padding:10px 20px;border-radius:10px;font-weight:700;cursor:pointer;font-family:inherit;">Upload Photo</button></div>`;
+  }
+}
+
+function updateCaptureUI(){
+  const a=ANGLES[captureStep];
+  document.getElementById("capture-step-label").textContent=`Step ${captureStep+1} of 3`;
+  document.getElementById("capture-guide-title").textContent=`${a.icon} ${a.label} View`;
+  document.getElementById("capture-guide-sub").textContent=a.guide;
+  document.getElementById("capture-actions-shoot").style.display="flex";
+  document.getElementById("capture-actions-review").style.display="none";
+  document.getElementById("capture-next-btn").textContent=captureStep===2?"Save Session ✓":"Next →";
+  [0,1,2].forEach(i=>{
+    const pip=document.getElementById("pip-"+i);
+    pip.className="capture-pip"+(i<captureStep?" done":i===captureStep?" active":"");
+  });
+}
+
+function shootPhoto(){
+  const video=document.getElementById("capture-video");
+  const canvas=document.createElement("canvas");
+  canvas.width=video.videoWidth||640; canvas.height=video.videoHeight||853;
+  canvas.getContext("2d").drawImage(video,0,0);
+  capturedPhotos[captureStep]=canvas.toDataURL("image/jpeg",0.7);
+  const img=document.getElementById("capture-img");
+  img.src=capturedPhotos[captureStep]; img.style.display="block";
+  video.style.display="none";
+  document.getElementById("capture-actions-shoot").style.display="none";
+  document.getElementById("capture-actions-review").style.display="flex";
+}
+
+function uploadPhoto(){
+  const input=document.createElement("input");
+  input.type="file"; input.accept="image/*";
+  input.onchange=e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      capturedPhotos[captureStep]=ev.target.result;
+      const img=document.getElementById("capture-img");
+      img.src=ev.target.result; img.style.display="block";
+      document.getElementById("capture-placeholder").style.display="none";
+      document.getElementById("capture-actions-shoot").style.display="none";
+      document.getElementById("capture-actions-review").style.display="flex";
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function retakePhoto(){
+  capturedPhotos[captureStep]=null;
+  const video=document.getElementById("capture-video");
+  video.style.display="block";
+  document.getElementById("capture-img").style.display="none";
+  document.getElementById("capture-actions-shoot").style.display="flex";
+  document.getElementById("capture-actions-review").style.display="none";
+}
+
+async function nextStep(){
+  if(captureStep<2){
+    captureStep++;
+    updateCaptureUI();
+    const video=document.getElementById("capture-video");
+    video.style.display="block";
+    document.getElementById("capture-img").style.display="none";
+    document.getElementById("capture-actions-shoot").style.display="flex";
+    document.getElementById("capture-actions-review").style.display="none";
+  } else {
+    saveSession();
+  }
+}
+
+function saveSession(){
+  const now=new Date();
+  const session={
+    id:Date.now(),
+    month:`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`,
+    date:now.toISOString(),
+    dateLabel:now.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}),
+    weight:healthToday.weight||null,
+    photos:capturedPhotos,
+  };
+  photoSessions.push(session);
+  savePhotoSessions();
+  closeCapture();
+  showToast("✓ Photos saved!");
+  renderSessions();
+}
+
+function closeCapture(){
+  if(captureStream){captureStream.getTracks().forEach(t=>t.stop());captureStream=null;}
+  document.getElementById("capture-overlay").classList.remove("open");
+  document.getElementById("capture-video").style.display="none";
+  document.getElementById("capture-img").style.display="none";
+  document.getElementById("capture-placeholder").style.display="block";
+}
+
+function openLightbox(src,label){
+  document.getElementById("lightbox-img").src=src;
+  document.getElementById("lightbox-label").textContent=label;
+  document.getElementById("lightbox").classList.add("open");
+}
+function closeLightbox(){document.getElementById("lightbox").classList.remove("open");}
+
+// ── Boot ──
+try {
+  activeDay=todayIdx();
+  loadState();
+  loadPhotoSessions();
+  render();
+  const now=new Date(),ch=now.getHours(),cp=ch<12?"AM":"PM",cdh=ch===0?12:ch>12?ch-12:ch,target=`${cdh}:00 ${cp}`;
+  setTimeout(()=>{document.querySelectorAll(".slot-time").forEach(el=>{if(el.textContent.trim()===target)el.closest(".slot").scrollIntoView({behavior:"smooth",block:"center"});});},400);
+} catch(e) {
+  console.error("Boot error:", e);
+  // Show basic fallback so app isn't blank
+  document.getElementById("schedule").innerHTML = '<div style="padding:20px;color:#6b6b80;text-align:center;">Loading... please refresh</div>';
+}
+</script>
+</body>
+</html>
