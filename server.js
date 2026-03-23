@@ -141,7 +141,7 @@ app.post("/update", async (req, res) => {
     const { content, sha } = await getFile();
 
     // Extract just the SCHED object - only modify schedule data, never touch HTML
-    const schedMatch = content.match(/const SCHED=(\{[\s\S]*?\n\};)/);
+    const schedMatch = content.match(/const SCHED=(\{[^\n]*\n(?:  \w+:\{[^\n]*\},?\n)*\});/);
     if(!schedMatch) return res.status(500).json({ error:"Could not find schedule data" });
     const currentSched = schedMatch[1];
 
@@ -159,7 +159,7 @@ app.post("/update", async (req, res) => {
     }
 
     // Only replace the SCHED object, leave all HTML/CSS/JS untouched
-    const updatedContent = content.replace(/const SCHED=\{[\s\S]*?\n\};/, `const SCHED=${newSched};`);
+    const updatedContent = content.replace(/const SCHED=\{[^\n]*\n(?:  \w+:\{[^\n]*\},?\n)*\};/, `const SCHED=${newSched};`);
 
     if(updatedContent === content) {
       return res.status(500).json({ error:"Schedule update failed — please try again" });
