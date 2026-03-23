@@ -154,7 +154,11 @@ app.post("/update", async (req, res) => {
       model:"claude-sonnet-4-20250514", max_tokens:16000,
       messages:[{ role:"user", content:`You are editing a weekly schedule web app. Here is the COMPLETE current index.html file:\n\n${content}\n\nInstruction: ${instruction}\n\nRules:\n1. Return the COMPLETE updated index.html file - do not truncate or shorten it\n2. Only change what the instruction asks\n3. Keep every single other line exactly as is\n4. No explanation, no markdown, just the raw complete HTML` }]
     });
-    const updatedContent = message.content[0].text;
+    let updatedContent = message.content[0].text;
+    updatedContent = updatedContent.replace(/^```html\n?/i, "").replace(/^```\n?/i, "").replace(/\n?```$/i, "").trim();
+    if(!updatedContent.includes("<!DOCTYPE") && !updatedContent.includes("<html")) {
+      return res.status(500).json({ error:"AI returned invalid HTML" });
+    }
     await updateFile("index.html", updatedContent, sha, `Update: ${instruction}`);
     res.json({ success:true, message:"Schedule updated! Changes live in ~30 seconds." });
   }catch(e){ res.status(500).json({ error:e.message }); }
