@@ -11,14 +11,52 @@ const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_KEY;
 const GITHUB_REPO = process.env.GITHUB_REPO;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const client = new Anthropic({ apiKey: ANTHROPIC_KEY });
 
-const DATA_FILE = "/tmp/health_data.json";
 const DEBUG_FILE = "/tmp/last_payload.json";
 
-function loadHealthData(){ try{ return JSON.parse(fs.readFileSync(DATA_FILE,"utf8")); }catch(e){ return {}; } }
-function saveHealthData(d){ try{ fs.writeFileSync(DATA_FILE,JSON.stringify(d)); }catch(e){} }
+// ── Supabase health data (persistent) ──
+async function loadHealthData() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/health_data?select=*`, {
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json"
+      }
+    });
+    const rows = await res.json();
+    const data = {};
+    if (Array.isArray(rows)) {
+      rows.forEach(row => { data[row.date] = row.data; });
+    }
+    return data;
+  } catch(e) {
+    console.error("Supabase load error:", e);
+    return {};
+  }
+}
 
+async function saveHealthDay(date, dayData) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/health_data`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates"
+      },
+      body: JSON.stringify({ date, data: dayData })
+    });
+  } catch(e) {
+    console.error("Supabase save error:", e);
+  }
+}
+
+// ── Parse Health Auto Export v2 ──
 function parseHAEPayload(payload) {
   const metrics = payload?.data?.metrics || [];
   const result = {};
@@ -27,66 +65,50 @@ function parseHAEPayload(payload) {
     const data = metric.data || [];
     switch(name) {
       case "weight_body_mass":
-        const wEntry = data[data.length-1];
-        if(wEntry) result.weight = wEntry.qty;
-        break;
+        const w = data[data.length-1]; if(w) result.weight = w.qty; break;
       case "body_fat_percentage":
-        const bfEntry = data[data.length-1];
-        if(bfEntry) result.bodyFat = bfEntry.qty;
-        break;
+        const bf = data[data.length-1]; if(bf) result.bodyFat = bf.qty; break;
       case "body_mass_index":
-        const bmiEntry = data[data.length-1];
-        if(bmiEntry) result.bmi = bmiEntry.qty;
-        break;
+        const bmi = data[data.length-1]; if(bmi) result.bmi = bmi.qty; break;
       case "step_count":
-        result.steps = data.reduce((sum,d)=>sum+(d.qty||0),0);
-        break;
+        result.steps = data.reduce((s,d)=>s+(d.qty||0),0); break;
       case "active_energy":
-        result.activeCalories = data.reduce((sum,d)=>sum+(d.qty||0),0);
-        break;
+        result.activeCalories = data.reduce((s,d)=>s+(d.qty||0),0); break;
       case "heart_rate_variability":
-        if(data.length>0) result.hrv = data.reduce((sum,d)=>sum+(d.qty||0),0)/data.length;
-        break;
+        if(data.length>0) result.hrv = data.reduce((s,d)=>s+(d.qty||0),0)/data.length; break;
       case "heart_rate":
-        if(data.length>0) result.restingHR = data.reduce((sum,d)=>sum+(d.Avg||d.qty||0),0)/data.length;
-        break;
+        if(data.length>0) result.restingHR = data.reduce((s,d)=>s+(d.Avg||d.qty||0),0)/data.length; break;
       case "sleep_analysis":
-        const s = data[0];
-        if(s){ result.sleep=s.totalSleep||s.asleep||0; result.sleepDeep=s.deep||0; result.sleepREM=s.rem||0; result.sleepCore=s.core||0; result.sleepAwake=s.awake||0; }
-        break;
+        const sl = data[0];
+        if(sl){ result.sleep=sl.totalSleep||0; result.sleepDeep=sl.deep||0; result.sleepREM=sl.rem||0; result.sleepCore=sl.core||0; result.sleepAwake=sl.awake||0; } break;
       case "respiratory_rate":
-        if(data.length>0) result.respiratoryRate = data.reduce((sum,d)=>sum+(d.qty||0),0)/data.length;
-        break;
+        if(data.length>0) result.respiratoryRate = data.reduce((s,d)=>s+(d.qty||0),0)/data.length; break;
       case "walking_running_distance":
-        result.distance = data.reduce((sum,d)=>sum+(d.qty||0),0);
-        break;
-      case "dietary_protein":
-        result.protein = data.reduce((sum,d)=>sum+(d.qty||0),0); break;
-      case "dietary_carbohydrates":
-        result.carbs = data.reduce((sum,d)=>sum+(d.qty||0),0); break;
-      case "dietary_fat_total":
-        result.fat = data.reduce((sum,d)=>sum+(d.qty||0),0); break;
-      case "dietary_energy":
-        result.calories = data.reduce((sum,d)=>sum+(d.qty||0),0); break;
+        result.distance = data.reduce((s,d)=>s+(d.qty||0),0); break;
+      case "dietary_protein": result.protein = data.reduce((s,d)=>s+(d.qty||0),0); break;
+      case "dietary_carbohydrates": result.carbs = data.reduce((s,d)=>s+(d.qty||0),0); break;
+      case "dietary_fat_total": result.fat = data.reduce((s,d)=>s+(d.qty||0),0); break;
+      case "dietary_energy": result.calories = data.reduce((s,d)=>s+(d.qty||0),0); break;
     }
   });
   return result;
 }
 
-app.post("/health", (req, res) => {
+// ── Health webhook ──
+app.post("/health", async (req, res) => {
   const payload = req.body;
   const today = new Date().toISOString().split("T")[0];
   try{ fs.writeFileSync(DEBUG_FILE, JSON.stringify(payload,null,2)); }catch(e){}
   const update = parseHAEPayload(payload);
   update.date = today;
   update.lastSync = new Date().toISOString();
-  const healthData = loadHealthData();
-  healthData[today] = { ...(healthData[today]||{}), ...update };
-  saveHealthData(healthData);
+  const healthData = await loadHealthData();
+  const merged = { ...(healthData[today]||{}), ...update };
+  await saveHealthDay(today, merged);
   res.json({ success:true, date:today, parsed:update });
 });
 
-app.post("/debug", (req, res) => {
+app.post("/debug", async (req, res) => {
   try{ fs.writeFileSync(DEBUG_FILE, JSON.stringify(req.body,null,2)); }catch(e){}
   const parsed = parseHAEPayload(req.body);
   res.json({ success:true, parsed });
@@ -97,8 +119,8 @@ app.get("/debug", (req, res) => {
   catch(e){ res.json({ message:"No debug data yet" }); }
 });
 
-app.get("/health", (req, res) => {
-  const healthData = loadHealthData();
+app.get("/health", async (req, res) => {
+  const healthData = await loadHealthData();
   const today = new Date().toISOString().split("T")[0];
   const last7 = {};
   for(let i=0;i<7;i++){
@@ -109,16 +131,17 @@ app.get("/health", (req, res) => {
   res.json({ today:healthData[today]||{}, history:last7 });
 });
 
-app.post("/health/manual", (req, res) => {
+app.post("/health/manual", async (req, res) => {
   const { password, data } = req.body;
   if(password!==ADMIN_PASSWORD) return res.status(401).json({ error:"Wrong password" });
   const today = new Date().toISOString().split("T")[0];
-  const healthData = loadHealthData();
-  healthData[today] = { ...(healthData[today]||{}), ...data, date:today };
-  saveHealthData(healthData);
+  const healthData = await loadHealthData();
+  const merged = { ...(healthData[today]||{}), ...data, date:today };
+  await saveHealthDay(today, merged);
   res.json({ success:true });
 });
 
+// ── Schedule update (only modifies SCHED data, never touches HTML) ──
 async function getFile(){
   const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/index.html`,
     { headers:{ Authorization:`token ${GITHUB_TOKEN}`, Accept:"application/vnd.github.v3+json" }});
@@ -139,8 +162,6 @@ app.post("/update", async (req, res) => {
   if(password!==ADMIN_PASSWORD) return res.status(401).json({ error:"Wrong password" });
   try{
     const { content, sha } = await getFile();
-
-    // Extract just the SCHED object - only modify schedule data, never touch HTML
     const schedMatch = content.match(/const SCHED=(\{[^\n]*\n(?:  \w+:\{[^\n]*\},?\n)*\});/);
     if(!schedMatch) return res.status(500).json({ error:"Could not find schedule data" });
     const currentSched = schedMatch[1];
@@ -158,8 +179,10 @@ app.post("/update", async (req, res) => {
       return res.status(500).json({ error:"AI returned invalid schedule — please try again" });
     }
 
-    // Only replace the SCHED object, leave all HTML/CSS/JS untouched
-    const updatedContent = content.replace(/const SCHED=\{[^\n]*\n(?:  \w+:\{[^\n]*\},?\n)*\};/, `const SCHED=${newSched};`);
+    const updatedContent = content.replace(
+      /const SCHED=\{[^\n]*\n(?:  \w+:\{[^\n]*\},?\n)*\};/,
+      `const SCHED=${newSched};`
+    );
 
     if(updatedContent === content) {
       return res.status(500).json({ error:"Schedule update failed — please try again" });
