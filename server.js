@@ -30,7 +30,7 @@ async function loadHealthData() {
     const rows = await res.json();
     const data = {};
     if (Array.isArray(rows)) {
-      rows.forEach(row => { data[row.Date] = row.Data; });
+      rows.forEach(row => { data[row.date] = row.data; });
     }
     return data;
   } catch(e) {
@@ -49,7 +49,7 @@ async function saveHealthDay(date, dayData) {
         "Content-Type": "application/json",
         "Prefer": "resolution=merge-duplicates"
       },
-      body: JSON.stringify({ "Date": date, "Data": dayData })
+      body: JSON.stringify({ date, data: dayData })
     });
   } catch(e) {
     console.error("Supabase save error:", e);
