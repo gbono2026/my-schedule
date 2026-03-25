@@ -232,6 +232,49 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .lightbox img{max-width:100%;max-height:80vh;object-fit:contain;border-radius:12px;}
 .lightbox-close{position:absolute;top:20px;right:20px;font-size:28px;color:white;cursor:pointer;opacity:0.7;}
 .lightbox-label{margin-top:12px;font-size:12px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+
+/* ── WEIGHT TREND CHART ── */
+.sparkline-wrap{margin-top:8px;}
+.sparkline-label{font-size:9px;color:var(--muted);margin-bottom:3px;letter-spacing:0.5px;}
+.sparkline{display:flex;align-items:flex-end;gap:2px;height:28px;}
+.spark-bar{flex:1;border-radius:2px;background:var(--green);opacity:0.6;min-height:3px;transition:height 0.4s ease;}
+.spark-bar.today{opacity:1;}
+
+/* ── SLEEP BREAKDOWN ── */
+.sleep-breakdown{display:flex;gap:6px;margin-top:8px;}
+.sleep-stage{flex:1;text-align:center;}
+.sleep-stage-val{font-size:11px;font-weight:700;color:var(--text);}
+.sleep-stage-label{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+
+/* ── DAILY SCORES ── */
+.scores-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:10px;}
+.scores-title{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;}
+.score-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.score-row:last-child{margin-bottom:0;}
+.score-label{font-size:12px;font-weight:600;min-width:60px;}
+.score-pips{display:flex;gap:3px;flex:1;}
+.score-pip{flex:1;height:20px;border-radius:4px;background:var(--border);cursor:pointer;transition:background 0.15s;border:none;}
+.score-pip.active-1,.score-pip.active-2,.score-pip.active-3{background:var(--red);}
+.score-pip.active-4,.score-pip.active-5,.score-pip.active-6{background:var(--yellow);}
+.score-pip.active-7,.score-pip.active-8{background:var(--blue);}
+.score-pip.active-9,.score-pip.active-10{background:var(--green);}
+.score-val{font-size:13px;font-weight:700;min-width:20px;text-align:right;font-variant-numeric:tabular-nums;}
+
+/* ── GRATITUDE STREAK ── */
+.streak-card{background:linear-gradient(135deg,var(--surface2),var(--surface3));border:1px solid var(--border2);border-radius:16px;padding:16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;}
+.streak-flame{font-size:32px;}
+.streak-info{flex:1;}
+.streak-num{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;line-height:1;}
+.streak-sub{font-size:11px;color:var(--muted2);margin-top:2px;}
+
+/* ── FUNCTION IMPORT ── */
+.import-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:6px;}
+.import-title{font-size:13px;font-weight:700;margin-bottom:4px;}
+.import-sub{font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.6;}
+.import-steps{font-size:11px;color:var(--muted2);margin-bottom:12px;line-height:2;}
+.import-btn{width:100%;padding:12px;border-radius:12px;border:none;background:var(--purple);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity 0.2s;}
+.import-btn:active{opacity:0.8;}
+.import-input{display:none;}
 /* Admin */
 .admin-btn{position:fixed;bottom:80px;right:16px;width:42px;height:42px;border-radius:50%;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:200;box-shadow:0 4px 20px rgba(0,0,0,0.4);}
 .admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-end;justify-content:center;padding:0;}
@@ -285,7 +328,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
   <div class="dash-wrap">
     <div class="setup-banner" id="setup-banner">
       <div class="setup-title">🔗 Connect Health Auto Export</div>
-      <div class="setup-text">Install <strong>Health Auto Export</strong> on iPhone → Automations → REST API → <strong>https://schedule-server-knk2.onrender.com/health</strong> to auto-sync your Apple Health data daily.</div>
+      <div class="setup-text">Install <strong>Health Auto Export</strong> on iPhone → Automations → REST API → <strong>https://my-schedule-server-production.up.railway.app/health</strong> to auto-sync your Apple Health data daily.</div>
     </div>
 
     <button class="refresh-btn" onclick="loadHealthData()">↻ Refresh Data</button>
@@ -298,6 +341,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <div class="metric-label">Weight</div>
         <div class="metric-value-row"><div class="metric-value" id="m-weight"><span class="metric-empty-val">—</span></div><div class="metric-unit">lbs</div></div>
         <div class="metric-trend" id="t-weight"></div>
+        <div class="sparkline-wrap"><div class="sparkline-label">7-day trend</div><div class="sparkline" id="weight-sparkline"></div></div>
       </div>
       <div class="metric-card" id="card-bodyfat">
         <div class="metric-accent" style="background:var(--blue)"></div>
@@ -333,6 +377,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <div class="metric-label">Sleep</div>
         <div class="metric-value-row"><div class="metric-value" id="m-sleep"><span class="metric-empty-val">—</span></div><div class="metric-unit">hrs</div></div>
         <div class="metric-trend" id="t-sleep"></div>
+        <div class="sleep-breakdown" id="sleep-breakdown"></div>
       </div>
       <div class="metric-card" id="card-hrv">
         <div class="metric-accent" style="background:var(--teal)"></div>
@@ -363,10 +408,49 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       </div>
     </div>
 
+
+    <!-- DAILY SCORES -->
+    <div class="dash-section"><div class="dash-section-label">Daily Check-In</div><div class="dash-section-line"></div></div>
+    <div class="streak-card">
+      <div class="streak-flame">🔥</div>
+      <div class="streak-info">
+        <div class="streak-num" id="streak-num">0</div>
+        <div class="streak-sub">day gratitude streak</div>
+      </div>
+    </div>
+    <div class="scores-card">
+      <div class="scores-title">How are you feeling today?</div>
+      <div class="score-row">
+        <div class="score-label">⚡ Energy</div>
+        <div class="score-pips" id="pips-energy"></div>
+        <div class="score-val" id="val-energy">—</div>
+      </div>
+      <div class="score-row">
+        <div class="score-label">😊 Mood</div>
+        <div class="score-pips" id="pips-mood"></div>
+        <div class="score-val" id="val-mood">—</div>
+      </div>
+      <div class="score-row">
+        <div class="score-label">🎯 Focus</div>
+        <div class="score-pips" id="pips-focus"></div>
+        <div class="score-val" id="val-focus">—</div>
+      </div>
+    </div>
+
     <!-- FUNCTION HEALTH BIOMARKERS -->
     <div class="dash-section"><div class="dash-section-label">Function Health Labs</div><div class="dash-section-line"></div></div>
 
     <div id="biomarker-categories"></div>
+
+
+    <!-- FUNCTION HEALTH IMPORT -->
+    <div class="import-card">
+      <div class="import-title">📥 Import Function Health Labs</div>
+      <div class="import-sub">Use the free Chrome extension to export your labs in one click, then import them here.</div>
+      <div class="import-steps">1. Install <strong>Personal Health Data Tool</strong> on Chrome<br>2. Go to my.functionhealth.com/biomarkers<br>3. Click extension → Extract → Export as JSON<br>4. Click Import below</div>
+      <button class="import-btn" onclick="document.getElementById('function-import-input').click()">Import Function Health JSON</button>
+      <input type="file" id="function-import-input" class="import-input" accept=".json,application/json" onchange="importFunctionHealth(event)">
+    </div>
 
     <!-- MANUAL ENTRY -->
     <div class="manual-card">
@@ -561,13 +645,13 @@ function genTimes(){const s=[];let h=8,m=0;while(true){const p=h<12?"AM":"PM",dh
 const TIMES=genTimes();
 
 const SCHED={
-  Monday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","9:50 AM":"Morning Scalp Massage","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Tuesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","9:50 AM":"Morning Scalp Massage","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Wednesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","4:00 PM":"Neck Exercises","4:10 PM":"Scalp Stretch","4:30 PM":"FaceTime Family","5:00 PM":"Relaxation (Reading / Video Games / Walk)","6:00 PM":"Shampoo","6:10 PM":"Scalp Massage","6:15 PM":"Deep Conditioner","6:20 PM":"Fascial Head Massage","7:00 PM":"Peloton","7:30 PM":"Ketamine Assisted Therapy","9:00 PM":"Brush Teeth","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Thursday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","9:50 AM":"Morning Scalp Massage","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","5:00 PM":"Take Out Trash","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Friday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","4:00 PM":"Shampoo","4:05 PM":"Scalp Massage","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Saturday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Neck Exercises","9:30 AM":"Scalp Stretch","9:50 AM":"Morning Scalp Massage","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","5:00 PM":"Gym (5–6 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Sunday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Biking","11:00 AM":"FaceTime Family","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","1:00 PM":"Laundry","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","5:00 PM":"Take Out Trash","7:00 PM":"Meal Prep","8:00 PM":"Shampoo","8:05 PM":"Scalp Massage","8:10 PM":"Coconut Oil / Castor Oil","8:20 PM":"Rice Water Mix","8:30 PM":"Hair Mask","8:40 PM":"Fascial Head Massage","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"}
+  Monday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Tuesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Wednesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","4:00 PM":"Neck Exercises","4:10 PM":"Scalp Stretch","4:30 PM":"FaceTime Family","5:00 PM":"Relaxation (Reading / Video Games / Walk)","6:00 PM":"Shampoo","6:10 PM":"Deep Conditioner","6:20 PM":"Fascial Head Massage","7:00 PM":"Peloton","7:30 PM":"Ketamine Assisted Therapy","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Thursday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","5:00 PM":"Take Out Trash","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Friday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","4:00 PM":"Shampoo","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Saturday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Neck Exercises","9:30 AM":"Scalp Stretch","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","5:00 PM":"Gym (5–6 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Sunday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Biking","11:00 AM":"FaceTime Family","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","1:00 PM":"Laundry","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","5:00 PM":"Take Out Trash","7:00 PM":"Meal Prep","8:00 PM":"Shampoo","8:10 PM":"Coconut Oil / Castor Oil","8:20 PM":"Rice Water Mix","8:30 PM":"Hair Mask","8:40 PM":"Fascial Head Massage","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
 };
 
 // ── Biomarker definitions ──
@@ -668,7 +752,7 @@ async function loadHealthData(){
     const data=await res.json();
     healthToday=data.today||{};
     if(Object.keys(healthToday).length>0) document.getElementById("setup-banner").style.display="none";
-    renderDailyMetrics();
+    renderDailyMetrics(data.history||{});
     showToast("✓ Data refreshed");
   }catch(e){showToast("⚠ Using cached data");}
 }
@@ -677,10 +761,14 @@ function renderHealthView(){
   setGreeting();
   renderDailyMetrics();
   renderBiomarkers();
+  loadScores();
+  renderStreak();
 }
 
-function renderDailyMetrics(){
+function renderDailyMetrics(history={}){
   const d=healthToday;
+  renderSparkline(history);
+  renderSleepBreakdown(d);
   setM("m-weight", d.weight, 1);
   setM("m-bodyfat", d.bodyFat, 1);
   setM("m-steps", d.steps?Math.round(d.steps).toLocaleString():null);
@@ -1068,6 +1156,156 @@ function openLightbox(src,label){
   document.getElementById("lightbox").classList.add("open");
 }
 function closeLightbox(){document.getElementById("lightbox").classList.remove("open");}
+
+
+// ── Daily Scores ──
+const SCORES = ['energy','mood','focus'];
+let dailyScores = {};
+
+function loadScores(){
+  const today = new Date().toISOString().split('T')[0];
+  try{ dailyScores = JSON.parse(localStorage.getItem('daily_scores')||'{}'); }catch(e){ dailyScores={}; }
+  SCORES.forEach(s => renderPips(s, dailyScores[today]?.[s]||0));
+}
+
+function renderPips(name, val){
+  const wrap = document.getElementById('pips-'+name);
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  for(let i=1;i<=10;i++){
+    const pip = document.createElement('button');
+    pip.className = 'score-pip' + (i<=val?' active-'+i:'');
+    pip.onclick = ()=>setScore(name,i);
+    wrap.appendChild(pip);
+  }
+  const valEl = document.getElementById('val-'+name);
+  if(valEl) valEl.textContent = val||'—';
+}
+
+function setScore(name, val){
+  const today = new Date().toISOString().split('T')[0];
+  if(!dailyScores[today]) dailyScores[today]={};
+  dailyScores[today][name] = val;
+  try{ localStorage.setItem('daily_scores', JSON.stringify(dailyScores)); }catch(e){}
+  renderPips(name, val);
+  showToast('✓ Score saved');
+}
+
+// ── Gratitude Streak ──
+function calcStreak(){
+  try{
+    const checks = JSON.parse(localStorage.getItem('sched_checks')||'{}');
+    let streak = 0;
+    const now = new Date();
+    for(let i=0;i<365;i++){
+      const d = new Date(now); d.setDate(now.getDate()-i);
+      const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
+      const timeKey = '10:00 PM';
+      const key = `${dayName}|${timeKey}`;
+      if(checks[key]) streak++;
+      else if(i>0) break;
+    }
+    return streak;
+  }catch(e){ return 0; }
+}
+
+function renderStreak(){
+  const streak = calcStreak();
+  const el = document.getElementById('streak-num');
+  if(el) el.textContent = streak;
+}
+
+// ── Weight Sparkline ──
+function renderSparkline(history){
+  const wrap = document.getElementById('weight-sparkline');
+  if(!wrap) return;
+  const weights = Object.entries(history)
+    .sort((a,b)=>a[0].localeCompare(b[0]))
+    .slice(-7)
+    .map(([date,d])=>d.weight)
+    .filter(Boolean);
+  if(weights.length < 2){ wrap.innerHTML=''; return; }
+  const min = Math.min(...weights), max = Math.max(...weights);
+  const range = max-min || 1;
+  wrap.innerHTML = weights.map((w,i)=>{
+    const pct = Math.round(((w-min)/range)*80)+10;
+    return `<div class="spark-bar${i===weights.length-1?' today':''}" style="height:${pct}%" title="${w.toFixed(1)} lbs"></div>`;
+  }).join('');
+}
+
+// ── Sleep Breakdown ──
+function renderSleepBreakdown(d){
+  const wrap = document.getElementById('sleep-breakdown');
+  if(!wrap) return;
+  if(!d.sleepDeep && !d.sleepREM){ wrap.innerHTML=''; return; }
+  wrap.innerHTML = `
+    <div class="sleep-stage"><div class="sleep-stage-val" style="color:var(--purple)">${d.sleepDeep?.toFixed(1)||'—'}</div><div class="sleep-stage-label">Deep</div></div>
+    <div class="sleep-stage"><div class="sleep-stage-val" style="color:var(--blue)">${d.sleepREM?.toFixed(1)||'—'}</div><div class="sleep-stage-label">REM</div></div>
+    <div class="sleep-stage"><div class="sleep-stage-val" style="color:var(--teal)">${d.sleepCore?.toFixed(1)||'—'}</div><div class="sleep-stage-label">Core</div></div>
+  `;
+}
+
+// ── Function Health Import ──
+function importFunctionHealth(event){
+  const file = event.target.files[0];
+  if(!file){ return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try{
+      const raw = JSON.parse(e.target.result);
+      // Handle both array format and object format from Chrome extension
+      const rows = Array.isArray(raw) ? raw : (raw.data || raw.results || []);
+      let imported = 0;
+      rows.forEach(row => {
+        const name = (row.Biomarker||row.name||row.biomarker||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+        const val = parseFloat(row.Value||row.value||row.result||row.qty||0);
+        if(!name || !val || isNaN(val)) return;
+        // Map common names to our IDs
+        const map = {
+          'apob':'apob','apolipoproteinb':'apob',
+          'ldlcholesterol':'ldl','ldl':'ldl',
+          'hdlcholesterol':'hdl','hdl':'hdl',
+          'triglycerides':'trig',
+          'hscrp':'crp','crp':'crp','hsCRP':'crp',
+          'homocysteine':'homocys',
+          'lpa':'lpa','lipoproteina':'lpa',
+          'testosterone':'testo','totaltestosterone':'testo',
+          'freetestosterone':'freetesto',
+          'cortisol':'cortisol',
+          'dheas':'dhea','dhea':'dhea',
+          'estradiol':'estradiol',
+          'igf1':'igf1',
+          'insulin':'insulin','fastinginsulin':'insulin',
+          'hba1c':'hba1c','hemoglobina1c':'hba1c',
+          'tsh':'tsh',
+          'freet3':'ft3','ft3':'ft3',
+          'freet4':'ft4','ft4':'ft4',
+          'tpoantibodies':'tpo','tpo':'tpo',
+          'vitamind':'vitd','vitamind25':'vitd',
+          'vitaminb12':'b12','b12':'b12',
+          'ferritin':'ferritin',
+          'iron':'iron',
+          'creatinine':'creatinine',
+          'egfr':'egfr',
+          'alt':'alt','alanineaminotransferase':'alt',
+          'ast':'ast','aspartateaminotransferase':'ast',
+          'glucose':'glucose','fastingglucose':'glucose',
+          'omega3index':'omega3','omega3':'omega3',
+        };
+        const id = map[name];
+        if(id){ bioData[id] = val; imported++; }
+      });
+      saveBio();
+      renderBiomarkers();
+      showToast(`✓ Imported ${imported} biomarkers!`);
+      event.target.value = '';
+    }catch(err){
+      showToast('⚠ Invalid JSON file — try re-exporting');
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+}
 
 // ── Boot ──
 try {
