@@ -1253,9 +1253,16 @@ function importFunctionHealth(event){
   reader.onload = (e) => {
     try{
       const raw = JSON.parse(e.target.result);
-      const rows = Array.isArray(raw) ? raw : (raw.data || raw.results || raw.biomarkers || []);
+      // Handle nested categories format from Function Health Chrome extension
+      let rows = [];
+      if(raw.categories) {
+        Object.values(raw.categories).forEach(cat => {
+          if(cat.biomarkers) rows = rows.concat(cat.biomarkers);
+        });
+      } else {
+        rows = Array.isArray(raw) ? raw : (raw.data || raw.results || raw.biomarkers || []);
+      }
       let imported = 0;
-      // Very comprehensive name map — handles full names, abbreviations, with/without parentheses
       const map = {
         'apolipoproteinbapob':'apob','apolipoproteinb':'apob','apob':'apob',
         'ldlcholesterol':'ldl','ldl':'ldl','ldlc':'ldl',
