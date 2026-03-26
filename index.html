@@ -349,6 +349,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <div class="metric-label">Body Fat</div>
         <div class="metric-value-row"><div class="metric-value" id="m-bodyfat"><span class="metric-empty-val">—</span></div><div class="metric-unit">%</div></div>
         <div class="metric-trend" id="t-bodyfat"></div>
+        <div class="sparkline-wrap"><div class="sparkline-label">7-day trend</div><div class="sparkline" id="bodyfat-sparkline"></div></div>
       </div>
     </div>
 
@@ -360,12 +361,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <div class="metric-label">Steps</div>
         <div class="metric-value-row"><div class="metric-value" id="m-steps"><span class="metric-empty-val">—</span></div></div>
         <div class="metric-trend" id="t-steps"></div>
+        <div class="sparkline-wrap"><div class="sparkline-label">7-day trend</div><div class="sparkline" id="steps-sparkline"></div></div>
       </div>
       <div class="metric-card" id="card-activecal">
         <div class="metric-accent" style="background:var(--red)"></div>
         <span class="metric-icon">🔥</span>
         <div class="metric-label">Active Cal</div>
         <div class="metric-value-row"><div class="metric-value" id="m-activecal"><span class="metric-empty-val">—</span></div><div class="metric-unit">kcal</div></div>
+        <div class="sparkline-wrap"><div class="sparkline-label">7-day trend</div><div class="sparkline" id="activecal-sparkline"></div></div>
       </div>
     </div>
 
@@ -385,6 +388,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <div class="metric-label">HRV</div>
         <div class="metric-value-row"><div class="metric-value" id="m-hrv"><span class="metric-empty-val">—</span></div><div class="metric-unit">ms</div></div>
         <div class="metric-trend" id="t-hrv"></div>
+        <div class="sparkline-wrap"><div class="sparkline-label">7-day trend</div><div class="sparkline" id="hrv-sparkline"></div></div>
       </div>
     </div>
 
@@ -1216,21 +1220,27 @@ function renderStreak(){
 }
 
 // ── Weight Sparkline ──
-function renderSparkline(history){
-  const wrap = document.getElementById('weight-sparkline');
+function buildSparkline(wrap, values, unit, color){
   if(!wrap) return;
-  const weights = Object.entries(history)
-    .sort((a,b)=>a[0].localeCompare(b[0]))
-    .slice(-7)
-    .map(([date,d])=>d.weight)
-    .filter(Boolean);
-  if(weights.length < 2){ wrap.innerHTML=''; return; }
-  const min = Math.min(...weights), max = Math.max(...weights);
+  if(values.length < 2){ wrap.innerHTML=''; return; }
+  const min = Math.min(...values), max = Math.max(...values);
   const range = max-min || 1;
-  wrap.innerHTML = weights.map((w,i)=>{
-    const pct = Math.round(((w-min)/range)*80)+10;
-    return `<div class="spark-bar${i===weights.length-1?' today':''}" style="height:${pct}%" title="${w.toFixed(1)} lbs"></div>`;
+  wrap.style.setProperty('--spark-color', color||'var(--green)');
+  wrap.innerHTML = values.map((v,i)=>{
+    const pct = Math.round(((v-min)/range)*80)+10;
+    return `<div class="spark-bar${i===values.length-1?' today':''}" style="height:${pct}%;background:${color||'var(--green)'}" title="${typeof v==='number'?v.toFixed(1):v} ${unit||''}"></div>`;
   }).join('');
+}
+
+function renderSparkline(history){
+  const sorted = Object.entries(history).sort((a,b)=>a[0].localeCompare(b[0])).slice(-7);
+  const get = (key) => sorted.map(([,d])=>d[key]).filter(v=>v!=null&&v>0);
+
+  buildSparkline(document.getElementById('weight-sparkline'), get('weight'), 'lbs', 'var(--green)');
+  buildSparkline(document.getElementById('bodyfat-sparkline'), get('bodyFat'), '%', 'var(--blue)');
+  buildSparkline(document.getElementById('steps-sparkline'), get('steps'), 'steps', 'var(--orange)');
+  buildSparkline(document.getElementById('activecal-sparkline'), get('activeCalories'), 'kcal', 'var(--red)');
+  buildSparkline(document.getElementById('hrv-sparkline'), get('hrv'), 'ms', 'var(--teal)');
 }
 
 // ── Sleep Breakdown ──
