@@ -275,6 +275,64 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .import-btn{width:100%;padding:12px;border-radius:12px;border:none;background:var(--purple);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity 0.2s;}
 .import-btn:active{opacity:0.8;}
 .import-input{display:none;}
+/* ── WORKOUT LOGGER ── */
+.workout-section-header{display:flex;align-items:center;justify-content:space-between;margin:20px 0 10px;}
+.start-workout-btn{padding:8px 16px;border-radius:20px;border:none;background:var(--green);color:#000;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.workout-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:10px;}
+.workout-header{padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);}
+.workout-header-icon{font-size:20px;}
+.workout-header-info{flex:1;}
+.workout-name{font-size:15px;font-weight:700;}
+.workout-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.workout-timer{font-size:13px;font-weight:700;color:var(--green);font-variant-numeric:tabular-nums;}
+.exercise-block{padding:14px 16px;border-bottom:1px solid var(--border);}
+.exercise-block:last-child{border-bottom:none;}
+.exercise-name{font-size:14px;font-weight:700;margin-bottom:2px;}
+.exercise-target{font-size:11px;color:var(--muted);margin-bottom:10px;}
+.exercise-notes-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--muted);font-size:11px;font-family:inherit;outline:none;margin-bottom:10px;-webkit-appearance:none;}
+.sets-table{width:100%;border-collapse:collapse;margin-bottom:10px;}
+.sets-table th{font-size:9px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;padding:0 4px 6px;text-align:center;}
+.sets-table th:first-child{text-align:left;}
+.sets-table td{padding:4px;}
+.set-num{font-size:12px;font-weight:700;color:var(--muted);text-align:center;min-width:24px;}
+.set-prev{font-size:10px;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums;}
+.set-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:7px 4px;color:var(--text);font-size:13px;font-weight:600;font-family:inherit;outline:none;text-align:center;-webkit-appearance:none;font-variant-numeric:tabular-nums;}
+.set-input:focus{border-color:var(--green);}
+.effort-btns{display:flex;gap:2px;justify-content:center;}
+.effort-btn{width:22px;height:22px;border-radius:4px;border:1px solid var(--border);background:transparent;font-size:9px;cursor:pointer;transition:all 0.15s;color:var(--muted);}
+.effort-btn.e1,.effort-btn.e2,.effort-btn.e3{border-color:var(--red);color:var(--red);}
+.effort-btn.e4,.effort-btn.e5,.effort-btn.e6,.effort-btn.e7{border-color:var(--yellow);color:var(--yellow);}
+.effort-btn.e8,.effort-btn.e9,.effort-btn.e10{border-color:var(--green);color:var(--green);}
+.effort-btn.selected{font-weight:700;}
+.effort-btn.e1.selected,.effort-btn.e2.selected,.effort-btn.e3.selected{background:var(--red-dim);}
+.effort-btn.e4.selected,.effort-btn.e5.selected,.effort-btn.e6.selected,.effort-btn.e7.selected{background:var(--yellow-dim);}
+.effort-btn.e8.selected,.effort-btn.e9.selected,.effort-btn.e10.selected{background:var(--green-dim);}
+.set-done-btn{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:transparent;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;font-size:12px;color:transparent;margin:0 auto;}
+.set-done-btn.done{background:var(--green);border-color:var(--green);color:#000;}
+.add-set-btn{width:100%;padding:8px;border-radius:10px;border:1px dashed var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+.rest-timer{background:var(--surface2);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin:8px 0;}
+.rest-timer-time{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;min-width:70px;}
+.rest-timer-label{font-size:11px;color:var(--muted);}
+.rest-timer-btns{display:flex;gap:6px;margin-left:auto;}
+.rest-btn{padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;}
+.rest-btn.skip{background:var(--green-dim);border-color:rgba(61,220,132,0.3);color:var(--green);}
+.finish-workout-btn{width:100%;padding:14px;border-radius:12px;border:none;background:var(--green);color:#000;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:6px;}
+.workout-history-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:8px;}
+.wh-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.wh-name{font-size:13px;font-weight:700;}
+.wh-date{font-size:11px;color:var(--muted);}
+.wh-stats{display:flex;gap:16px;}
+.wh-stat{font-size:11px;color:var(--muted);}
+.wh-stat span{color:var(--text);font-weight:600;}
+/* Exercise picker modal */
+.ex-picker{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:400;align-items:flex-end;}
+.ex-picker.open{display:flex;}
+.ex-picker-box{background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-height:80vh;overflow-y:auto;padding:20px 16px max(20px,env(safe-area-inset-bottom));}
+.ex-picker-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;margin-bottom:16px;}
+.ex-category{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin:12px 0 6px;}
+.ex-item{padding:12px 14px;border-radius:10px;background:var(--surface2);margin-bottom:4px;font-size:13px;font-weight:500;cursor:pointer;}
+.ex-item:active{background:var(--green-dim);color:var(--green);}
+
 /* Admin */
 .admin-btn{position:fixed;bottom:80px;right:16px;width:42px;height:42px;border-radius:50%;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:200;box-shadow:0 4px 20px rgba(0,0,0,0.4);}
 .admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-end;justify-content:center;padding:0;}
@@ -440,6 +498,44 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <div class="score-val" id="val-focus">—</div>
       </div>
     </div>
+
+
+    <!-- WORKOUT LOGGER -->
+    <div class="workout-section-header">
+      <div class="dash-section-label">💪 Workout</div>
+      <button class="start-workout-btn" onclick="openExercisePicker()">+ Start Workout</button>
+    </div>
+
+    <!-- Active workout (hidden by default) -->
+    <div id="active-workout" style="display:none;">
+      <div class="workout-card">
+        <div class="workout-header">
+          <div class="workout-header-icon">🏋️</div>
+          <div class="workout-header-info">
+            <div class="workout-name" id="workout-title-display">Today's Workout</div>
+            <div class="workout-meta" id="workout-exercise-count">0 exercises</div>
+          </div>
+          <div class="workout-timer" id="workout-elapsed">0:00</div>
+        </div>
+        <div id="exercise-list"></div>
+      </div>
+      <!-- Rest Timer -->
+      <div class="rest-timer" id="rest-timer" style="display:none;">
+        <div>
+          <div class="rest-timer-time" id="rest-time">2:00</div>
+          <div class="rest-timer-label">Rest Timer</div>
+        </div>
+        <div class="rest-timer-btns">
+          <button class="rest-btn" onclick="adjustRest(-15)">-15s</button>
+          <button class="rest-btn" onclick="adjustRest(15)">+15s</button>
+          <button class="rest-btn skip" onclick="skipRest()">Skip</button>
+        </div>
+      </div>
+      <button class="finish-workout-btn" onclick="finishWorkout()">✓ Finish Workout</button>
+    </div>
+
+    <!-- Workout history -->
+    <div id="workout-history-list"></div>
 
     <!-- FUNCTION HEALTH BIOMARKERS -->
     <div class="dash-section"><div class="dash-section-label">Function Health Labs</div><div class="dash-section-line"></div></div>
@@ -607,6 +703,51 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
   <div class="lightbox-label" id="lightbox-label"></div>
 </div>
 
+<!-- EXERCISE PICKER -->
+<div class="ex-picker" id="ex-picker">
+  <div class="ex-picker-box">
+    <div class="ex-picker-title">Add Exercise</div>
+    <div class="ex-category">Chest</div>
+    <div class="ex-item" onclick="addExercise('Bench Press','8-12 reps')">Bench Press</div>
+    <div class="ex-item" onclick="addExercise('Incline Bench Press','8-12 reps')">Incline Bench Press</div>
+    <div class="ex-item" onclick="addExercise('Cable Fly','12-15 reps')">Cable Fly</div>
+    <div class="ex-item" onclick="addExercise('Push-Up','12-20 reps')">Push-Up</div>
+    <div class="ex-category">Back</div>
+    <div class="ex-item" onclick="addExercise('Pull-Up','6-12 reps')">Pull-Up</div>
+    <div class="ex-item" onclick="addExercise('Barbell Row','8-12 reps')">Barbell Row</div>
+    <div class="ex-item" onclick="addExercise('Lat Pulldown','10-15 reps')">Lat Pulldown</div>
+    <div class="ex-item" onclick="addExercise('Cable Row','10-15 reps')">Cable Row</div>
+    <div class="ex-item" onclick="addExercise('Deadlift','5-8 reps')">Deadlift</div>
+    <div class="ex-category">Legs</div>
+    <div class="ex-item" onclick="addExercise('Barbell Back Squat','6-10 reps')">Barbell Back Squat</div>
+    <div class="ex-item" onclick="addExercise('Romanian Deadlift','8-12 reps')">Romanian Deadlift</div>
+    <div class="ex-item" onclick="addExercise('Leg Press','10-15 reps')">Leg Press</div>
+    <div class="ex-item" onclick="addExercise('Seated Leg Extension','10-15 reps')">Seated Leg Extension</div>
+    <div class="ex-item" onclick="addExercise('Lying Leg Curl','10-15 reps')">Lying Leg Curl</div>
+    <div class="ex-item" onclick="addExercise('Walking Lunges','10-15 reps')">Walking Lunges</div>
+    <div class="ex-item" onclick="addExercise('Calf Raise','15-20 reps')">Calf Raise</div>
+    <div class="ex-category">Shoulders</div>
+    <div class="ex-item" onclick="addExercise('Overhead Press','8-12 reps')">Overhead Press</div>
+    <div class="ex-item" onclick="addExercise('Lateral Raise','12-20 reps')">Lateral Raise</div>
+    <div class="ex-item" onclick="addExercise('Face Pull','15-20 reps')">Face Pull</div>
+    <div class="ex-category">Arms</div>
+    <div class="ex-item" onclick="addExercise('Barbell Curl','10-15 reps')">Barbell Curl</div>
+    <div class="ex-item" onclick="addExercise('Tricep Pushdown','12-15 reps')">Tricep Pushdown</div>
+    <div class="ex-item" onclick="addExercise('Hammer Curl','10-15 reps')">Hammer Curl</div>
+    <div class="ex-item" onclick="addExercise('Skull Crusher','10-15 reps')">Skull Crusher</div>
+    <div class="ex-category">Core</div>
+    <div class="ex-item" onclick="addExercise('Plank','30-60 sec')">Plank</div>
+    <div class="ex-item" onclick="addExercise('Cable Crunch','15-20 reps')">Cable Crunch</div>
+    <div class="ex-item" onclick="addExercise('Hanging Leg Raise','12-15 reps')">Hanging Leg Raise</div>
+    <div class="ex-category">Cardio</div>
+    <div class="ex-item" onclick="addExercise('Peloton','20-60 min')">Peloton</div>
+    <div class="ex-item" onclick="addExercise('Treadmill','20-40 min')">Treadmill</div>
+    <div style="margin-top:16px;">
+      <button style="width:100%;padding:14px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="document.getElementById('ex-picker').classList.remove('open')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- BOTTOM NAV -->
 <div class="bottom-nav">
   <div class="nav-item active" id="nav-schedule" onclick="switchView('schedule')">
@@ -649,13 +790,13 @@ function genTimes(){const s=[];let h=8,m=0;while(true){const p=h<12?"AM":"PM",dh
 const TIMES=genTimes();
 
 const SCHED={
-  Monday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Scalp Massage (20 min)","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","10:40 AM":"Thumb Pulling","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Thumb Pulling","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Tuesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Scalp Massage (20 min)","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","10:40 AM":"Thumb Pulling","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Thumb Pulling","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Wednesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Scalp Massage (20 min)","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","10:40 AM":"Thumb Pulling","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Thumb Pulling","4:00 PM":"Neck Exercises","4:10 PM":"Scalp Stretch","4:30 PM":"FaceTime Family","5:00 PM":"Relaxation (Reading / Video Games / Walk)","6:00 PM":"Shampoo","6:10 PM":"Deep Conditioner","6:20 PM":"Fascial Head Massage","7:00 PM":"Peloton","7:30 PM":"Ketamine Assisted Therapy","9:00 PM":"Brush Teeth","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Thursday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Scalp Massage (20 min)","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","10:40 AM":"Thumb Pulling","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Thumb Pulling","5:00 PM":"Take Out Trash","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Friday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Scalp Massage (20 min)","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","10:40 AM":"Thumb Pulling","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Thumb Pulling","4:00 PM":"Shampoo","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Saturday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Scalp Massage (20 min)","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Neck Exercises","9:30 AM":"Scalp Stretch","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","10:40 AM":"Thumb Pulling","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Thumb Pulling","5:00 PM":"Gym (5–6 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Sunday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Scalp Massage (20 min)","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Biking","10:40 AM":"Thumb Pulling","11:00 AM":"FaceTime Family","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","1:00 PM":"Laundry","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Thumb Pulling","5:00 PM":"Take Out Trash","7:00 PM":"Meal Prep","8:00 PM":"Shampoo","8:10 PM":"Coconut Oil / Castor Oil","8:20 PM":"Rice Water Mix","8:30 PM":"Hair Mask","8:40 PM":"Fascial Head Massage","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"}
+  Monday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Tuesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Wednesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","4:00 PM":"Neck Exercises","4:10 PM":"Scalp Stretch","4:30 PM":"FaceTime Family","5:00 PM":"Relaxation (Reading / Video Games / Walk)","6:00 PM":"Shampoo","6:10 PM":"Deep Conditioner","6:20 PM":"Fascial Head Massage","7:00 PM":"Peloton","7:30 PM":"Ketamine Assisted Therapy","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Thursday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","5:00 PM":"Take Out Trash","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Friday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","4:00 PM":"Shampoo","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Saturday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Neck Exercises","9:30 AM":"Scalp Stretch","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","5:00 PM":"Gym (5–6 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Sunday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Biking","11:00 AM":"FaceTime Family","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","1:00 PM":"Laundry","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","5:00 PM":"Take Out Trash","7:00 PM":"Meal Prep","8:00 PM":"Shampoo","8:10 PM":"Coconut Oil / Castor Oil","8:20 PM":"Rice Water Mix","8:30 PM":"Hair Mask","8:40 PM":"Fascial Head Massage","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
 };
 
 // ── Biomarker definitions ──
@@ -767,6 +908,8 @@ function renderHealthView(){
   renderBiomarkers();
   loadScores();
   renderStreak();
+  loadWorkoutHistory();
+  renderWorkoutHistory();
 }
 
 function renderDailyMetrics(history={}){
@@ -1332,6 +1475,196 @@ function importFunctionHealth(event){
     }
   };
   reader.readAsText(file);
+}
+
+
+// ── Workout Logger ──
+let activeWorkout = null;
+let workoutTimer = null;
+let workoutSeconds = 0;
+let restInterval = null;
+let restSeconds = 0;
+let workoutHistory = [];
+
+function loadWorkoutHistory(){
+  try{ workoutHistory = JSON.parse(localStorage.getItem('workout_history')||'[]'); }
+  catch(e){ workoutHistory=[]; }
+}
+function saveWorkoutHistory(){
+  try{ localStorage.setItem('workout_history', JSON.stringify(workoutHistory)); }catch(e){}
+}
+
+function getPrevPerformance(exerciseName){
+  for(let i=workoutHistory.length-1;i>=0;i--){
+    const ex = workoutHistory[i].exercises?.find(e=>e.name===exerciseName);
+    if(ex && ex.sets?.length > 0) return ex.sets;
+  }
+  return null;
+}
+
+function openExercisePicker(){
+  if(!activeWorkout){
+    activeWorkout = { exercises:[], startTime: Date.now() };
+    document.getElementById('active-workout').style.display='block';
+    startWorkoutTimer();
+  }
+  document.getElementById('ex-picker').classList.add('open');
+}
+
+function startWorkoutTimer(){
+  workoutSeconds = 0;
+  workoutTimer = setInterval(()=>{
+    workoutSeconds++;
+    const m = Math.floor(workoutSeconds/60), s = workoutSeconds%60;
+    const el = document.getElementById('workout-elapsed');
+    if(el) el.textContent = `${m}:${String(s).padStart(2,'0')}`;
+  }, 1000);
+}
+
+function addExercise(name, target){
+  document.getElementById('ex-picker').classList.remove('open');
+  const exId = 'ex-' + Date.now();
+  const prevSets = getPrevPerformance(name);
+  const prevSet = prevSets?.[0];
+  activeWorkout.exercises.push({ id:exId, name, target, sets:[{weight:'',reps:'',effort:0,done:false}], notes:'' });
+  renderExercises();
+  document.getElementById('workout-exercise-count').textContent = activeWorkout.exercises.length + ' exercise' + (activeWorkout.exercises.length!==1?'s':'');
+  setTimeout(()=>{
+    const el = document.getElementById(exId);
+    if(el) el.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }, 100);
+}
+
+function renderExercises(){
+  const wrap = document.getElementById('exercise-list');
+  if(!wrap || !activeWorkout) return;
+  wrap.innerHTML = activeWorkout.exercises.map((ex, exIdx) => {
+    const prevSets = getPrevPerformance(ex.name);
+    const setsHtml = ex.sets.map((set, si) => {
+      const prev = prevSets?.[si];
+      const prevText = prev ? `${prev.weight||'—'} × ${prev.reps||'—'}` : '—';
+      return `<tr>
+        <td><div class="set-num">${si+1}</div></td>
+        <td><div class="set-prev">${prevText}</div></td>
+        <td><input class="set-input" type="number" inputmode="decimal" placeholder="lbs" value="${set.weight||''}" onchange="updateSet(${exIdx},${si},'weight',this.value)"></td>
+        <td><input class="set-input" type="number" inputmode="numeric" placeholder="reps" value="${set.reps||''}" onchange="updateSet(${exIdx},${si},'reps',this.value)"></td>
+        <td>
+          <div class="effort-btns">
+            ${[6,7,8,9,10].map(e=>`<button class="effort-btn e${e}${set.effort===e?' selected':''}" onclick="updateSet(${exIdx},${si},'effort',${e})">${e}</button>`).join('')}
+          </div>
+        </td>
+        <td><button class="set-done-btn${set.done?' done':''}" onclick="completeSet(${exIdx},${si})">${set.done?'✓':''}</button></td>
+      </tr>`;
+    }).join('');
+    return `<div class="exercise-block" id="${ex.id}">
+      <div class="exercise-name">${ex.name}</div>
+      <div class="exercise-target">${ex.target}</div>
+      <input class="exercise-notes-input" type="text" placeholder="Notes..." value="${ex.notes||''}" onchange="activeWorkout.exercises[${exIdx}].notes=this.value">
+      <table class="sets-table">
+        <thead><tr>
+          <th>SET</th><th>PREV</th><th>LBS</th><th>REPS</th><th style="min-width:80px">EFFORT</th><th>✓</th>
+        </tr></thead>
+        <tbody>${setsHtml}</tbody>
+      </table>
+      <button class="add-set-btn" onclick="addSet(${exIdx})">+ Add Set</button>
+    </div>`;
+  }).join('');
+}
+
+function updateSet(exIdx, si, field, val){
+  if(!activeWorkout) return;
+  activeWorkout.exercises[exIdx].sets[si][field] = field==='effort'||field==='weight'||field==='reps' ? (isNaN(parseFloat(val))?val:parseFloat(val)) : val;
+}
+
+function addSet(exIdx){
+  if(!activeWorkout) return;
+  activeWorkout.exercises[exIdx].sets.push({weight:'',reps:'',effort:0,done:false});
+  renderExercises();
+}
+
+function completeSet(exIdx, si){
+  if(!activeWorkout) return;
+  const set = activeWorkout.exercises[exIdx].sets[si];
+  set.done = !set.done;
+  renderExercises();
+  if(set.done) startRestTimer(120);
+}
+
+function startRestTimer(secs){
+  restSeconds = secs;
+  clearInterval(restInterval);
+  const timerEl = document.getElementById('rest-timer');
+  const timeEl = document.getElementById('rest-time');
+  if(timerEl) timerEl.style.display='flex';
+  updateRestDisplay();
+  restInterval = setInterval(()=>{
+    restSeconds--;
+    updateRestDisplay();
+    if(restSeconds <= 0){
+      clearInterval(restInterval);
+      if(timerEl) timerEl.style.display='none';
+      showToast('⏰ Rest complete — next set!');
+    }
+  }, 1000);
+}
+
+function updateRestDisplay(){
+  const m = Math.floor(restSeconds/60), s = Math.max(0,restSeconds%60);
+  const el = document.getElementById('rest-time');
+  if(el) el.textContent = `${m}:${String(s).padStart(2,'0')}`;
+}
+
+function adjustRest(delta){ restSeconds = Math.max(0, restSeconds + delta); updateRestDisplay(); }
+
+function skipRest(){
+  clearInterval(restInterval);
+  const timerEl = document.getElementById('rest-timer');
+  if(timerEl) timerEl.style.display='none';
+}
+
+function finishWorkout(){
+  if(!activeWorkout || activeWorkout.exercises.length===0){ showToast('Add at least one exercise first'); return; }
+  clearInterval(workoutTimer);
+  clearInterval(restInterval);
+  const duration = Math.round(workoutSeconds/60);
+  const totalSets = activeWorkout.exercises.reduce((s,e)=>s+e.sets.filter(s=>s.done).length,0);
+  const record = {
+    id: Date.now(),
+    date: new Date().toISOString(),
+    dateLabel: new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}),
+    exercises: activeWorkout.exercises,
+    duration,
+    totalSets,
+  };
+  workoutHistory.push(record);
+  saveWorkoutHistory();
+  activeWorkout = null;
+  workoutSeconds = 0;
+  document.getElementById('active-workout').style.display='none';
+  document.getElementById('rest-timer').style.display='none';
+  document.getElementById('exercise-list').innerHTML='';
+  renderWorkoutHistory();
+  showToast(`✓ Workout saved! ${totalSets} sets in ${duration} min`);
+}
+
+function renderWorkoutHistory(){
+  loadWorkoutHistory();
+  const wrap = document.getElementById('workout-history-list');
+  if(!wrap) return;
+  const recent = [...workoutHistory].reverse().slice(0,5);
+  if(recent.length===0){ wrap.innerHTML='<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;">No workouts yet — tap Start Workout</div>'; return; }
+  wrap.innerHTML = recent.map(w=>`
+    <div class="workout-history-item">
+      <div class="wh-header">
+        <div class="wh-name">💪 ${w.exercises.map(e=>e.name).slice(0,2).join(', ')}${w.exercises.length>2?'...':''}</div>
+        <div class="wh-date">${w.dateLabel}</div>
+      </div>
+      <div class="wh-stats">
+        <div class="wh-stat"><span>${w.exercises.length}</span> exercises</div>
+        <div class="wh-stat"><span>${w.totalSets}</span> sets</div>
+        <div class="wh-stat"><span>${w.duration}</span> min</div>
+      </div>
+    </div>`).join('');
 }
 
 // ── Boot ──
