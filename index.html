@@ -424,6 +424,17 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .preset-card-name{font-size:13px;font-weight:700;margin-bottom:2px;}
 .preset-card-count{font-size:10px;color:var(--muted);}
 .preset-or{text-align:center;font-size:11px;color:var(--muted);margin:8px 0;}
+.cancel-workout-btn{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(248,113,113,0.3);background:rgba(248,113,113,0.08);color:var(--red);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;}
+.ex-picker-sticky-cancel{position:sticky;top:0;background:var(--surface);padding-bottom:10px;z-index:10;display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+/* Camera scanner */
+.camera-modal{display:none;position:fixed;inset:0;background:#000;z-index:700;flex-direction:column;}
+.camera-modal.open{display:flex;}
+.camera-video{flex:1;object-fit:cover;width:100%;}
+.camera-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
+.camera-frame{width:260px;height:160px;border:3px solid var(--green);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.55);}
+.camera-hint{color:#fff;font-size:13px;font-weight:600;margin-top:16px;letter-spacing:0.5px;}
+.camera-controls{position:absolute;bottom:0;left:0;right:0;padding:24px 20px max(24px,env(safe-area-inset-bottom));display:flex;gap:10px;}
+.camera-cancel-btn{flex:1;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
 /* Admin */
 .admin-btn{position:fixed;bottom:80px;right:16px;width:42px;height:42px;border-radius:50%;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:200;box-shadow:0 4px 20px rgba(0,0,0,0.4);}
 .admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-end;justify-content:center;padding:0;}
@@ -556,6 +567,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         </div>
       </div>
       <button class="finish-workout-btn" onclick="finishWorkout()">✓ Finish Workout</button>
+      <button class="cancel-workout-btn" onclick="cancelWorkout()">✕ Cancel Workout</button>
     </div>
 
     <!-- Workout history -->
@@ -867,7 +879,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     </div>
     <div class="food-search-bar">
       <input class="food-search-input" id="food-search-input" type="text" placeholder="Search food or brand..." oninput="debounceFoodSearch(this.value)">
-      <button class="food-barcode-btn" onclick="openBarcodeModal()" title="Barcode lookup">📷</button>
+      <button class="food-barcode-btn" onclick="openCameraScanner()" title="Scan barcode">📷</button>
     </div>
     <div class="food-tabs">
       <div class="food-tab active" id="ftab-search" onclick="switchFoodTab('search')">Search</div>
@@ -904,11 +916,24 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
   </div>
 </div>
 
-<!-- BARCODE MODAL -->
+<!-- CAMERA SCANNER MODAL -->
+<div class="camera-modal" id="camera-modal">
+  <video class="camera-video" id="camera-video" autoplay playsinline muted></video>
+  <div class="camera-overlay">
+    <div class="camera-frame"></div>
+    <div class="camera-hint">Point at barcode</div>
+  </div>
+  <div class="camera-controls">
+    <button class="camera-cancel-btn" onclick="closeCameraScanner()">Cancel</button>
+    <button class="camera-cancel-btn" style="background:rgba(255,255,255,0.15);" onclick="openManualBarcode()">Type barcode</button>
+  </div>
+</div>
+
+<!-- MANUAL BARCODE FALLBACK -->
 <div class="barcode-modal" id="barcode-modal">
   <div class="barcode-box">
-    <div class="barcode-title">📷 Barcode Lookup</div>
-    <div class="barcode-sub">Enter the barcode number from the product packaging. Works with EAN-13, UPC-A and most standard barcodes.</div>
+    <div class="barcode-title">🔢 Enter Barcode</div>
+    <div class="barcode-sub">Type the barcode number from the product packaging.</div>
     <div class="barcode-input-row">
       <input class="barcode-number-input" id="barcode-number-input" type="number" inputmode="numeric" placeholder="0 00000 00000 0">
       <button class="barcode-lookup-btn" onclick="lookupBarcode()">Look up</button>
@@ -972,7 +997,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 <!-- EXERCISE PICKER -->
 <div class="ex-picker" id="ex-picker">
   <div class="ex-picker-box">
-    <div class="ex-picker-title">Add Exercise</div>
+    <div class="ex-picker-sticky-cancel">
+      <div class="ex-picker-title" style="margin-bottom:0">Add Exercise</div>
+      <button style="padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="document.getElementById('ex-picker').classList.remove('open')">Cancel</button>
+    </div>
     <input id="ex-search" type="text" placeholder="🔍 Search exercises..." oninput="filterExercises(this.value)" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;margin-bottom:12px;-webkit-appearance:none;">
     <div id="ex-list-wrap">
     <div class="ex-category">💪 Chest</div>
@@ -1067,9 +1095,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <div class="ex-item" onclick="addExercise('Jump Rope','duration','cardio')">Jump Rope</div>
     <div class="ex-item" onclick="addExercise('HIIT','duration','cardio')">HIIT</div>
     </div>
-    <div style="margin-top:16px;">
-      <button style="width:100%;padding:14px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="document.getElementById('ex-picker').classList.remove('open')">Cancel</button>
-    </div>
+
   </div>
 </div>
 
@@ -2270,45 +2296,47 @@ function debounceFoodSearch(query){
 
 async function searchFood(query){
   const results = [];
-  // 1. Try USDA first
+  // Primary: Open Food Facts (global, 3M+ products, no rate limits)
   try{
-    const r = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&api_key=DEMO_KEY&pageSize=8&dataType=Branded,Survey%20(FNDDS),SR%20Legacy`);
+    const r = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10&fields=product_name,brands,serving_size,nutriments`);
     const data = await r.json();
-    if(data.foods){
-      data.foods.slice(0,6).forEach(f=>{
-        const getNutr = (id)=>(f.foodNutrients||[]).find(n=>n.nutrientId===id||n.nutrientNumber===String(id))?.value||0;
+    if(data.products){
+      data.products.forEach(p=>{
+        if(!p.product_name) return;
+        const n = p.nutriments||{};
+        const cals = n['energy-kcal_serving']||n['energy-kcal_100g']||0;
+        if(!cals) return; // skip items with no calorie data
         results.push({
-          name: f.description,
-          brand: f.brandOwner||f.brandName||'',
-          serving: f.servingSize ? `${f.servingSize}${f.servingSizeUnit||'g'}` : '100g',
-          calories: getNutr(1008)||getNutr(208),
-          protein: getNutr(1003)||getNutr(203),
-          carbs: getNutr(1005)||getNutr(205),
-          fat: getNutr(1004)||getNutr(204),
-          source:'USDA'
+          name: p.product_name,
+          brand: p.brands||'',
+          serving: p.serving_size||'100g',
+          calories: cals,
+          protein: n['proteins_serving']||n['proteins_100g']||0,
+          carbs: n['carbohydrates_serving']||n['carbohydrates_100g']||0,
+          fat: n['fat_serving']||n['fat_100g']||0,
+          source:'Open Food Facts'
         });
       });
     }
   }catch(e){}
 
-  // 2. Fallback Open Food Facts if <3 results
-  if(results.length < 3){
+  // Fallback: USDA if fewer than 4 results
+  if(results.length < 4){
     try{
-      const r = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=6`);
+      const r = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&api_key=DEMO_KEY&pageSize=6&dataType=Branded,SR%20Legacy`);
       const data = await r.json();
-      if(data.products){
-        data.products.slice(0,4).forEach(p=>{
-          if(!p.product_name) return;
-          const n = p.nutriments||{};
+      if(data.foods){
+        data.foods.slice(0,4).forEach(f=>{
+          const getNutr = (id)=>(f.foodNutrients||[]).find(n=>n.nutrientId===id||n.nutrientNumber===String(id))?.value||0;
           results.push({
-            name: p.product_name,
-            brand: p.brands||'',
-            serving: p.serving_size||'100g',
-            calories: n['energy-kcal_serving']||n['energy-kcal_100g']||0,
-            protein: n['proteins_serving']||n['proteins_100g']||0,
-            carbs: n['carbohydrates_serving']||n['carbohydrates_100g']||0,
-            fat: n['fat_serving']||n['fat_100g']||0,
-            source:'Open Food Facts'
+            name: f.description,
+            brand: f.brandOwner||f.brandName||'',
+            serving: f.servingSize ? `${f.servingSize}${f.servingSizeUnit||'g'}` : '100g',
+            calories: getNutr(1008)||getNutr(208),
+            protein: getNutr(1003)||getNutr(203),
+            carbs: getNutr(1005)||getNutr(205),
+            fat: getNutr(1004)||getNutr(204),
+            source:'USDA'
           });
         });
       }
@@ -2383,7 +2411,78 @@ function addManualFood(){
 }
 
 // ── Barcode ──
-function openBarcodeModal(){
+
+// ── Cancel Workout ──
+function cancelWorkout(){
+  if(!confirm('Cancel this workout? All progress will be lost.')) return;
+  clearInterval(workoutTimer);
+  clearInterval(restInterval);
+  activeWorkout = null;
+  workoutSeconds = 0;
+  document.getElementById('active-workout').style.display='none';
+  const restEl = document.getElementById('rest-timer');
+  if(restEl) restEl.style.display='none';
+  document.getElementById('exercise-list').innerHTML='';
+  document.getElementById('workout-title-display').textContent="Today's Workout";
+  document.getElementById('workout-exercise-count').textContent='0 exercises';
+  document.getElementById('workout-elapsed').textContent='0:00';
+  showToast('Workout cancelled');
+}
+
+// ── Camera Barcode Scanner ──
+let cameraStream = null;
+let barcodeDetector = null;
+let scanInterval = null;
+
+async function openCameraScanner(){
+  // Check if BarcodeDetector is supported
+  if(!('BarcodeDetector' in window)){
+    // Fallback to manual entry
+    openManualBarcode();
+    return;
+  }
+  try{
+    barcodeDetector = new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code']});
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}}
+    });
+    cameraStream = stream;
+    const video = document.getElementById('camera-video');
+    video.srcObject = stream;
+    await video.play();
+    document.getElementById('camera-modal').classList.add('open');
+    // Start scanning frames
+    scanInterval = setInterval(()=>scanFrame(video), 400);
+  }catch(e){
+    // Camera permission denied or not available
+    openManualBarcode();
+  }
+}
+
+async function scanFrame(video){
+  if(!barcodeDetector || !video.videoWidth) return;
+  try{
+    const barcodes = await barcodeDetector.detect(video);
+    if(barcodes.length > 0){
+      const code = barcodes[0].rawValue;
+      closeCameraScanner();
+      await lookupBarcodeCode(code);
+    }
+  }catch(e){}
+}
+
+function closeCameraScanner(){
+  clearInterval(scanInterval);
+  scanInterval = null;
+  if(cameraStream){
+    cameraStream.getTracks().forEach(t=>t.stop());
+    cameraStream = null;
+  }
+  document.getElementById('camera-modal').classList.remove('open');
+}
+
+function openManualBarcode(){
+  closeCameraScanner();
   document.getElementById('barcode-modal').classList.add('open');
   document.getElementById('barcode-status').textContent='';
   document.getElementById('barcode-number-input').value='';
@@ -2394,6 +2493,11 @@ async function lookupBarcode(){
   if(!code){ showToast('Enter a barcode number'); return; }
   const statusEl = document.getElementById('barcode-status');
   statusEl.textContent = '🔍 Looking up...';
+  const found = await lookupBarcodeCode(code);
+  if(!found) statusEl.textContent = '⚠ Product not found — try searching by name';
+}
+
+async function lookupBarcodeCode(code){
   try{
     const r = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
     const data = await r.json();
@@ -2415,13 +2519,13 @@ async function lookupBarcode(){
       document.getElementById('fac-unit').textContent = selectedFood.serving;
       document.getElementById('fac-qty').value='1';
       switchFoodTab('confirm');
-    } else {
-      statusEl.textContent = '⚠ Product not found — try searching by name';
+      return true;
     }
-  }catch(e){
-    statusEl.textContent = '⚠ Lookup failed — check your connection';
-  }
+  }catch(e){}
+  return false;
 }
+
+
 
 
 // ── Workout Presets ──
