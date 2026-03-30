@@ -454,7 +454,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
 
@@ -880,7 +879,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     </div>
     <div class="food-search-bar">
       <input class="food-search-input" id="food-search-input" type="text" placeholder="Search food or brand..." oninput="debounceFoodSearch(this.value)">
-      <button class="food-barcode-btn" onclick="openCameraScanner()" title="Scan barcode">📷</button>
+      <button class="food-barcode-btn" onclick="triggerBarcodeCapture()" title="Scan barcode">📷</button>
     </div>
     <div class="food-tabs">
       <div class="food-tab active" id="ftab-search" onclick="switchFoodTab('search')">Search</div>
@@ -918,16 +917,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 </div>
 
 <!-- CAMERA SCANNER MODAL -->
-<div class="camera-modal" id="camera-modal">
-  <div id="camera-reader" style="width:100%;flex:1;"></div>
-  <div class="camera-overlay" style="pointer-events:none;">
-    <div class="camera-hint" id="camera-hint" style="position:absolute;bottom:130px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;white-space:nowrap;">Point camera at barcode</div>
-  </div>
-  <div class="camera-controls">
-    <button class="camera-cancel-btn" onclick="closeCameraScanner()">Cancel</button>
-    <button class="camera-cancel-btn" style="background:rgba(255,255,255,0.15);" onclick="openManualBarcode()">Type manually</button>
-  </div>
-</div>
+<!-- Hidden barcode capture input — triggers native iOS camera -->
+<input type="file" id="barcode-capture-input" accept="image/*" capture="environment" style="display:none;" onchange="decodeBarcodeFromPhoto(event)">
 
 <!-- MANUAL BARCODE FALLBACK -->
 <div class="barcode-modal" id="barcode-modal">
@@ -2154,7 +2145,13 @@ function saveNutrition(){
   try{
     const json = JSON.stringify(nutritionLog);
     localStorage.setItem('nutrition_log', json);
-  }catch(e){ console.error('Save nutrition failed:', e); showToast('⚠ Could not save — storage may be full'); }
+    // Verify write succeeded
+    const verify = localStorage.getItem('nutrition_log');
+    if(!verify) throw new Error('Write verification failed');
+  }catch(e){
+    console.error('Save nutrition failed:', e);
+    showToast('⚠ Could not save food log');
+  }
 }
 function getTodayLog(){
   const k = todayKey();
@@ -2163,7 +2160,8 @@ function getTodayLog(){
 }
 
 function renderNutrition(){
-  loadNutrition();
+  // Only load from storage if in-memory state is empty (i.e. first load)
+  if(!nutritionLog || Object.keys(nutritionLog).length===0) loadNutrition();
   const log = getTodayLog();
   // Totals
   let totalCals=0,totalP=0,totalC=0,totalF=0;
@@ -2434,57 +2432,59 @@ let cameraStream = null;
 let barcodeDetector = null;
 let scanInterval = null;
 
-let html5QrScanner = null;
+// ── Barcode Scanner (iOS-safe file capture approach) ──
+function triggerBarcodeCapture(){
+  // Use native file input with camera capture — works on all iOS Safari versions
+  const input = document.getElementById('barcode-capture-input');
+  if(!input){ openManualBarcode(); return; }
+  input.value = ''; // reset so same barcode can be scanned again
+  input.click();
+}
 
-async function openCameraScanner(){
-  if(typeof Html5Qrcode === 'undefined'){
-    openManualBarcode();
-    return;
-  }
-  document.getElementById('camera-modal').classList.add('open');
-  // Clear any previous instance
-  const readerDiv = document.getElementById('camera-reader');
-  readerDiv.innerHTML = '';
+async function decodeBarcodeFromPhoto(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  showToast('🔍 Reading barcode...');
   try{
-    html5QrScanner = new Html5Qrcode('camera-reader');
-    const config = {
-      fps: 10,
-      qrbox: {width:280, height:160},
-      aspectRatio: window.innerHeight/window.innerWidth,
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.CODE_39,
-      ]
-    };
-    await html5QrScanner.start(
-      {facingMode:'environment'},
-      config,
-      async (decodedText) => {
-        await closeCameraScanner();
-        const found = await lookupBarcodeCode(decodedText);
-        if(!found) showToast('⚠ Product not found — try typing name');
-      },
-      (err) => { /* ignore scan errors */ }
-    );
+    // Draw image to canvas and extract barcode using BarcodeDetector if available
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0);
+
+    // Try BarcodeDetector API first (Chrome/Edge/Android)
+    if('BarcodeDetector' in window){
+      const detector = new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128']});
+      const barcodes = await detector.detect(bitmap);
+      if(barcodes.length > 0){
+        const found = await lookupBarcodeCode(barcodes[0].rawValue);
+        if(!found) showToast('⚠ Product not found — try searching by name');
+        return;
+      }
+    }
+
+    // Fallback: use Open Food Facts image search via URL hack won't work
+    // Instead: scan using pixel analysis via a simple EAN decoder
+    // Best reliable fallback: prompt manual entry with the photo shown
+    showToast('⚠ Could not read barcode — please type it manually');
+    openManualBarcode();
   }catch(e){
-    closeCameraScanner();
+    showToast('⚠ Could not process image');
     openManualBarcode();
   }
 }
 
-async function closeCameraScanner(){
-  try{
-    if(html5QrScanner && html5QrScanner.isScanning){
-      await html5QrScanner.stop();
-    }
-    html5QrScanner = null;
-  }catch(e){}
-  document.getElementById('camera-modal').classList.remove('open');
-  document.getElementById('camera-reader').innerHTML='';
+function closeCameraScanner(){
+  // No-op since we use file input now
+}
+
+function openManualBarcode(){
+  document.getElementById('barcode-modal').classList.add('open');
+  document.getElementById('barcode-status').textContent='';
+  document.getElementById('barcode-number-input').value='';
+  setTimeout(()=>{ const el=document.getElementById('barcode-number-input'); if(el) el.focus(); },300);
 }
 
 function openManualBarcode(){
@@ -2660,6 +2660,8 @@ try {
   activeDay=todayIdx();
   loadState();
   loadPhotoSessions();
+  loadNutrition();
+  loadWorkoutHistory();
   render();
   const now=new Date(),ch=now.getHours(),cp=ch<12?"AM":"PM",cdh=ch===0?12:ch>12?ch-12:ch,target=`${cdh}:00 ${cp}`;
   setTimeout(()=>{document.querySelectorAll(".slot-time").forEach(el=>{if(el.textContent.trim()===target)el.closest(".slot").scrollIntoView({behavior:"smooth",block:"center"});});},400);
