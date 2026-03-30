@@ -1245,14 +1245,15 @@ async function loadHealthData(){
 }
 
 function renderHealthView(){
-  setGreeting();
-  renderDailyMetrics();
-  renderBiomarkers();
-  loadScores();
-  renderStreak();
-  loadWorkoutHistory();
-  renderWorkoutHistory();
-  renderNutrition();
+  const safe = (fn, name) => { try{ fn(); }catch(e){ console.error('renderHealthView error in '+name+':', e); }};
+  safe(setGreeting, 'greeting');
+  safe(renderDailyMetrics, 'metrics');
+  safe(renderBiomarkers, 'biomarkers');
+  safe(loadScores, 'scores');
+  safe(renderStreak, 'streak');
+  safe(loadWorkoutHistory, 'workoutHistory');
+  safe(renderWorkoutHistory, 'workoutHistoryRender');
+  safe(renderNutrition, 'nutrition');
 }
 
 function renderDailyMetrics(history={}){
@@ -1280,14 +1281,7 @@ function renderDailyMetrics(history={}){
     } else { bioCard.style.display='none'; }
   }
 
-  const protein=d.protein, carbs=d.carbs, fat=d.fat, cal=d.calories;
-  document.getElementById("m-protein").textContent=protein?`${Math.round(protein)}g`:"—";
-  document.getElementById("m-carbs").textContent=carbs?`${Math.round(carbs)}g`:"—";
-  document.getElementById("m-fat").textContent=fat?`${Math.round(fat)}g`:"—";
-  document.getElementById("m-calories").textContent=cal?`${Math.round(cal)} kcal`:"— kcal";
-  document.getElementById("bar-protein").style.width=protein?Math.min(protein/180*100,100)+"%":"0%";
-  document.getElementById("bar-carbs").style.width=carbs?Math.min(carbs/220*100,100)+"%":"0%";
-  document.getElementById("bar-fat").style.width=fat?Math.min(fat/65*100,100)+"%":"0%";
+  // Macro data now handled by nutrition logger — these elements no longer exist
 }
 
 function setM(id,val,decimals){
@@ -2160,8 +2154,6 @@ function getTodayLog(){
 }
 
 function renderNutrition(){
-  // Only load from storage if in-memory state is empty (i.e. first load)
-  if(!nutritionLog || Object.keys(nutritionLog).length===0) loadNutrition();
   const log = getTodayLog();
   // Totals
   let totalCals=0,totalP=0,totalC=0,totalF=0;
