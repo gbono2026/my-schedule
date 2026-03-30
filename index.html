@@ -454,6 +454,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js"></script>
 </head>
 <body>
 
@@ -919,13 +920,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 <!-- CAMERA SCANNER MODAL -->
 <div class="camera-modal" id="camera-modal">
   <video class="camera-video" id="camera-video" autoplay playsinline muted></video>
+  <canvas id="camera-canvas" style="display:none;"></canvas>
   <div class="camera-overlay">
     <div class="camera-frame"></div>
-    <div class="camera-hint">Point at barcode</div>
+    <div class="camera-hint" id="camera-hint">Point camera at barcode</div>
   </div>
   <div class="camera-controls">
     <button class="camera-cancel-btn" onclick="closeCameraScanner()">Cancel</button>
-    <button class="camera-cancel-btn" style="background:rgba(255,255,255,0.15);" onclick="openManualBarcode()">Type barcode</button>
+    <button class="camera-cancel-btn" style="background:rgba(255,255,255,0.15);" onclick="openManualBarcode()">Type manually</button>
   </div>
 </div>
 
@@ -2294,69 +2296,66 @@ function debounceFoodSearch(query){
   foodSearchTimer = setTimeout(()=>searchFood(query), 500);
 }
 
+function parseOFFProduct(p){
+  const n = p.nutriments||{};
+  // Prefer per-serving data, fall back to per-100g
+  const hasServing = n['energy-kcal_serving'] !== undefined;
+  const cals   = hasServing ? (n['energy-kcal_serving']||0) : (n['energy-kcal_100g']||n['energy-kcal']||0);
+  const prot   = hasServing ? (n['proteins_serving']||0)    : (n['proteins_100g']||n['proteins']||0);
+  const carbs  = hasServing ? (n['carbohydrates_serving']||0): (n['carbohydrates_100g']||n['carbohydrates']||0);
+  const fat    = hasServing ? (n['fat_serving']||0)          : (n['fat_100g']||n['fat']||0);
+  const serving = p.serving_size || (hasServing ? '1 serving' : '100g');
+  return {cals, prot, carbs, fat, serving};
+}
+
 async function searchFood(query){
   const results = [];
-  // Primary: Open Food Facts (global, 3M+ products, no rate limits)
+  // Search Open Food Facts v2 API — better results, proper brand matching
   try{
-    const r = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10&fields=product_name,brands,serving_size,nutriments`);
+    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=20&sort_by=unique_scans_n&fields=product_name,brands,serving_size,nutriments,nutriscore_grade`;
+    const r = await fetch(url);
     const data = await r.json();
     if(data.products){
       data.products.forEach(p=>{
-        if(!p.product_name) return;
-        const n = p.nutriments||{};
-        const cals = n['energy-kcal_serving']||n['energy-kcal_100g']||0;
-        if(!cals) return; // skip items with no calorie data
+        if(!p.product_name || p.product_name.trim()==='') return;
+        const {cals,prot,carbs,fat,serving} = parseOFFProduct(p);
+        if(!cals && !prot) return; // skip items with zero nutritional data
         results.push({
-          name: p.product_name,
-          brand: p.brands||'',
-          serving: p.serving_size||'100g',
+          name: p.product_name.trim(),
+          brand: (p.brands||'').split(',')[0].trim(), // first brand only
+          serving,
           calories: cals,
-          protein: n['proteins_serving']||n['proteins_100g']||0,
-          carbs: n['carbohydrates_serving']||n['carbohydrates_100g']||0,
-          fat: n['fat_serving']||n['fat_100g']||0,
+          protein: prot,
+          carbs,
+          fat,
           source:'Open Food Facts'
         });
       });
     }
   }catch(e){}
 
-  // Fallback: USDA if fewer than 4 results
-  if(results.length < 4){
-    try{
-      const r = await fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?query=${encodeURIComponent(query)}&api_key=DEMO_KEY&pageSize=6&dataType=Branded,SR%20Legacy`);
-      const data = await r.json();
-      if(data.foods){
-        data.foods.slice(0,4).forEach(f=>{
-          const getNutr = (id)=>(f.foodNutrients||[]).find(n=>n.nutrientId===id||n.nutrientNumber===String(id))?.value||0;
-          results.push({
-            name: f.description,
-            brand: f.brandOwner||f.brandName||'',
-            serving: f.servingSize ? `${f.servingSize}${f.servingSizeUnit||'g'}` : '100g',
-            calories: getNutr(1008)||getNutr(208),
-            protein: getNutr(1003)||getNutr(203),
-            carbs: getNutr(1005)||getNutr(205),
-            fat: getNutr(1004)||getNutr(204),
-            source:'USDA'
-          });
-        });
-      }
-    }catch(e){}
-  }
+  // Deduplicate by name+brand
+  const seen = new Set();
+  const deduped = results.filter(r=>{
+    const key = (r.name+r.brand).toLowerCase().replace(/\s/g,'');
+    if(seen.has(key)) return false;
+    seen.add(key); return true;
+  });
 
   const wrap = document.getElementById('food-results');
   if(!wrap) return;
-  if(!results.length){
-    wrap.innerHTML='<div class="food-loading">No results found. Try manual entry.</div>';
+  if(!deduped.length){
+    wrap.innerHTML='<div class="food-loading">No results found — try different keywords or use Manual entry.</div>';
+    window._foodResults = [];
     return;
   }
-  wrap.innerHTML = results.map((f,i)=>`
+  wrap.innerHTML = deduped.map((f,i)=>`
     <div class="food-result-item" onclick="selectFood(${i})">
       <div class="fri-name">${f.name}</div>
       ${f.brand?`<div class="fri-brand">${f.brand}</div>`:''}
-      <div class="fri-macros">${Math.round(f.calories)} kcal · P:${Math.round(f.protein)}g · C:${Math.round(f.carbs)}g · F:${Math.round(f.fat)}g · ${f.serving} · ${f.source}</div>
+      <div class="fri-macros">${Math.round(f.calories)} kcal · P:${Math.round(f.protein)}g · C:${Math.round(f.carbs)}g · F:${Math.round(f.fat)}g · ${f.serving}</div>
     </div>`).join('');
-  // Store results for selection
-  window._foodResults = results;
+  window._foodResults = deduped;
 }
 
 function selectFood(idx){
@@ -2434,46 +2433,56 @@ let cameraStream = null;
 let barcodeDetector = null;
 let scanInterval = null;
 
-async function openCameraScanner(){
-  // Check if BarcodeDetector is supported
-  if(!('BarcodeDetector' in window)){
-    // Fallback to manual entry
-    openManualBarcode();
-    return;
-  }
-  try{
-    barcodeDetector = new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code']});
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}}
-    });
-    cameraStream = stream;
-    const video = document.getElementById('camera-video');
-    video.srcObject = stream;
-    await video.play();
-    document.getElementById('camera-modal').classList.add('open');
-    // Start scanning frames
-    scanInterval = setInterval(()=>scanFrame(video), 400);
-  }catch(e){
-    // Camera permission denied or not available
-    openManualBarcode();
-  }
-}
+let zxingReader = null;
 
-async function scanFrame(video){
-  if(!barcodeDetector || !video.videoWidth) return;
+async function openCameraScanner(){
+  document.getElementById('camera-modal').classList.add('open');
+  document.getElementById('camera-hint').textContent = 'Starting camera...';
   try{
-    const barcodes = await barcodeDetector.detect(video);
-    if(barcodes.length > 0){
-      const code = barcodes[0].rawValue;
-      closeCameraScanner();
-      await lookupBarcodeCode(code);
+    // Use ZXing which works on iOS Safari
+    if(typeof ZXingBrowser === 'undefined'){
+      throw new Error('ZXing not loaded');
     }
-  }catch(e){}
+    const hints = new Map();
+    const formats = [
+      ZXingBrowser.BarcodeFormat.EAN_13,
+      ZXingBrowser.BarcodeFormat.EAN_8,
+      ZXingBrowser.BarcodeFormat.UPC_A,
+      ZXingBrowser.BarcodeFormat.UPC_E,
+      ZXingBrowser.BarcodeFormat.CODE_128,
+      ZXingBrowser.BarcodeFormat.CODE_39,
+      ZXingBrowser.BarcodeFormat.QR_CODE,
+    ];
+    hints.set(ZXingBrowser.DecodeHintType.POSSIBLE_FORMATS, formats);
+    hints.set(ZXingBrowser.DecodeHintType.TRY_HARDER, true);
+    zxingReader = new ZXingBrowser.BrowserMultiFormatReader(hints);
+    const video = document.getElementById('camera-video');
+    document.getElementById('camera-hint').textContent = 'Point camera at barcode';
+    await zxingReader.decodeFromConstraints(
+      {video:{facingMode:'environment', width:{ideal:1920}, height:{ideal:1080}}},
+      video,
+      (result, err) => {
+        if(result){
+          const code = result.getText();
+          closeCameraScanner();
+          lookupBarcodeCode(code);
+        }
+      }
+    );
+  }catch(e){
+    // ZXing failed or not available — fall back to manual
+    document.getElementById('camera-modal').classList.remove('open');
+    openManualBarcode();
+  }
 }
 
 function closeCameraScanner(){
-  clearInterval(scanInterval);
-  scanInterval = null;
+  try{
+    if(zxingReader){
+      zxingReader.reset();
+      zxingReader = null;
+    }
+  }catch(e){}
   if(cameraStream){
     cameraStream.getTracks().forEach(t=>t.stop());
     cameraStream = null;
