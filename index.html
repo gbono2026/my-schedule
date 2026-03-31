@@ -435,6 +435,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .camera-hint{color:#fff;font-size:13px;font-weight:600;margin-top:16px;letter-spacing:0.5px;}
 .camera-controls{position:absolute;bottom:0;left:0;right:0;padding:24px 20px max(24px,env(safe-area-inset-bottom));display:flex;gap:10px;}
 .camera-cancel-btn{flex:1;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
+.yt-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;border:1px solid rgba(255,0,0,0.3);background:rgba(255,0,0,0.08);color:#ff4444;font-size:10px;font-weight:700;cursor:pointer;text-decoration:none;margin-left:6px;vertical-align:middle;}
+.yt-btn:active{background:rgba(255,0,0,0.2);}
 /* Admin */
 .admin-btn{position:fixed;bottom:80px;right:16px;width:42px;height:42px;border-radius:50%;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:200;box-shadow:0 4px 20px rgba(0,0,0,0.4);}
 .admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-end;justify-content:center;padding:0;}
@@ -532,46 +534,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       </div>
     </div>
 
-    <!-- WORKOUT LOGGER -->
-    <div class="workout-section-header">
-      <div class="dash-section-label">💪 Workout</div>
-      <div style="display:flex;gap:6px;">
-        <button class="start-workout-btn" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);" onclick="openPresetModal()">📋 Preset</button>
-        <button class="start-workout-btn" onclick="openExercisePicker()">+ Custom</button>
-      </div>
-    </div>
 
-    <!-- Active workout (hidden by default) -->
-    <div id="active-workout" style="display:none;">
-      <div class="workout-card">
-        <div class="workout-header">
-          <div class="workout-header-icon">🏋️</div>
-          <div class="workout-header-info">
-            <div class="workout-name" id="workout-title-display">Today's Workout</div>
-            <div class="workout-meta" id="workout-exercise-count">0 exercises</div>
-          </div>
-          <div class="workout-timer" id="workout-elapsed">0:00</div>
-        </div>
-        <div id="exercise-list"></div>
-      </div>
-      <!-- Rest Timer -->
-      <div class="rest-timer" id="rest-timer" style="display:none;">
-        <div>
-          <div class="rest-timer-time" id="rest-time">2:00</div>
-          <div class="rest-timer-label">Rest Timer</div>
-        </div>
-        <div class="rest-timer-btns">
-          <button class="rest-btn" onclick="adjustRest(-15)">-15s</button>
-          <button class="rest-btn" onclick="adjustRest(15)">+15s</button>
-          <button class="rest-btn skip" onclick="skipRest()">Skip</button>
-        </div>
-      </div>
-      <button class="finish-workout-btn" onclick="finishWorkout()">✓ Finish Workout</button>
-      <button class="cancel-workout-btn" onclick="cancelWorkout()">✕ Cancel Workout</button>
-    </div>
-
-    <!-- Workout history -->
-    <div id="workout-history-list"></div>
 
 
     <div class="dash-section"><div class="dash-section-label">Recovery</div><div class="dash-section-line"></div></div>
@@ -672,8 +635,46 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       </div>
       <div class="meal-foods-list" id="foods-snacks"></div>
       <div class="meal-macro-row" id="macros-snacks" style="display:none"></div>
+    <!-- WORKOUT LOGGER -->
+    <div class="workout-section-header">
+      <div class="dash-section-label">💪 Workout</div>
+      <div style="display:flex;gap:6px;">
+        <button class="start-workout-btn" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);" onclick="openPresetModal()">📋 Preset</button>
+        <button class="start-workout-btn" onclick="openExercisePicker()">+ Custom</button>
+      </div>
     </div>
 
+    <!-- Active workout (hidden by default) -->
+    <div id="active-workout" style="display:none;">
+      <div class="workout-card">
+        <div class="workout-header">
+          <div class="workout-header-icon">🏋️</div>
+          <div class="workout-header-info">
+            <div class="workout-name" id="workout-title-display">Today's Workout</div>
+            <div class="workout-meta" id="workout-exercise-count">0 exercises</div>
+          </div>
+          <div class="workout-timer" id="workout-elapsed">0:00</div>
+        </div>
+        <div id="exercise-list"></div>
+      </div>
+      <!-- Rest Timer -->
+      <div class="rest-timer" id="rest-timer" style="display:none;">
+        <div>
+          <div class="rest-timer-time" id="rest-time">2:00</div>
+          <div class="rest-timer-label">Rest Timer</div>
+        </div>
+        <div class="rest-timer-btns">
+          <button class="rest-btn" onclick="adjustRest(-15)">-15s</button>
+          <button class="rest-btn" onclick="adjustRest(15)">+15s</button>
+          <button class="rest-btn skip" onclick="skipRest()">Skip</button>
+        </div>
+      </div>
+      <button class="finish-workout-btn" onclick="finishWorkout()">✓ Finish Workout</button>
+      <button class="cancel-workout-btn" onclick="cancelWorkout()">✕ Cancel Workout</button>
+    </div>
+
+    <!-- Workout history -->
+    <div id="workout-history-list"></div>
 
     <!-- DAILY SCORES -->
     <div class="dash-section"><div class="dash-section-label">Daily Check-In</div><div class="dash-section-line"></div></div>
@@ -879,7 +880,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     </div>
     <div class="food-search-bar">
       <input class="food-search-input" id="food-search-input" type="text" placeholder="Search food or brand..." oninput="debounceFoodSearch(this.value)">
-      <button class="food-barcode-btn" onclick="triggerBarcodeCapture()" title="Scan barcode">📷</button>
+      <button class="food-barcode-btn" onclick="openManualBarcode()" title="Enter barcode number" style="font-size:15px;">🔢</button>
     </div>
     <div class="food-tabs">
       <div class="food-tab active" id="ftab-search" onclick="switchFoodTab('search')">Search</div>
@@ -917,16 +918,15 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 </div>
 
 <!-- CAMERA SCANNER MODAL -->
-<!-- Hidden barcode capture input — triggers native iOS camera -->
-<input type="file" id="barcode-capture-input" accept="image/*" capture="environment" style="display:none;" onchange="decodeBarcodeFromPhoto(event)">
 
-<!-- MANUAL BARCODE FALLBACK -->
+
+<!-- BARCODE ENTRY MODAL -->
 <div class="barcode-modal" id="barcode-modal">
   <div class="barcode-box">
-    <div class="barcode-title">🔢 Enter Barcode</div>
-    <div class="barcode-sub">Type the barcode number from the product packaging.</div>
+    <div class="barcode-title">🔢 Barcode Lookup</div>
+    <div class="barcode-sub">Find the barcode number on the product and type it below. Works with EAN-13 (13 digits) and UPC-A (12 digits).</div>
     <div class="barcode-input-row">
-      <input class="barcode-number-input" id="barcode-number-input" type="number" inputmode="numeric" placeholder="0 00000 00000 0">
+      <input class="barcode-number-input" id="barcode-number-input" type="tel" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 0123456789012" autocomplete="off">
       <button class="barcode-lookup-btn" onclick="lookupBarcode()">Look up</button>
     </div>
     <div id="barcode-status" style="font-size:12px;color:var(--muted);min-height:20px;margin-bottom:12px;text-align:center;"></div>
@@ -1939,7 +1939,10 @@ function renderExercises(){
       </table>`;
     }
     return `<div class="exercise-block" id="${ex.id}">
-      <div class="exercise-name">${ex.name} ${isCardio?'🚴':''}</div>
+      <div class="exercise-name" style="display:flex;align-items:center;">
+        ${ex.name} ${isCardio?'🚴':''}
+        <a class="yt-btn" href="https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name+' exercise tutorial how to')}" target="_blank" rel="noopener">▶ Demo</a>
+      </div>
       <div class="exercise-target">${isCardio?'Cardio — track duration':ex.target}</div>
       ${lastSessionHtml}
       <input class="exercise-notes-input" type="text" placeholder="Notes..." value="${ex.notes||''}" onchange="activeWorkout.exercises[${exIdx}].notes=this.value">
@@ -2426,51 +2429,9 @@ let scanInterval = null;
 
 // ── Barcode Scanner (iOS-safe file capture approach) ──
 function triggerBarcodeCapture(){
-  // Use native file input with camera capture — works on all iOS Safari versions
-  const input = document.getElementById('barcode-capture-input');
-  if(!input){ openManualBarcode(); return; }
-  input.value = ''; // reset so same barcode can be scanned again
-  input.click();
+  openManualBarcode();
 }
-
-async function decodeBarcodeFromPhoto(event){
-  const file = event.target.files[0];
-  if(!file) return;
-  showToast('🔍 Reading barcode...');
-  try{
-    // Draw image to canvas and extract barcode using BarcodeDetector if available
-    const bitmap = await createImageBitmap(file);
-    const canvas = document.createElement('canvas');
-    canvas.width = bitmap.width;
-    canvas.height = bitmap.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(bitmap, 0, 0);
-
-    // Try BarcodeDetector API first (Chrome/Edge/Android)
-    if('BarcodeDetector' in window){
-      const detector = new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128']});
-      const barcodes = await detector.detect(bitmap);
-      if(barcodes.length > 0){
-        const found = await lookupBarcodeCode(barcodes[0].rawValue);
-        if(!found) showToast('⚠ Product not found — try searching by name');
-        return;
-      }
-    }
-
-    // Fallback: use Open Food Facts image search via URL hack won't work
-    // Instead: scan using pixel analysis via a simple EAN decoder
-    // Best reliable fallback: prompt manual entry with the photo shown
-    showToast('⚠ Could not read barcode — please type it manually');
-    openManualBarcode();
-  }catch(e){
-    showToast('⚠ Could not process image');
-    openManualBarcode();
-  }
-}
-
-function closeCameraScanner(){
-  // No-op since we use file input now
-}
+function closeCameraScanner(){ /* no-op */ }
 
 function openManualBarcode(){
   document.getElementById('barcode-modal').classList.add('open');
@@ -2479,12 +2440,6 @@ function openManualBarcode(){
   setTimeout(()=>{ const el=document.getElementById('barcode-number-input'); if(el) el.focus(); },300);
 }
 
-function openManualBarcode(){
-  closeCameraScanner();
-  document.getElementById('barcode-modal').classList.add('open');
-  document.getElementById('barcode-status').textContent='';
-  document.getElementById('barcode-number-input').value='';
-}
 
 async function lookupBarcode(){
   const code = document.getElementById('barcode-number-input').value.trim();
