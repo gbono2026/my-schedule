@@ -142,6 +142,57 @@ app.post("/health/manual", async (req, res) => {
   res.json({ success:true });
 });
 
+
+// ── User Data (persistent app data) ──
+async function setupUserDataTable(){
+  // Create table if it doesn't exist
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec`, {
+      method:'POST',
+      headers:{ apikey:SUPABASE_KEY, Authorization:`Bearer ${SUPABASE_KEY}`, 'Content-Type':'application/json' },
+      body: JSON.stringify({ query: `CREATE TABLE IF NOT EXISTS user_data (key TEXT PRIMARY KEY, value JSONB, updated_at TIMESTAMPTZ DEFAULT NOW())` })
+    });
+  }catch(e){ /* Table may already exist */ }
+}
+
+async function getUserData(key){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/user_data?key=eq.${encodeURIComponent(key)}&select=value`, {
+      headers:{ apikey:SUPABASE_KEY, Authorization:`Bearer ${SUPABASE_KEY}` }
+    });
+    const rows = await res.json();
+    return Array.isArray(rows) && rows.length > 0 ? rows[0].value : null;
+  }catch(e){ return null; }
+}
+
+async function setUserData(key, value){
+  try{
+    await fetch(`${SUPABASE_URL}/rest/v1/user_data`, {
+      method:'POST',
+      headers:{
+        apikey:SUPABASE_KEY, Authorization:`Bearer ${SUPABASE_KEY}`,
+        'Content-Type':'application/json',
+        'Prefer':'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({ key, value, updated_at: new Date().toISOString() })
+    });
+  }catch(e){ console.error('setUserData error:', e); }
+}
+
+// GET /userdata/:key
+app.get('/userdata/:key', async (req, res) => {
+  const value = await getUserData(req.params.key);
+  res.json({ value });
+});
+
+// POST /userdata/:key
+app.post('/userdata/:key', async (req, res) => {
+  const { value } = req.body;
+  if(value === undefined) return res.status(400).json({ error: 'Missing value' });
+  await setUserData(req.params.key, value);
+  res.json({ success: true });
+});
+
 // ── Schedule update (only modifies SCHED data, never touches HTML) ──
 async function getFile(){
   const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/index.html`,
@@ -194,5 +245,6 @@ app.post("/update", async (req, res) => {
   }catch(e){ res.status(500).json({ error:e.message }); }
 });
 
+setupUserDataTable();
 app.get("/", (req, res) => res.send("Schedule API running"));
 app.listen(process.env.PORT||3000, () => console.log("Server running"));
