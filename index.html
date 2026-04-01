@@ -1327,14 +1327,14 @@ function todayIdx(){const d=new Date().getDay();return d===0?6:d-1;}
 function parseHour(t){const[time,p]=t.split(" ");let[h]=time.split(":").map(Number);if(p==="PM"&&h!==12)h+=12;if(p==="AM"&&h===12)h=0;return h;}
 function getWeekKey(){const now=new Date(),day=now.getDay(),mon=new Date(now);mon.setDate(now.getDate()-(day===0?6:day-1));return`${mon.getFullYear()}-${String(mon.getMonth()+1).padStart(2,"0")}-${String(mon.getDate()).padStart(2,"0")}`;}
 
-function loadState(){
+async function loadState(){
   const wk=getWeekKey(),sw=localStorage.getItem("sched_week");
   if(sw!==wk){checks={};localStorage.setItem("sched_week",wk);localStorage.setItem("sched_checks","{}");}
   else{try{checks=JSON.parse(localStorage.getItem("sched_checks")||"{}");}catch(e){checks={};}}
-  try{bioData=JSON.parse(localStorage.getItem("bio_data")||"{}");}catch(e){bioData={};}
+  const bioCloud = await loadCloud("bio_data"); if(bioCloud){ bioData=bioCloud; } else { try{bioData=JSON.parse(localStorage.getItem("bio_data")||"{}");}catch(e){bioData={};} }
 }
 function saveState(){try{localStorage.setItem("sched_checks",JSON.stringify(checks));}catch(e){}}
-function saveBio(){try{localStorage.setItem("bio_data",JSON.stringify(bioData));}catch(e){}}
+function saveBio(){try{localStorage.setItem("bio_data",JSON.stringify(bioData));}catch(e){} saveCloud("bio_data", bioData);}
 
 // ── View switching ──
 let currentView="schedule";
@@ -1610,11 +1610,14 @@ const ANGLES=[
 ];
 let captureStep=0, capturedPhotos=[], captureStream=null, photoSessions=[];
 
-function loadPhotoSessions(){
+async function loadPhotoSessions(){
+  const cloud = await loadCloud('photo_sessions');
+  if(cloud){ photoSessions = cloud; localStorage.setItem('photo_sessions', JSON.stringify(cloud)); return; }
   try{photoSessions=JSON.parse(localStorage.getItem("photo_sessions")||"[]");}catch(e){photoSessions=[];}
 }
 function savePhotoSessions(){
-  try{localStorage.setItem("photo_sessions",JSON.stringify(photoSessions));}catch(e){showToast("⚠ Storage full — clear old photos");}
+  try{localStorage.setItem("photo_sessions",JSON.stringify(photoSessions));}catch(e){}
+  saveCloud('photo_sessions', photoSessions);
 }
 
 function checkMonthlyReminder(){
@@ -1791,8 +1794,10 @@ function closeLightbox(){document.getElementById("lightbox").classList.remove("o
 const SCORES = ['energy','mood','focus'];
 let dailyScores = {};
 
-function loadScores(){
+async function loadScores(){
   const today = new Date().toISOString().split('T')[0];
+  const cloud = await loadCloud('daily_scores');
+  if(cloud){ dailyScores = cloud; localStorage.setItem('daily_scores', JSON.stringify(cloud)); return; }
   try{ dailyScores = JSON.parse(localStorage.getItem('daily_scores')||'{}'); }catch(e){ dailyScores={}; }
   SCORES.forEach(s => renderPips(s, dailyScores[today]?.[s]||0));
 }
@@ -1816,6 +1821,7 @@ function setScore(name, val){
   if(!dailyScores[today]) dailyScores[today]={};
   dailyScores[today][name] = val;
   try{ localStorage.setItem('daily_scores', JSON.stringify(dailyScores)); }catch(e){}
+  saveCloud('daily_scores', dailyScores);
   renderPips(name, val);
   showToast('✓ Score saved');
 }
@@ -1968,12 +1974,15 @@ let restInterval = null;
 let restSeconds = 0;
 let workoutHistory = [];
 
-function loadWorkoutHistory(){
+async function loadWorkoutHistory(){
+  const cloud = await loadCloud('workout_history');
+  if(cloud){ workoutHistory = cloud; localStorage.setItem('workout_history', JSON.stringify(cloud)); return; }
   try{ workoutHistory = JSON.parse(localStorage.getItem('workout_history')||'[]'); }
   catch(e){ workoutHistory=[]; }
 }
 function saveWorkoutHistory(){
   try{ localStorage.setItem('workout_history', JSON.stringify(workoutHistory)); }catch(e){}
+  saveCloud('workout_history', workoutHistory);
 }
 
 function getPrevPerformance(exerciseName){
@@ -2263,21 +2272,17 @@ const DAYS_FULL = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'
 
 function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
-function loadNutrition(){
+async function loadNutrition(){
+  // Try cloud first
+  const cloud = await loadCloud('nutrition_log');
+  if(cloud){ nutritionLog = cloud; localStorage.setItem('nutrition_log', JSON.stringify(cloud)); return; }
+  // Fall back to localStorage
   try{ nutritionLog = JSON.parse(localStorage.getItem('nutrition_log')||'{}'); }
   catch(e){ nutritionLog={}; }
 }
 function saveNutrition(){
-  try{
-    const json = JSON.stringify(nutritionLog);
-    localStorage.setItem('nutrition_log', json);
-    // Verify write succeeded
-    const verify = localStorage.getItem('nutrition_log');
-    if(!verify) throw new Error('Write verification failed');
-  }catch(e){
-    console.error('Save nutrition failed:', e);
-    showToast('⚠ Could not save food log');
-  }
+  try{ localStorage.setItem('nutrition_log', JSON.stringify(nutritionLog)); }catch(e){}
+  saveCloud('nutrition_log', nutritionLog); // async — don't await
 }
 function getTodayLog(){
   const k = todayKey();
@@ -2739,11 +2744,14 @@ let bfSelectedPct = null;
 let bfSelectedCat = null;
 let bfCalcPct = null;
 
-function loadBFReadings(){
+async function loadBFReadings(){
+  const cloud = await loadCloud('bf_readings');
+  if(cloud){ bfReadings = cloud; localStorage.setItem('bf_readings', JSON.stringify(cloud)); return; }
   try{ bfReadings = JSON.parse(localStorage.getItem('bf_readings')||'[]'); }catch(e){ bfReadings=[]; }
 }
 function saveBFReadings(){
   try{ localStorage.setItem('bf_readings', JSON.stringify(bfReadings)); }catch(e){}
+  saveCloud('bf_readings', bfReadings);
 }
 
 function switchBFTab(tab, el){
@@ -2867,22 +2875,62 @@ function deleteBFReading(idx){
   saveBFReadings();
   renderBFHistory();
 }
+
+// ══════════════════════════════════════════
+// CLOUD SYNC — all persistent data goes to Supabase via Railway
+// localStorage is used as a fast local cache only
+// ══════════════════════════════════════════
+async function saveCloud(key, value){
+  try{
+    await fetch(SERVER+'/userdata/'+encodeURIComponent(key),{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({value})
+    });
+  }catch(e){ console.warn('Cloud save failed:',key,e.message); }
+}
+
+async function loadCloud(key){
+  try{
+    const r = await fetch(SERVER+'/userdata/'+encodeURIComponent(key));
+    if(!r.ok) return null;
+    const d = await r.json();
+    return d.value !== undefined ? d.value : null;
+  }catch(e){ return null; }
+}
+
+// Compress photo before cloud storage (reduces from ~2MB to ~100-200KB)
+function compressPhoto(dataUrl, maxWidth=900, quality=0.65){
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const canvas = document.createElement('canvas');
+      const ratio = Math.min(maxWidth/img.width, 1);
+      canvas.width  = Math.round(img.width*ratio);
+      canvas.height = Math.round(img.height*ratio);
+      canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = ()=>resolve(dataUrl); // fallback uncompressed
+    img.src = dataUrl;
+  });
+}
+
 // ── Boot ──
-try {
+(async ()=>{ try {
   activeDay=todayIdx();
-  loadState();
-  loadPhotoSessions();
-  loadNutrition();
-  loadWorkoutHistory();
-  loadBFReadings();
+  await loadState();
+  await loadPhotoSessions();
+  await loadNutrition();
+  await loadWorkoutHistory();
+  await loadBFReadings();
   render();
   const now=new Date(),ch=now.getHours(),cp=ch<12?"AM":"PM",cdh=ch===0?12:ch>12?ch-12:ch,target=`${cdh}:00 ${cp}`;
   setTimeout(()=>{document.querySelectorAll(".slot-time").forEach(el=>{if(el.textContent.trim()===target)el.closest(".slot").scrollIntoView({behavior:"smooth",block:"center"});});},400);
 } catch(e) {
   console.error("Boot error:", e);
-  // Show basic fallback so app isn't blank
   document.getElementById("schedule").innerHTML = '<div style="padding:20px;color:#6b6b80;text-align:center;">Loading... please refresh</div>';
-}
+}})();
 </script>
 </body>
 </html>
