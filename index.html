@@ -478,6 +478,21 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .bf-history-date{font-size:11px;color:var(--muted);min-width:90px;}
 .bf-history-pct{font-size:16px;font-weight:700;flex:1;}
 .bf-history-method{font-size:10px;color:var(--muted);}
+
+/* ── TODAY AT A GLANCE ── */
+.hero-card{background:linear-gradient(135deg,var(--surface2),var(--surface));border:1px solid var(--border2);border-radius:20px;padding:16px;margin-bottom:14px;}
+.hero-greeting{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:2px;}
+.hero-date{font-size:11px;color:var(--muted);margin-bottom:14px;}
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.hero-stat{background:var(--surface3);border-radius:12px;padding:10px 8px;text-align:center;}
+.hero-stat-val{font-size:18px;font-weight:700;line-height:1;margin-bottom:3px;}
+.hero-stat-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;}
+.hero-stat-icon{font-size:14px;margin-bottom:2px;}
+.hero-bottom{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+.hero-wide{background:var(--surface3);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;}
+.hero-wide-icon{font-size:18px;}
+.hero-wide-val{font-size:16px;font-weight:700;}
+.hero-wide-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;}
 /* Admin */
 .admin-btn{position:fixed;bottom:88px;right:12px;height:36px;padding:0 14px;border-radius:20px;background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(61,220,132,0.4);color:var(--green);font-size:11px;font-weight:700;letter-spacing:0.5px;cursor:pointer;display:flex;align-items:center;gap:6px;z-index:200;box-shadow:0 4px 16px rgba(61,220,132,0.15),0 2px 8px rgba(0,0,0,0.4);white-space:nowrap;font-family:inherit;}
 .admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-end;justify-content:center;padding:0;}
@@ -512,7 +527,7 @@ window.APP_VERSION = "20260331181838";
 <body>
 
 <!-- SCHEDULE VIEW -->
-<div class="view active" id="view-schedule">
+<div class="view" id="view-schedule">
   <div class="sched-header">
     <div class="sched-top">
       <div class="sched-title">My Schedule</div>
@@ -532,20 +547,69 @@ window.APP_VERSION = "20260331181838";
 </div>
 
 <!-- HEALTH VIEW -->
-<div class="view" id="view-health">
-  <div class="page-header">
-    <div class="page-eyebrow">Dashboard</div>
-    <div class="page-title" id="greeting-text">Good morning</div>
-    <div class="page-subtitle" id="greeting-date"></div>
-  </div>
-
+<div class="view active" id="view-health">
   <div class="dash-wrap">
-    <div class="setup-banner" id="setup-banner">
+    <!-- HERO CARD -->
+    <div class="hero-card">
+      <div class="hero-greeting" id="greeting-text">Good morning</div>
+      <div class="hero-date" id="greeting-date"></div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-icon">⚖️</div>
+          <div class="hero-stat-val" id="hero-weight">—</div>
+          <div class="hero-stat-label">lbs</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-icon">😴</div>
+          <div class="hero-stat-val" id="hero-sleep">—</div>
+          <div class="hero-stat-label">hrs sleep</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-icon">🌀</div>
+          <div class="hero-stat-val" id="hero-rem">—</div>
+          <div class="hero-stat-label">hrs REM</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-icon">💓</div>
+          <div class="hero-stat-val" id="hero-hrv">—</div>
+          <div class="hero-stat-label">HRV ms</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-icon">👟</div>
+          <div class="hero-stat-val" id="hero-steps">—</div>
+          <div class="hero-stat-label">steps</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-icon">🔥</div>
+          <div class="hero-stat-val" id="hero-cals">—</div>
+          <div class="hero-stat-label">active cal</div>
+        </div>
+      </div>
+      <div class="hero-bottom">
+        <div class="hero-wide">
+          <div class="hero-wide-icon">🍽️</div>
+          <div>
+            <div class="hero-wide-val" id="hero-nutrition">— kcal</div>
+            <div class="hero-wide-label">logged today</div>
+          </div>
+        </div>
+        <div class="hero-wide" style="justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="hero-wide-icon">❤️</div>
+            <div>
+              <div class="hero-wide-val" id="hero-rhr">—</div>
+              <div class="hero-wide-label">resting HR</div>
+            </div>
+          </div>
+          <button onclick="loadHealthData()" style="background:transparent;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;">↻</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="setup-banner" id="setup-banner" style="display:none;">
       <div class="setup-title">🔗 Connect Health Auto Export</div>
       <div class="setup-text">Install <strong>Health Auto Export</strong> on iPhone → Automations → REST API → <strong>https://my-schedule-server-production.up.railway.app/health</strong> to auto-sync your Apple Health data daily.</div>
     </div>
-
-    <button class="refresh-btn" onclick="loadHealthData()">↻ Refresh Data</button>
 
     <div class="dash-section"><div class="dash-section-label">Body</div><div class="dash-section-line"></div></div>
     <div class="metric-grid">
@@ -1006,15 +1070,17 @@ window.APP_VERSION = "20260331181838";
       <div class="food-modal-title">Add Food</div>
       <button class="food-modal-close" onclick="closeFoodModal()">×</button>
     </div>
-    <div class="food-search-bar">
+    <div class="food-search-bar" id="food-search-bar" style="display:none;">
       <input class="food-search-input" id="food-search-input" type="text" placeholder="Search food or brand..." oninput="debounceFoodSearch(this.value)">
       <button class="food-barcode-btn" onclick="openManualBarcode()" title="Enter barcode number" style="font-size:15px;">🔢</button>
     </div>
     <div class="food-tabs">
-      <div class="food-tab active" id="ftab-search" onclick="switchFoodTab('search')">Search</div>
+      <div class="food-tab active" id="ftab-recent" onclick="switchFoodTab('recent')">⚡ Recent</div>
+      <div class="food-tab" id="ftab-search" onclick="switchFoodTab('search')">Search</div>
       <div class="food-tab" id="ftab-manual" onclick="switchFoodTab('manual')">Manual</div>
     </div>
-    <div class="food-results" id="food-results">
+    <div id="food-recent-panel" style="overflow-y:auto;padding:0 16px 16px;"><div class="food-loading">No recent foods yet</div></div>
+    <div class="food-results" id="food-results" style="display:none;">
       <div class="food-loading">Search for a food above</div>
     </div>
     <div id="food-manual-panel" style="display:none;overflow-y:auto;max-height:60vh;">
@@ -1220,11 +1286,11 @@ window.APP_VERSION = "20260331181838";
 
 <!-- BOTTOM NAV -->
 <div class="bottom-nav">
-  <div class="nav-item active" id="nav-schedule" onclick="switchView('schedule')">
+  <div class="nav-item" id="nav-schedule" onclick="switchView('schedule')">
     <span class="nav-icon">📅</span>
     <span class="nav-label">SCHEDULE</span>
   </div>
-  <div class="nav-item" id="nav-health" onclick="switchView('health')">
+  <div class="nav-item active" id="nav-health" onclick="switchView('health')">
     <span class="nav-icon">❤️</span>
     <span class="nav-label">HEALTH</span>
   </div>
@@ -1337,7 +1403,7 @@ function saveState(){try{localStorage.setItem("sched_checks",JSON.stringify(chec
 function saveBio(){try{localStorage.setItem("bio_data",JSON.stringify(bioData));}catch(e){} saveCloud("bio_data", bioData);}
 
 // ── View switching ──
-let currentView="schedule";
+let currentView="health";
 function switchView(v){
   currentView=v;
   document.querySelectorAll(".view").forEach(el=>el.classList.remove("active"));
@@ -1396,6 +1462,15 @@ function renderDailyMetrics(history={}){
   setM("m-hrv", d.hrv?Math.round(d.hrv):null);
   setM("m-rhr", d.restingHR?Math.round(d.restingHR):null);
   setM("m-rem", d.sleepREM?d.sleepREM.toFixed(1):null);
+  // Populate hero card
+  const setHero = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val||'—'; };
+  setHero('hero-weight', d.weight?parseFloat(d.weight).toFixed(1):null);
+  setHero('hero-sleep', d.sleep?parseFloat(d.sleep).toFixed(1):null);
+  setHero('hero-rem', d.sleepREM?parseFloat(d.sleepREM).toFixed(1):null);
+  setHero('hero-hrv', d.hrv?Math.round(d.hrv):null);
+  setHero('hero-steps', d.steps?Math.round(d.steps).toLocaleString():null);
+  setHero('hero-cals', d.activeCalories?Math.round(d.activeCalories):null);
+  setHero('hero-rhr', d.restingHR?Math.round(d.restingHR)+' bpm':null);
   // Biological age from Function Health labs
   const bioAge = bioData['bioage']||null;
   const bioCard = document.getElementById('bio-age-card');
@@ -2312,6 +2387,8 @@ function renderNutrition(){
   // Summary card
   const calsEl = document.getElementById('nds-cals');
   if(calsEl) calsEl.textContent = Math.round(totalCals);
+  const heroNut = document.getElementById('hero-nutrition');
+  if(heroNut) heroNut.textContent = Math.round(totalCals)+' kcal';
   const subEl = document.getElementById('nds-sub');
   if(subEl) subEl.textContent = 'kcal consumed today';
   ['protein','carbs','fat'].forEach((m,i)=>{
@@ -2395,6 +2472,7 @@ function copyFromDay(fromKey){
 // ── Food Modal ──
 function openFoodModal(meal){
   currentMeal = meal;
+  switchFoodTab('recent');
   selectedFood = null;
   document.getElementById('food-modal').classList.add('open');
   document.getElementById('food-search-input').value='';
@@ -2406,12 +2484,67 @@ function closeFoodModal(){
   document.getElementById('food-modal').classList.remove('open');
 }
 function switchFoodTab(tab){
-  document.getElementById('food-results').style.display = tab==='search'?'block':'none';
+  document.getElementById('food-search-bar').style.display   = tab==='search'?'flex':'none';
+  const recentEl = document.getElementById('food-recent-panel');
+  if(recentEl) recentEl.style.display = tab==='recent'?'block':'none';
+  document.getElementById('food-results').style.display      = tab==='search'?'block':'none';
   document.getElementById('food-manual-panel').style.display = tab==='manual'?'block':'none';
-  document.getElementById('food-confirm-panel').style.display = tab==='confirm'?'block':'none';
+  document.getElementById('food-confirm-panel').style.display= tab==='confirm'?'block':'none';
   document.querySelectorAll('.food-tab').forEach(t=>t.classList.remove('active'));
   const activeTab = document.getElementById('ftab-'+tab);
   if(activeTab) activeTab.classList.add('active');
+  if(tab==='recent') renderRecentFoods();
+}
+
+function getRecentFoods(){
+  const seen = new Set();
+  const recent = [];
+  const keys = Object.keys(nutritionLog).sort().reverse();
+  for(const k of keys){
+    const day = nutritionLog[k];
+    for(const meal of ['breakfast','lunch','dinner','snacks']){
+      for(const item of (day[meal]||[])){
+        const key = (item.name||'').toLowerCase();
+        if(!seen.has(key)){
+          seen.add(key);
+          recent.push(item);
+          if(recent.length>=10) return recent;
+        }
+      }
+    }
+  }
+  return recent;
+}
+
+function renderRecentFoods(){
+  const wrap = document.getElementById('food-recent-panel');
+  if(!wrap) return;
+  const foods = getRecentFoods();
+  if(!foods.length){
+    wrap.innerHTML='<div class="food-loading">No recent foods yet — add some meals first</div>';
+    return;
+  }
+  window._recentFoods = foods;
+  wrap.innerHTML = foods.map((f,i)=>`
+    <div class="food-result-item" style="display:flex;align-items:center;gap:10px;">
+      <div style="flex:1;cursor:pointer;" onclick="quickAddRecent(${i})">
+        <div class="fri-name">${f.name}</div>
+        <div class="fri-macros">${Math.round(f.calories||0)} kcal · P:${Math.round(f.protein||0)}g · C:${Math.round(f.carbs||0)}g · F:${Math.round(f.fat||0)}g</div>
+      </div>
+      <button onclick="quickAddRecent(${i})" style="width:34px;height:34px;border-radius:50%;border:none;background:var(--green);color:#000;font-size:20px;font-weight:700;cursor:pointer;flex-shrink:0;line-height:1;">+</button>
+    </div>`).join('');
+}
+
+function quickAddRecent(idx){
+  const foods = window._recentFoods||[];
+  const f = foods[idx];
+  if(!f) return;
+  const log = getTodayLog();
+  log[currentMeal].push({...f});
+  saveNutrition();
+  renderNutrition();
+  closeFoodModal();
+  showToast('✓ '+f.name+' added to '+currentMeal);
 }
 
 function debounceFoodSearch(query){
@@ -2925,6 +3058,8 @@ function compressPhoto(dataUrl, maxWidth=900, quality=0.65){
   await loadWorkoutHistory();
   await loadBFReadings();
   render();
+  renderHealthView();
+  loadHealthData();
   const now=new Date(),ch=now.getHours(),cp=ch<12?"AM":"PM",cdh=ch===0?12:ch>12?ch-12:ch,target=`${cdh}:00 ${cp}`;
   setTimeout(()=>{document.querySelectorAll(".slot-time").forEach(el=>{if(el.textContent.trim()===target)el.closest(".slot").scrollIntoView({behavior:"smooth",block:"center"});});},400);
 } catch(e) {
