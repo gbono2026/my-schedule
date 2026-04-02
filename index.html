@@ -493,6 +493,29 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .hero-wide-icon{font-size:18px;}
 .hero-wide-val{font-size:16px;font-weight:700;}
 .hero-wide-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;}
+
+/* ── NUTRITION UPGRADES ── */
+.meal-copy-btn{padding:3px 8px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:9px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.meal-copy-btn:active{background:var(--surface2);}
+.copy-meal-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:600;align-items:flex-end;}
+.copy-meal-modal.open{display:flex;}
+.copy-meal-box{background:var(--surface);border-radius:24px 24px 0 0;width:100%;padding:20px 16px max(20px,env(safe-area-inset-bottom));max-height:70vh;overflow-y:auto;}
+.copy-meal-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;margin-bottom:4px;}
+.copy-meal-sub{font-size:12px;color:var(--muted);margin-bottom:14px;}
+.copy-day-option{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:12px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer;background:var(--surface2);}
+.copy-day-option:active{background:var(--green-dim);border-color:var(--green);}
+.copy-day-label{font-size:13px;font-weight:600;}
+.copy-day-preview{font-size:11px;color:var(--muted);}
+.copy-day-badge{font-size:11px;font-weight:700;color:var(--green);}
+/* My Foods */
+.my-foods-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);}
+.my-foods-item:last-child{border-bottom:none;}
+.mfi-name{font-size:13px;font-weight:500;}
+.mfi-macros{font-size:10px;color:var(--muted);margin-top:1px;}
+.mfi-actions{display:flex;gap:6px;align-items:center;}
+.mfi-add{width:30px;height:30px;border-radius:50%;border:none;background:var(--green);color:#000;font-size:16px;font-weight:700;cursor:pointer;line-height:1;}
+.mfi-del{width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;cursor:pointer;line-height:1;}
+.save-food-btn{padding:5px 10px;border-radius:10px;border:1px solid rgba(61,220,132,0.4);background:var(--green-dim);color:var(--green);font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;}
 /* Admin */
 .admin-btn{position:fixed;bottom:88px;right:12px;height:36px;padding:0 14px;border-radius:20px;background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(61,220,132,0.4);color:var(--green);font-size:11px;font-weight:700;letter-spacing:0.5px;cursor:pointer;display:flex;align-items:center;gap:6px;z-index:200;box-shadow:0 4px 16px rgba(61,220,132,0.15),0 2px 8px rgba(0,0,0,0.4);white-space:nowrap;font-family:inherit;}
 .admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-end;justify-content:center;padding:0;}
@@ -725,6 +748,7 @@ window.APP_VERSION = "20260331181838";
     <div class="meal-block" id="meal-breakfast">
       <div class="meal-header-row" onclick="toggleMeal('breakfast')">
         <span class="meal-icon">🌅</span><span class="meal-name">Breakfast</span>
+        <button class="meal-copy-btn" onclick="event.stopPropagation();openCopyMealModal('breakfast')">Copy prior</button>
         <span class="meal-cal-badge" id="meal-cals-breakfast">0 kcal</span>
         <button class="meal-add-btn" onclick="event.stopPropagation();openFoodModal('breakfast')">+</button>
       </div>
@@ -734,6 +758,7 @@ window.APP_VERSION = "20260331181838";
     <div class="meal-block" id="meal-lunch">
       <div class="meal-header-row" onclick="toggleMeal('lunch')">
         <span class="meal-icon">☀️</span><span class="meal-name">Lunch</span>
+        <button class="meal-copy-btn" onclick="event.stopPropagation();openCopyMealModal('lunch')">Copy prior</button>
         <span class="meal-cal-badge" id="meal-cals-lunch">0 kcal</span>
         <button class="meal-add-btn" onclick="event.stopPropagation();openFoodModal('lunch')">+</button>
       </div>
@@ -743,6 +768,7 @@ window.APP_VERSION = "20260331181838";
     <div class="meal-block" id="meal-dinner">
       <div class="meal-header-row" onclick="toggleMeal('dinner')">
         <span class="meal-icon">🌙</span><span class="meal-name">Dinner</span>
+        <button class="meal-copy-btn" onclick="event.stopPropagation();openCopyMealModal('dinner')">Copy prior</button>
         <span class="meal-cal-badge" id="meal-cals-dinner">0 kcal</span>
         <button class="meal-add-btn" onclick="event.stopPropagation();openFoodModal('dinner')">+</button>
       </div>
@@ -752,6 +778,7 @@ window.APP_VERSION = "20260331181838";
     <div class="meal-block" id="meal-snacks">
       <div class="meal-header-row" onclick="toggleMeal('snacks')">
         <span class="meal-icon">🍎</span><span class="meal-name">Snacks</span>
+        <button class="meal-copy-btn" onclick="event.stopPropagation();openCopyMealModal('snacks')">Copy prior</button>
         <span class="meal-cal-badge" id="meal-cals-snacks">0 kcal</span>
         <button class="meal-add-btn" onclick="event.stopPropagation();openFoodModal('snacks')">+</button>
       </div>
@@ -1076,10 +1103,12 @@ window.APP_VERSION = "20260331181838";
     </div>
     <div class="food-tabs">
       <div class="food-tab active" id="ftab-recent" onclick="switchFoodTab('recent')">⚡ Recent</div>
+      <div class="food-tab" id="ftab-myfoods" onclick="switchFoodTab('myfoods')">⭐ Saved</div>
       <div class="food-tab" id="ftab-search" onclick="switchFoodTab('search')">Search</div>
       <div class="food-tab" id="ftab-manual" onclick="switchFoodTab('manual')">Manual</div>
     </div>
     <div id="food-recent-panel" style="overflow-y:auto;padding:0 16px 16px;"><div class="food-loading">No recent foods yet</div></div>
+    <div id="food-myfoods-panel" style="display:none;overflow-y:auto;padding:0 16px 16px;"><div class="food-loading">No saved foods yet — star a food to save it</div></div>
     <div class="food-results" id="food-results" style="display:none;">
       <div class="food-loading">Search for a food above</div>
     </div>
@@ -1113,6 +1142,16 @@ window.APP_VERSION = "20260331181838";
 
 <!-- CAMERA SCANNER MODAL -->
 
+
+<!-- COPY MEAL MODAL -->
+<div class="copy-meal-modal" id="copy-meal-modal">
+  <div class="copy-meal-box">
+    <div class="copy-meal-title" id="copy-meal-title">Copy Breakfast</div>
+    <div class="copy-meal-sub">Pick a prior day to copy from</div>
+    <div id="copy-meal-options"></div>
+    <button style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:6px;" onclick="document.getElementById('copy-meal-modal').classList.remove('open')">Cancel</button>
+  </div>
+</div>
 
 <!-- BARCODE ENTRY MODAL -->
 <div class="barcode-modal" id="barcode-modal">
@@ -2484,16 +2523,19 @@ function closeFoodModal(){
   document.getElementById('food-modal').classList.remove('open');
 }
 function switchFoodTab(tab){
-  document.getElementById('food-search-bar').style.display   = tab==='search'?'flex':'none';
+  document.getElementById('food-search-bar').style.display     = tab==='search'?'flex':'none';
   const recentEl = document.getElementById('food-recent-panel');
   if(recentEl) recentEl.style.display = tab==='recent'?'block':'none';
-  document.getElementById('food-results').style.display      = tab==='search'?'block':'none';
-  document.getElementById('food-manual-panel').style.display = tab==='manual'?'block':'none';
-  document.getElementById('food-confirm-panel').style.display= tab==='confirm'?'block':'none';
+  const myEl = document.getElementById('food-myfoods-panel');
+  if(myEl) myEl.style.display = tab==='myfoods'?'block':'none';
+  document.getElementById('food-results').style.display        = tab==='search'?'block':'none';
+  document.getElementById('food-manual-panel').style.display   = tab==='manual'?'block':'none';
+  document.getElementById('food-confirm-panel').style.display  = tab==='confirm'?'block':'none';
   document.querySelectorAll('.food-tab').forEach(t=>t.classList.remove('active'));
   const activeTab = document.getElementById('ftab-'+tab);
   if(activeTab) activeTab.classList.add('active');
   if(tab==='recent') renderRecentFoods();
+  if(tab==='myfoods') renderMyFoods();
 }
 
 function getRecentFoods(){
@@ -2549,12 +2591,12 @@ function quickAddRecent(idx){
 
 function debounceFoodSearch(query){
   clearTimeout(foodSearchTimer);
-  if(!query || query.length<2){
+  if(!query || query.length<1){
     document.getElementById('food-results').innerHTML='<div class="food-loading">Search for a food above</div>';
     return;
   }
   document.getElementById('food-results').innerHTML='<div class="food-loading">🔍 Searching...</div>';
-  foodSearchTimer = setTimeout(()=>searchFood(query), 500);
+  foodSearchTimer = setTimeout(()=>searchFood(query), 300);
 }
 
 function parseOFFProduct(p){
@@ -2611,10 +2653,13 @@ async function searchFood(query){
     return;
   }
   wrap.innerHTML = deduped.map((f,i)=>`
-    <div class="food-result-item" onclick="selectFood(${i})">
-      <div class="fri-name">${f.name}</div>
-      ${f.brand?`<div class="fri-brand">${f.brand}</div>`:''}
-      <div class="fri-macros">${Math.round(f.calories)} kcal · P:${Math.round(f.protein)}g · C:${Math.round(f.carbs)}g · F:${Math.round(f.fat)}g · ${f.serving}</div>
+    <div class="food-result-item" style="display:flex;align-items:center;gap:8px;">
+      <div style="flex:1;cursor:pointer;" onclick="selectFood(${i})">
+        <div class="fri-name">${f.name}</div>
+        ${f.brand?`<div class="fri-brand">${f.brand}</div>`:''}
+        <div class="fri-macros">${Math.round(f.calories)} kcal · P:${Math.round(f.protein)}g · C:${Math.round(f.carbs)}g · F:${Math.round(f.fat)}g · ${f.serving}</div>
+      </div>
+      <button onclick="saveToMyFoods(window._foodResults[${i}])" style="background:transparent;border:none;font-size:16px;cursor:pointer;padding:4px;color:var(--muted);" title="Save to My Foods">⭐</button>
     </div>`).join('');
   window._foodResults = deduped;
 }
@@ -3049,6 +3094,115 @@ function compressPhoto(dataUrl, maxWidth=900, quality=0.65){
   });
 }
 
+
+// ── Copy Meal Modal ──
+let copyMealTarget = null;
+
+function openCopyMealModal(meal){
+  copyMealTarget = meal;
+  const mealLabels = {breakfast:'Breakfast',lunch:'Lunch',dinner:'Dinner',snacks:'Snacks'};
+  document.getElementById('copy-meal-title').textContent = 'Copy ' + mealLabels[meal];
+  const wrap = document.getElementById('copy-meal-options');
+  wrap.innerHTML = '';
+  const today = new Date();
+  let found = 0;
+  for(let i=1;i<=14;i++){
+    const d = new Date(today);
+    d.setDate(today.getDate()-i);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const log = nutritionLog[key];
+    const items = (log&&log[meal])||[];
+    if(!items.length) continue;
+    const cals = Math.round(items.reduce((s,f)=>s+(f.calories||0),0));
+    const label = i===1?'Yesterday':d.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+    const preview = items.slice(0,2).map(f=>f.name).join(', ') + (items.length>2?` +${items.length-2} more`:'');
+    const el = document.createElement('div');
+    el.className = 'copy-day-option';
+    el.innerHTML = `<div><div class="copy-day-label">${label}</div><div class="copy-day-preview">${preview}</div></div><div class="copy-day-badge">${cals} kcal</div>`;
+    el.onclick = ()=>copyMealFromDay(key, meal);
+    wrap.appendChild(el);
+    found++;
+    if(found>=7) break;
+  }
+  if(!found) wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No prior entries found for this meal</div>';
+  document.getElementById('copy-meal-modal').classList.add('open');
+}
+
+function copyMealFromDay(fromKey, meal){
+  const fromItems = (nutritionLog[fromKey]&&nutritionLog[fromKey][meal])||[];
+  if(!fromItems.length){ showToast('Nothing to copy'); return; }
+  const todayLog = getTodayLog();
+  todayLog[meal] = [...(todayLog[meal]||[]), ...fromItems.map(f=>({...f}))];
+  saveNutrition();
+  renderNutrition();
+  document.getElementById('copy-meal-modal').classList.remove('open');
+  const mealLabels = {breakfast:'Breakfast',lunch:'Lunch',dinner:'Dinner',snacks:'Snacks'};
+  showToast('✓ ' + mealLabels[meal] + ' copied!');
+}
+
+// ── My Foods (starred/saved foods) ──
+let myFoods = [];
+
+function loadMyFoods(){
+  try{ myFoods = JSON.parse(localStorage.getItem('my_foods')||'[]'); }catch(e){ myFoods=[]; }
+  saveCloud('my_foods', myFoods);
+}
+async function initMyFoods(){
+  const cloud = await loadCloud('my_foods');
+  if(cloud){ myFoods=cloud; localStorage.setItem('my_foods',JSON.stringify(cloud)); return; }
+  try{ myFoods = JSON.parse(localStorage.getItem('my_foods')||'[]'); }catch(e){ myFoods=[]; }
+}
+function saveMyFoods(){
+  try{ localStorage.setItem('my_foods', JSON.stringify(myFoods)); }catch(e){}
+  saveCloud('my_foods', myFoods);
+}
+
+function saveToMyFoods(food){
+  if(!food) return;
+  const exists = myFoods.some(f=>f.name.toLowerCase()===food.name.toLowerCase());
+  if(exists){ showToast('Already in saved foods'); return; }
+  myFoods.unshift({...food});
+  saveMyFoods();
+  showToast('⭐ Saved to My Foods!');
+}
+
+function renderMyFoods(){
+  const wrap = document.getElementById('food-myfoods-panel');
+  if(!wrap) return;
+  if(!myFoods.length){
+    wrap.innerHTML='<div class="food-loading">No saved foods yet<br><span style="font-size:11px;color:var(--muted)">Search for a food → tap ⭐ to save it</span></div>';
+    return;
+  }
+  wrap.innerHTML = myFoods.map((f,i)=>`
+    <div class="my-foods-item">
+      <div style="flex:1;">
+        <div class="mfi-name">${f.name}</div>
+        <div class="mfi-macros">${Math.round(f.calories||0)} kcal · P:${Math.round(f.protein||0)}g · C:${Math.round(f.carbs||0)}g · F:${Math.round(f.fat||0)}g</div>
+      </div>
+      <div class="mfi-actions">
+        <button class="mfi-del" onclick="deleteMyFood(${i})" title="Remove">×</button>
+        <button class="mfi-add" onclick="quickAddMyFood(${i})">+</button>
+      </div>
+    </div>`).join('');
+}
+
+function quickAddMyFood(idx){
+  const f = myFoods[idx];
+  if(!f) return;
+  const log = getTodayLog();
+  log[currentMeal].push({...f});
+  saveNutrition();
+  renderNutrition();
+  closeFoodModal();
+  showToast('✓ '+f.name+' added to '+currentMeal);
+}
+
+function deleteMyFood(idx){
+  myFoods.splice(idx,1);
+  saveMyFoods();
+  renderMyFoods();
+}
+
 // ── Boot ──
 (async ()=>{ try {
   activeDay=todayIdx();
@@ -3057,6 +3211,7 @@ function compressPhoto(dataUrl, maxWidth=900, quality=0.65){
   await loadNutrition();
   await loadWorkoutHistory();
   await loadBFReadings();
+  await initMyFoods();
   render();
   renderHealthView();
   loadHealthData();
