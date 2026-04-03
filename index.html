@@ -3335,18 +3335,17 @@ async function submitAILog(){
       ? `You are a nutrition expert. The user will describe a meal in plain English. Extract each food item and estimate calories, protein, carbs, and fat. Return ONLY a JSON array, no markdown, no explanation. Format: [{"name":"Food name","calories":200,"protein":10,"carbs":25,"fat":5,"serving":"1 serving"}]`
       : `You are a fitness expert. The user will describe a workout in plain English. Extract each exercise with sets, reps, and weight. Return ONLY a JSON array, no markdown. Format: [{"name":"Exercise name","sets":[{"weight":185,"reps":8},{"weight":185,"reps":8}],"target":"3x8","type":"strength"}]`;
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(SERVER+'/ai-log', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
+        mode: aiLogMode,
         system: systemPrompt,
-        messages:[{role:'user', content: input}]
+        input: input
       })
     });
     const data = await res.json();
-    const text = data.content?.[0]?.text||'';
+    const text = data.text||'';
     const clean = text.replace(/```json|```/g,'').trim();
     const parsed = JSON.parse(clean);
 
