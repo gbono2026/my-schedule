@@ -193,6 +193,26 @@ app.post('/userdata/:key', async (req, res) => {
   res.json({ success: true });
 });
 
+
+// ── AI Logging endpoint ──
+app.post('/ai-log', async (req, res) => {
+  const { system, input } = req.body;
+  if(!input) return res.status(400).json({ error: 'Missing input' });
+  try{
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: system,
+      messages: [{ role: 'user', content: input }]
+    });
+    const text = message.content[0].text;
+    res.json({ text });
+  }catch(e){
+    console.error('AI log error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Schedule update (only modifies SCHED data, never touches HTML) ──
 async function getFile(){
   const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/index.html`,
