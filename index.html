@@ -95,8 +95,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .greeting-date{font-size:12px;color:var(--muted2);}
 
 /* Section headers */
-.dash-section{display:flex;align-items:center;gap:8px;margin:20px 0 10px;}
-.dash-section-label{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.dash-section{display:flex;align-items:center;gap:12px;margin:28px 0 12px;}
+.dash-section-label{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--text);letter-spacing:0.5px;white-space:nowrap;}
 .dash-section-line{flex:1;height:1px;background:var(--border);}
 
 /* Metric cards */
@@ -577,6 +577,15 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .thermal-ctrl-btn.cold-finish{background:var(--blue);border-color:var(--blue);color:#fff;}
 .thermal-history-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
 .thermal-history-item:last-child{border-bottom:none;}
+
+/* -- HYDRATION -- */
+.hydration-card{background:linear-gradient(135deg,rgba(96,165,250,0.06),rgba(30,100,180,0.04));border:1px solid rgba(96,165,250,0.2);border-radius:16px;padding:16px;margin-bottom:10px;}
+.hydration-goal-bar{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-bottom:12px;}
+.hydration-goal-fill{height:100%;background:linear-gradient(90deg,var(--blue),#60c8fa);border-radius:4px;transition:width 0.4s ease;}
+.hydration-btns{display:flex;gap:6px;flex-wrap:wrap;}
+.hydration-btn{padding:9px 12px;border-radius:10px;border:1px solid rgba(96,165,250,0.3);background:rgba(96,165,250,0.08);color:var(--blue);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center;}
+.hydration-btn:active{opacity:0.7;}
+.hydration-btn.custom{border-color:var(--border);background:var(--surface2);color:var(--muted);}
 /* Admin */
 .admin-btn{position:fixed;bottom:88px;right:12px;height:36px;padding:0 14px;border-radius:20px;background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(61,220,132,0.4);color:var(--green);font-size:11px;font-weight:700;letter-spacing:0.5px;cursor:pointer;display:flex;align-items:center;gap:6px;z-index:200;box-shadow:0 4px 16px rgba(61,220,132,0.15),0 2px 8px rgba(0,0,0,0.4);white-space:nowrap;font-family:inherit;}
 .admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-end;justify-content:center;padding:0;}
@@ -856,6 +865,30 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       </div>
     </div>
 
+    <!-- HYDRATION SECTION -->
+    <div class="dash-section"><div class="dash-section-label" style="color:var(--blue);">Hydration</div><div class="dash-section-line" style="background:rgba(96,165,250,0.3);"></div></div>
+    <div class="hydration-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;">Water Intake</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;">Goal: <span id="hydration-goal-display">64 oz</span></div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--blue);line-height:1;" id="hydration-total">0</div>
+          <div style="font-size:10px;color:var(--muted);">oz today</div>
+        </div>
+      </div>
+      <div class="hydration-goal-bar"><div class="hydration-goal-fill" id="hydration-bar" style="width:0%"></div></div>
+      <div class="hydration-btns">
+        <button class="hydration-btn" onclick="logWater(8)">+8 oz<br><span style="font-size:9px;opacity:0.7;">1 cup</span></button>
+        <button class="hydration-btn" onclick="logWater(12)">+12 oz<br><span style="font-size:9px;opacity:0.7;">bottle</span></button>
+        <button class="hydration-btn" onclick="logWater(16)">+16 oz<br><span style="font-size:9px;opacity:0.7;">2 cups</span></button>
+        <button class="hydration-btn" onclick="logWater(20)">+20 oz<br><span style="font-size:9px;opacity:0.7;">large</span></button>
+        <button class="hydration-btn custom" onclick="logWaterCustom()">Custom</button>
+        <button class="hydration-btn custom" onclick="resetHydration()" style="color:var(--red);border-color:rgba(248,113,113,0.3);">Reset</button>
+      </div>
+    </div>
+
     <div class="dash-section"><div class="dash-section-label">Nutrition</div><div class="dash-section-line"></div></div>
     <button class="ai-log-btn" onclick="openAIModal('meal')" style="margin:0 16px 8px;width:calc(100% - 32px);">✦ Log meal with AI &nbsp;<span style="font-size:11px;opacity:0.7;">describe in plain English</span></button>
 
@@ -924,9 +957,13 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <div class="meal-foods-list" id="foods-snacks"></div>
       <div class="meal-macro-row" id="macros-snacks" style="display:none"></div>
     <!-- WORKOUT LOGGER -->
-    <div class="workout-section-header">
-      <div class="dash-section-label">💪 Workout</div>
-      <div style="display:flex;gap:6px;">
+    <div style="height:1px;background:linear-gradient(90deg,transparent,var(--green),transparent);margin:8px 0 4px;opacity:0.4;"></div>
+    <div class="workout-section-header" style="margin-top:20px;">
+      <div style="display:flex;align-items:center;gap:12px;flex:1;">
+        <div class="dash-section-label" style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--text);letter-spacing:0.5px;white-space:nowrap;">Workout</div>
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+      </div>
+      <div style="display:flex;gap:6px;margin-left:12px;">
         <button class="start-workout-btn" style="background:var(--gold-dim);border-color:var(--gold-border);color:var(--gold);" onclick="openAIModal('workout')">✦ AI Log</button>
         <button class="start-workout-btn" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);" onclick="openPresetModal()">📋 Preset</button>
         <button class="start-workout-btn" onclick="openExercisePicker()">+ Custom</button>
@@ -957,6 +994,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
           <button class="rest-btn" onclick="adjustRest(15)">+15s</button>
           <button class="rest-btn skip" onclick="skipRest()">Skip</button>
         </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <button style="flex:1;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="openExercisePicker()">+ Exercise</button>
+        <button style="flex:1;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="openPresetModal()">+ Preset</button>
       </div>
       <button class="finish-workout-btn" onclick="finishWorkout()">✓ Finish Workout</button>
       <button class="cancel-workout-btn" onclick="cancelWorkout()">✕ Cancel Workout</button>
@@ -1199,6 +1240,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <div class="ai-modal-title" id="ai-modal-title">✦ AI Meal Logger</div>
     <div class="ai-modal-sub" id="ai-modal-sub">Describe what you ate in plain English — e.g. "2 scrambled eggs, whole wheat toast, black coffee"</div>
     <textarea class="ai-input" id="ai-log-input" rows="3" placeholder="Describe your meal or workout..."></textarea>
+    <button id="ai-voice-btn" onclick="toggleVoiceInput()" style="width:100%;margin-top:8px;padding:14px;border-radius:12px;border:1px solid var(--gold-border);background:var(--gold-dim);color:var(--gold);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;"><span style="font-size:20px;">&#127908;</span> Tap to Speak</button>
+    <div id="ai-voice-status" style="font-size:12px;color:var(--muted);text-align:center;min-height:18px;margin:6px 0;"></div>
     <button class="ai-submit-btn" id="ai-submit-btn" onclick="submitAILog()">✦ Parse with AI</button>
     <div id="ai-result-area"></div>
     <button style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;" onclick="closeAIModal()">Cancel</button>
@@ -1668,6 +1711,7 @@ function renderHealthView(){
   safe(renderWorkoutHistory, 'workoutHistoryRender');
   safe(renderNutrition, 'nutrition');
   safe(renderThermal, 'thermal');
+  safe(renderHydration, 'hydration');
 }
 
 function renderDailyMetrics(history={}){
@@ -1847,7 +1891,7 @@ function renderSchedule(){
       slot.dataset.key=key;
       const isGym = task && (task.toLowerCase().includes('gym') || task.toLowerCase().includes('peloton') || task.toLowerCase().includes('biking'));
       const isCardio = task && (task.toLowerCase().includes('peloton') || task.toLowerCase().includes('biking'));
-      slot.innerHTML=`<div class="slot-time">${t}</div><div class="slot-ring">${on?"✓":""}</div><div class="slot-content" style="flex:1"><div class="slot-task">${task||"—"}</div>${isGym?(isCardio?`<button class="gym-log-btn" onclick="event.stopPropagation();startCardioWorkout('${task}')">🚴 Log Cardio</button>`:`<button class="gym-log-btn" onclick="event.stopPropagation();switchView('health');setTimeout(()=>{openExercisePicker();},300)">💪 Log Workout</button>`):''}</div>`;
+      slot.innerHTML=`<div class="slot-time">${t}</div><div class="slot-ring">${on?"✓":""}</div><div class="slot-content" style="flex:1"><div class="slot-task">${task||"—"}</div>${isGym?(isCardio?`<button class="gym-log-btn" onclick="event.stopPropagation();startCardioWorkout('${task}')">🚴 Log Cardio</button>`:`<button class="gym-log-btn" onclick="event.stopPropagation();switchView('health');setTimeout(()=>{openPresetModal();},300)">💪 Log Workout</button>`):''}</div>`;
       if(task)slot.addEventListener("click",()=>toggle(key));
       grp.appendChild(slot);
     });
@@ -2412,10 +2456,15 @@ function addSet(exIdx){
 
 function completeSet(exIdx, si){
   if(!activeWorkout) return;
-  const set = activeWorkout.exercises[exIdx].sets[si];
+  const ex = activeWorkout.exercises[exIdx];
+  const set = ex.sets[si];
   set.done = !set.done;
   renderExercises();
-  if(set.done) startRestTimer(120);
+  if(set.done){
+    const allDone = ex.sets.every(s=>s.done);
+    if(allDone) showToast('✓ '+ex.name+' — exercise complete!');
+    startRestTimer(120);
+  }
 }
 
 function startRestTimer(secs){
@@ -3677,6 +3726,94 @@ function deleteThermal(idx){
   renderThermal();
 }
 
+
+// -- Hydration Tracking --
+let hydrationLog = {};
+const hydrationGoalOz = 64;
+
+async function loadHydration(){
+  const cloud = await loadCloud('hydration_log');
+  if(cloud){ hydrationLog=cloud; localStorage.setItem('hydration_log',JSON.stringify(cloud)); return; }
+  try{ hydrationLog=JSON.parse(localStorage.getItem('hydration_log')||'{}'); }catch(e){ hydrationLog={}; }
+}
+function saveHydration(){
+  try{ localStorage.setItem('hydration_log', JSON.stringify(hydrationLog)); }catch(e){}
+  saveCloud('hydration_log', hydrationLog);
+}
+function getTodayHydration(){
+  const k = todayKey();
+  if(!hydrationLog[k]) hydrationLog[k]={oz:0,entries:[]};
+  return hydrationLog[k];
+}
+function logWater(oz){
+  const today = getTodayHydration();
+  today.oz = (today.oz||0) + oz;
+  today.entries.push({oz, time:new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})});
+  saveHydration();
+  renderHydration();
+  showToast('Water +'+oz+' oz logged');
+}
+function logWaterCustom(){
+  const val = prompt('Enter amount in oz:');
+  const oz = parseInt(val);
+  if(oz && oz>0) logWater(oz);
+}
+function resetHydration(){
+  if(!confirm('Reset today water log?')) return;
+  hydrationLog[todayKey()] = {oz:0,entries:[]};
+  saveHydration();
+  renderHydration();
+}
+function renderHydration(){
+  const today = getTodayHydration();
+  const total = today.oz||0;
+  const pct = Math.min(total/hydrationGoalOz*100, 100);
+  const el = document.getElementById('hydration-total');
+  const bar = document.getElementById('hydration-bar');
+  if(el) el.textContent = total;
+  if(bar) bar.style.width = pct+'%';
+}
+
+// -- Voice Input for AI Logger --
+let voiceRecognition = null;
+let voiceActive = false;
+
+function toggleVoiceInput(){
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+    showToast('Voice not available on this browser');
+    return;
+  }
+  if(voiceActive){ if(voiceRecognition) voiceRecognition.stop(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  voiceRecognition = new SR();
+  voiceRecognition.continuous = false;
+  voiceRecognition.interimResults = true;
+  voiceRecognition.lang = 'en-US';
+  const btn = document.getElementById('ai-voice-btn');
+  const status = document.getElementById('ai-voice-status');
+  const input = document.getElementById('ai-log-input');
+  voiceRecognition.onstart = ()=>{
+    voiceActive = true;
+    if(btn){ btn.style.color='var(--red)'; btn.style.borderColor='rgba(248,113,113,0.4)'; btn.style.background='rgba(248,113,113,0.1)'; }
+    if(status) status.textContent='Listening -- speak now...';
+  };
+  voiceRecognition.onresult = (e)=>{
+    let t=''; for(let i=0;i<e.results.length;i++) t+=e.results[i][0].transcript;
+    if(input) input.value=t;
+  };
+  voiceRecognition.onend = ()=>{
+    voiceActive=false;
+    if(btn){ btn.style.color='var(--gold)'; btn.style.borderColor='var(--gold-border)'; btn.style.background='var(--gold-dim)'; }
+    if(status) status.textContent='';
+  };
+  voiceRecognition.onerror = ()=>{
+    voiceActive=false;
+    if(btn){ btn.style.color='var(--gold)'; btn.style.borderColor='var(--gold-border)'; btn.style.background='var(--gold-dim)'; }
+    if(status) status.textContent='';
+  };
+  voiceRecognition.start();
+}
+
 // ── Boot ──
 (async ()=>{ try {
   activeDay=todayIdx();
@@ -3687,6 +3824,7 @@ function deleteThermal(idx){
   await loadBFReadings();
   await initMyFoods();
   await loadThermalLog();
+  await loadHydration();
   render();
   renderHealthView();
   loadHealthData();
