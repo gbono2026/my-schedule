@@ -540,6 +540,43 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .ai-item-name{font-size:13px;font-weight:500;flex:1;}
 .ai-item-cals{font-size:12px;color:var(--muted);}
 .ai-item-add{width:28px;height:28px;border-radius:50%;border:none;background:var(--green);color:#000;font-size:16px;font-weight:700;cursor:pointer;}
+
+/* ── THERMAL LOGGER ── */
+.thermal-card{background:linear-gradient(135deg,rgba(184,150,90,0.06),rgba(180,80,20,0.06));border:1px solid rgba(184,150,90,0.2);border-radius:16px;padding:16px;margin-bottom:10px;}
+.thermal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.thermal-title{font-size:13px;font-weight:700;color:var(--text);}
+.thermal-subtitle{font-size:10px;color:var(--muted);margin-top:2px;}
+.thermal-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;}
+.thermal-stat{background:var(--surface2);border-radius:10px;padding:10px 8px;text-align:center;}
+.thermal-stat-val{font-size:18px;font-weight:700;line-height:1;color:var(--gold);}
+.thermal-stat-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-top:3px;}
+.thermal-btns{display:flex;gap:8px;}
+.thermal-btn{flex:1;padding:11px 8px;border-radius:12px;border:1px solid rgba(184,150,90,0.3);background:rgba(184,150,90,0.08);color:var(--gold);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-align:center;}
+.thermal-btn.cold{border-color:rgba(96,165,250,0.3);background:rgba(96,165,250,0.08);color:var(--blue);}
+.thermal-btn:active{opacity:0.7;}
+/* Timer modal */
+.thermal-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:700;flex-direction:column;align-items:center;justify-content:center;}
+.thermal-modal.open{display:flex;}
+.thermal-modal-inner{text-align:center;padding:40px 32px;}
+.thermal-mode-icon{font-size:52px;margin-bottom:16px;}
+.thermal-mode-label{font-size:11px;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;}
+.thermal-timer-display{font-family:'Playfair Display',serif;font-size:72px;font-weight:700;line-height:1;margin-bottom:8px;}
+.thermal-timer-display.sauna{color:#e8903a;}
+.thermal-timer-display.cold{color:#60a5fa;}
+.thermal-target{font-size:12px;color:var(--muted);margin-bottom:32px;}
+.thermal-ring{width:180px;height:180px;margin:0 auto 28px;position:relative;}
+.thermal-ring svg{position:absolute;inset:0;transform:rotate(-90deg);}
+.thermal-ring-bg{fill:none;stroke:var(--border);stroke-width:6;}
+.thermal-ring-fill{fill:none;stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset 1s linear;}
+.thermal-ring-fill.sauna{stroke:#e8903a;}
+.thermal-ring-fill.cold{stroke:#60a5fa;}
+.thermal-ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.thermal-ctrl-btns{display:flex;gap:12px;justify-content:center;}
+.thermal-ctrl-btn{padding:14px 28px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+.thermal-ctrl-btn.finish{background:var(--gold);border-color:var(--gold);color:#000;}
+.thermal-ctrl-btn.cold-finish{background:var(--blue);border-color:var(--blue);color:#fff;}
+.thermal-history-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.thermal-history-item:last-child{border-bottom:none;}
 /* Admin */
 .admin-btn{position:fixed;bottom:88px;right:12px;height:36px;padding:0 14px;border-radius:20px;background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(61,220,132,0.4);color:var(--green);font-size:11px;font-weight:700;letter-spacing:0.5px;cursor:pointer;display:flex;align-items:center;gap:6px;z-index:200;box-shadow:0 4px 16px rgba(61,220,132,0.15),0 2px 8px rgba(0,0,0,0.4);white-space:nowrap;font-family:inherit;}
 .admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-end;justify-content:center;padding:0;}
@@ -773,6 +810,39 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <span class="metric-icon">❤️</span>
         <div class="metric-label">Resting HR</div>
         <div class="metric-value-row"><div class="metric-value" id="m-rhr"><span class="metric-empty-val">—</span></div><div class="metric-unit">bpm</div></div>
+      </div>
+    </div>
+
+
+    <!-- THERMAL SECTION -->
+    <div class="dash-section"><div class="dash-section-label" style="color:var(--gold);">🌡️ Thermal</div><div class="dash-section-line" style="background:rgba(184,150,90,0.3);"></div></div>
+    <div class="thermal-card">
+      <div class="thermal-header">
+        <div>
+          <div class="thermal-title">Thermal Exposure</div>
+          <div class="thermal-subtitle">Weekly sauna & cold plunge tracking</div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);text-align:right;" id="thermal-week-label">This week</div>
+      </div>
+      <div class="thermal-stats">
+        <div class="thermal-stat">
+          <div class="thermal-stat-val" id="thermal-sauna-week">0</div>
+          <div class="thermal-stat-label">sauna min</div>
+        </div>
+        <div class="thermal-stat">
+          <div class="thermal-stat-val" style="color:var(--blue);" id="thermal-cold-week">0</div>
+          <div class="thermal-stat-label">cold min</div>
+        </div>
+        <div class="thermal-stat">
+          <div class="thermal-stat-val" id="thermal-sessions-week">0</div>
+          <div class="thermal-stat-label">sessions</div>
+        </div>
+      </div>
+      <!-- Today's sessions -->
+      <div id="thermal-today-list" style="margin-bottom:12px;"></div>
+      <div class="thermal-btns">
+        <button class="thermal-btn" onclick="startThermal('sauna')">🌡️ Start Sauna</button>
+        <button class="thermal-btn cold" onclick="startThermal('cold')">❄️ Cold Plunge</button>
       </div>
     </div>
 
@@ -1132,6 +1202,29 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <button class="ai-submit-btn" id="ai-submit-btn" onclick="submitAILog()">✦ Parse with AI</button>
     <div id="ai-result-area"></div>
     <button style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;" onclick="closeAIModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- THERMAL TIMER MODAL -->
+<div class="thermal-modal" id="thermal-modal">
+  <div class="thermal-modal-inner">
+    <div class="thermal-mode-icon" id="thermal-icon">🌡️</div>
+    <div class="thermal-mode-label" id="thermal-label" style="color:var(--gold);">SAUNA SESSION</div>
+    <div class="thermal-ring" id="thermal-ring">
+      <svg viewBox="0 0 180 180">
+        <circle class="thermal-ring-bg" cx="90" cy="90" r="82"/>
+        <circle class="thermal-ring-fill sauna" id="thermal-ring-fill" cx="90" cy="90" r="82" stroke-dasharray="515" stroke-dashoffset="515"/>
+      </svg>
+      <div class="thermal-ring-center">
+        <div class="thermal-timer-display sauna" id="thermal-timer">0:00</div>
+        <div style="font-size:11px;color:var(--muted);">elapsed</div>
+      </div>
+    </div>
+    <div class="thermal-target" id="thermal-target">Target: 15–20 min · Research optimal range</div>
+    <div class="thermal-ctrl-btns">
+      <button class="thermal-ctrl-btn" onclick="cancelThermal()">Cancel</button>
+      <button class="thermal-ctrl-btn finish" id="thermal-finish-btn" onclick="finishThermal()">Finish Session</button>
+    </div>
   </div>
 </div>
 
@@ -1574,6 +1667,7 @@ function renderHealthView(){
   safe(loadWorkoutHistory, 'workoutHistory');
   safe(renderWorkoutHistory, 'workoutHistoryRender');
   safe(renderNutrition, 'nutrition');
+  safe(renderThermal, 'thermal');
 }
 
 function renderDailyMetrics(history={}){
@@ -3455,6 +3549,134 @@ function addAIWorkout(exercises){
     if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
   },300);
 }
+
+// ══════════════════════════════════════════
+// THERMAL LOGGER
+// ══════════════════════════════════════════
+let thermalLog = {};         // {date: [{type,minutes,timestamp}]}
+let thermalTimer = null;
+let thermalSeconds = 0;
+let thermalMode = 'sauna';
+const THERMAL_TARGETS = {
+  sauna: { min: 15, max: 20, label: 'Target: 15–20 min · Finnish tradition' },
+  cold:  { min: 2,  max: 5,  label: 'Target: 2–5 min · Research optimal' }
+};
+
+async function loadThermalLog(){
+  const cloud = await loadCloud('thermal_log');
+  if(cloud){ thermalLog=cloud; localStorage.setItem('thermal_log',JSON.stringify(cloud)); return; }
+  try{ thermalLog=JSON.parse(localStorage.getItem('thermal_log')||'{}'); }catch(e){ thermalLog={}; }
+}
+function saveThermalLog(){
+  try{ localStorage.setItem('thermal_log', JSON.stringify(thermalLog)); }catch(e){}
+  saveCloud('thermal_log', thermalLog);
+}
+function getThermalToday(){
+  const k = todayKey();
+  if(!thermalLog[k]) thermalLog[k]=[];
+  return thermalLog[k];
+}
+
+function startThermal(mode){
+  thermalMode = mode;
+  thermalSeconds = 0;
+  const isSauna = mode==='sauna';
+  // Set modal appearance
+  document.getElementById('thermal-icon').textContent = isSauna ? '🌡️' : '❄️';
+  document.getElementById('thermal-label').textContent = isSauna ? 'SAUNA SESSION' : 'COLD PLUNGE';
+  document.getElementById('thermal-label').style.color = isSauna ? 'var(--gold)' : 'var(--blue)';
+  document.getElementById('thermal-timer').className = 'thermal-timer-display '+(isSauna?'sauna':'cold');
+  document.getElementById('thermal-finish-btn').className = 'thermal-ctrl-btn '+(isSauna?'finish':'cold-finish');
+  document.getElementById('thermal-target').textContent = THERMAL_TARGETS[mode].label;
+  const fill = document.getElementById('thermal-ring-fill');
+  fill.className = 'thermal-ring-fill '+(isSauna?'sauna':'cold');
+  fill.style.strokeDashoffset = '515';
+  document.getElementById('thermal-modal').classList.add('open');
+  // Start timer
+  thermalTimer = setInterval(()=>{
+    thermalSeconds++;
+    const m = Math.floor(thermalSeconds/60);
+    const s = thermalSeconds%60;
+    document.getElementById('thermal-timer').textContent = m+':'+(s<10?'0':'')+s;
+    // Progress ring — target is max minutes
+    const target = THERMAL_TARGETS[mode].max * 60;
+    const progress = Math.min(thermalSeconds/target, 1);
+    const dashoffset = 515 - (515 * progress);
+    fill.style.strokeDashoffset = dashoffset;
+  }, 1000);
+}
+
+function finishThermal(){
+  clearInterval(thermalTimer);
+  thermalTimer = null;
+  const minutes = Math.round(thermalSeconds/60) || 1;
+  const session = {
+    type: thermalMode,
+    minutes,
+    timestamp: new Date().toISOString(),
+    label: new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})
+  };
+  const today = getThermalToday();
+  today.push(session);
+  saveThermalLog();
+  document.getElementById('thermal-modal').classList.remove('open');
+  renderThermal();
+  const icon = thermalMode==='sauna' ? '🌡️' : '❄️';
+  showToast(icon+' '+minutes+' min '+thermalMode+' logged!');
+}
+
+function cancelThermal(){
+  clearInterval(thermalTimer);
+  thermalTimer = null;
+  document.getElementById('thermal-modal').classList.remove('open');
+}
+
+function renderThermal(){
+  // Calculate weekly totals
+  const now = new Date();
+  let saunaMin=0, coldMin=0, sessions=0;
+  for(let i=0;i<7;i++){
+    const d = new Date(now);
+    d.setDate(now.getDate()-i);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const dayLog = thermalLog[key]||[];
+    dayLog.forEach(s=>{
+      if(s.type==='sauna') saunaMin+=s.minutes;
+      else coldMin+=s.minutes;
+      sessions++;
+    });
+  }
+  const sw = document.getElementById('thermal-sauna-week');
+  const cw = document.getElementById('thermal-cold-week');
+  const sess = document.getElementById('thermal-sessions-week');
+  if(sw) sw.textContent = saunaMin;
+  if(cw) cw.textContent = coldMin;
+  if(sess) sess.textContent = sessions;
+
+  // Today's sessions list
+  const today = getThermalToday();
+  const listEl = document.getElementById('thermal-today-list');
+  if(!listEl) return;
+  if(!today.length){ listEl.innerHTML=''; return; }
+  listEl.innerHTML = '<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Today</div>' +
+    today.map((s,i)=>`
+      <div class="thermal-history-item">
+        <span style="font-size:16px;">${s.type==='sauna'?'🌡️':'❄️'}</span>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;">${s.type==='sauna'?'Sauna':'Cold Plunge'} — ${s.minutes} min</div>
+          <div style="font-size:10px;color:var(--muted);">${s.label}</div>
+        </div>
+        <button onclick="deleteThermal(${i})" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;cursor:pointer;">×</button>
+      </div>`).join('');
+}
+
+function deleteThermal(idx){
+  const today = getThermalToday();
+  today.splice(idx,1);
+  saveThermalLog();
+  renderThermal();
+}
+
 // ── Boot ──
 (async ()=>{ try {
   activeDay=todayIdx();
@@ -3464,6 +3686,7 @@ function addAIWorkout(exercises){
   await loadWorkoutHistory();
   await loadBFReadings();
   await initMyFoods();
+  await loadThermalLog();
   render();
   renderHealthView();
   loadHealthData();
