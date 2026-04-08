@@ -608,6 +608,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .recipe-box{background:var(--surface);border-radius:24px 24px 0 0;width:100%;padding:20px 16px max(20px,env(safe-area-inset-bottom));max-height:90vh;overflow-y:auto;}
 .recipe-ingredient{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
 .recipe-ingredient:last-child{border-bottom:none;}
+
+/* ── QUICK LOG ROW ── */
+.quick-log-row{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none;margin-bottom:6px;}
+.quick-log-row::-webkit-scrollbar{display:none;}
+.quick-log-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:8px 10px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;transition:all 0.15s;min-width:72px;text-align:center;}
+.quick-log-chip:active{border-color:var(--green);background:var(--green-dim);}
+.quick-log-name{font-size:11px;font-weight:600;color:var(--text);max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.quick-log-cal{font-size:9px;color:var(--muted);margin-top:2px;}
 /* Admin */
 .admin-btn{position:fixed;bottom:88px;right:12px;height:36px;padding:0 14px;border-radius:20px;background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(61,220,132,0.4);color:var(--green);font-size:11px;font-weight:700;letter-spacing:0.5px;cursor:pointer;display:flex;align-items:center;gap:6px;z-index:200;box-shadow:0 4px 16px rgba(61,220,132,0.15),0 2px 8px rgba(0,0,0,0.4);white-space:nowrap;font-family:inherit;}
 .admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-end;justify-content:center;padding:0;}
@@ -708,6 +716,18 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <div class="meridian-sub">Spa &amp; Wellness</div>
     </div>
 
+
+    <!-- AI MORNING BRIEFING -->
+    <div id="morning-briefing" style="display:none;background:linear-gradient(135deg,rgba(184,150,90,0.08),rgba(184,150,90,0.04));border:1px solid var(--gold-border);border-radius:14px;padding:14px 16px;margin-bottom:12px;">
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <div style="font-size:20px;">✦</div>
+        <div style="flex:1;">
+          <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;">AI Briefing</div>
+          <div id="morning-briefing-text" style="font-size:13px;color:var(--text);line-height:1.7;"></div>
+        </div>
+        <button onclick="document.getElementById('morning-briefing').style.display='none'" style="background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0;line-height:1;">×</button>
+      </div>
+    </div>
     <!-- HERO CARD -->
     <div class="hero-card">
       <div class="hero-greeting" id="greeting-text">Good morning</div>
@@ -912,7 +932,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     </div>
 
     <div class="dash-section"><div class="dash-section-label">Nutrition</div><div class="dash-section-line"></div></div>
-    <button class="ai-log-btn" onclick="openAIModal('meal')" style="margin:0 16px 8px;width:calc(100% - 32px);">✦ Log meal with AI &nbsp;<span style="font-size:11px;opacity:0.7;">describe in plain English</span></button>
+    <div style="display:flex;gap:8px;margin:0 16px 8px;">
+      <button class="ai-log-btn" style="flex:1;margin:0;" onclick="openAIModal('meal')">✦ Log meal with AI</button>
+      <button class="ai-log-btn" style="margin:0;padding:12px 14px;flex-shrink:0;" onclick="document.getElementById('meal-photo-input').click()" title="Photo log">📷</button>
+    </div>
+    <div class="quick-log-row" id="quick-log-row" style="padding:0 16px 4px;"></div>
 
     <!-- Daily summary -->
     <div class="nutrition-day-summary">
@@ -1444,6 +1468,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
   </div>
 </div>
 
+<!-- PHOTO MEAL INPUT -->
+<input type="file" id="meal-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="analyzeMealPhoto(event)">
 <!-- BARCODE ENTRY MODAL -->
 <div class="barcode-modal" id="barcode-modal">
   <div class="barcode-box">
@@ -1765,6 +1791,7 @@ async function loadHealthData(){
     if(Object.keys(healthToday).length>0) document.getElementById("setup-banner").style.display="none";
     renderDailyMetrics(data.history||{});
     showToast("✓ Data refreshed");
+    generateMorningBriefing();
   }catch(e){showToast("⚠ Using cached data");}
 }
 
@@ -2416,12 +2443,24 @@ function addExercise(name, target, type){
   document.getElementById('ex-picker').classList.remove('open');
   const exId = 'ex-' + Date.now();
   const isCardio = type === 'cardio';
-  const defaultSets = isCardio
-    ? [{duration:'',intensity:'',notes:'',done:false}]
-    : [{weight:'',reps:'',effort:0,done:false},{weight:'',reps:'',effort:0,done:false},{weight:'',reps:'',effort:0,done:false}];
+  let defaultSets;
+  if(isCardio){
+    defaultSets = [{duration:'',intensity:'',notes:'',done:false}];
+  } else {
+    // Smart pre-fill: use last session's weight+reps for this exercise
+    const prev = getPrevPerformance(name);
+    if(prev && prev.length > 0){
+      // Use same number of sets as last time, pre-filled with same weight/reps
+      defaultSets = prev.map(s=>({weight:s.weight||'',reps:s.reps||'',effort:0,done:false}));
+    } else {
+      defaultSets = [{weight:'',reps:'',effort:0,done:false},{weight:'',reps:'',effort:0,done:false},{weight:'',reps:'',effort:0,done:false}];
+    }
+  }
   activeWorkout.exercises.push({ id:exId, name, target, type:type||'strength', sets:defaultSets, notes:'' });
   renderExercises();
   document.getElementById('workout-exercise-count').textContent = activeWorkout.exercises.length + ' exercise' + (activeWorkout.exercises.length!==1?'s':'');
+  // Show toast if pre-filled
+  if(!isCardio && getPrevPerformance(name)) showToast('Pre-filled from last session');
   setTimeout(()=>{
     const el = document.getElementById(exId);
     if(el) el.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -2712,6 +2751,7 @@ function getTodayLog(){
 }
 
 function renderNutrition(){
+  renderQuickLogRow();
   const log = getTodayLog();
   // Totals
   let totalCals=0,totalP=0,totalC=0,totalF=0;
@@ -3900,6 +3940,12 @@ function toggleVoiceInput(){
     voiceActive=false;
     if(btn){ btn.style.color='var(--gold)'; btn.style.borderColor='var(--gold-border)'; btn.style.background='var(--gold-dim)'; }
     if(status) status.textContent='';
+    // Auto-submit if we got a transcript
+    const val = document.getElementById('ai-log-input')?.value?.trim();
+    if(val && val.length > 2){
+      if(status) status.textContent='Parsing...';
+      setTimeout(()=>submitAILog(), 400);
+    }
   };
   voiceRecognition.onerror = ()=>{
     voiceActive=false;
@@ -4154,6 +4200,113 @@ function confirmCopySelected(){
   document.getElementById('copy-meal-day-options').style.display='block';
   showToast(`Copied ${copyMealSelectedItems.length} item${copyMealSelectedItems.length!==1?'s':''} to ${copyMealTarget}`);
 }
+
+// ── Quick Log Row ──
+function renderQuickLogRow(){
+  const wrap = document.getElementById('quick-log-row');
+  if(!wrap) return;
+  // Get top 6 most frequently logged foods from last 14 days
+  const freq = {};
+  const now = new Date();
+  for(let i=0;i<14;i++){
+    const d = new Date(now); d.setDate(now.getDate()-i);
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const day = nutritionLog[k];
+    if(!day) continue;
+    ['breakfast','lunch','dinner','snacks'].forEach(m=>{
+      (day[m]||[]).forEach(f=>{
+        const key = f.name.toLowerCase();
+        if(!freq[key]) freq[key] = {food:f, count:0};
+        freq[key].count++;
+      });
+    });
+  }
+  const top = Object.values(freq).sort((a,b)=>b.count-a.count).slice(0,7);
+  if(!top.length){ wrap.style.display='none'; return; }
+  wrap.style.display='flex';
+  wrap.innerHTML = top.map(({food})=>`
+    <div class="quick-log-chip" onclick="quickLogFood(${JSON.stringify(food).replace(/"/g,'&quot;')})">
+      <div class="quick-log-name">${food.name.split(',')[0].split(' ').slice(0,3).join(' ')}</div>
+      <div class="quick-log-cal">${Math.round(food.calories||0)} kcal</div>
+    </div>`).join('');
+}
+
+function quickLogFood(food){
+  const log = getTodayLog();
+  // Guess meal based on time of day
+  const h = new Date().getHours();
+  const meal = h<10?'breakfast':h<14?'lunch':h<18?'dinner':'snacks';
+  log[meal].push({...food});
+  saveNutrition();
+  renderNutrition();
+  showToast(`✓ ${food.name.split(',')[0]} added to ${meal}`);
+}
+
+// ── AI Morning Briefing ──
+let briefingShown = false;
+async function generateMorningBriefing(){
+  // Only show once per day and only if health data exists
+  const todayKey2 = todayKey();
+  const shown = localStorage.getItem('briefing_date');
+  if(shown === todayKey2) return;
+  if(!healthToday || !healthToday.sleep) return; // no data yet
+  briefingShown = true;
+  localStorage.setItem('briefing_date', todayKey2);
+  const card = document.getElementById('morning-briefing');
+  const textEl = document.getElementById('morning-briefing-text');
+  if(!card || !textEl) return;
+  card.style.display='block';
+  textEl.textContent='Analyzing your overnight data...';
+  try{
+    const d = healthToday;
+    const summary = `Sleep: ${d.sleep?.toFixed(1)||'—'}hrs (REM: ${d.sleepREM?.toFixed(1)||'—'}hrs), HRV: ${d.hrv?Math.round(d.hrv):'—'}ms, Resting HR: ${d.restingHR?Math.round(d.restingHR):'—'}bpm, Weight: ${d.weight||'—'}lbs`;
+    const res = await fetch(SERVER+'/ai-log', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        mode:'briefing',
+        system: 'You are a personal wellness coach for a Nordic spa app called Meridian. Give a single short paragraph (2-3 sentences max) morning briefing based on the user's overnight health data. Be specific, warm, and actionable. No bullet points. Reference actual numbers.',
+        input: `Today's health data: ${summary}. Give me a brief morning wellness summary and one recommendation for today.`
+      })
+    });
+    const data = await res.json();
+    textEl.textContent = data.text || 'Good morning. Your data looks good — have a great day.';
+  }catch(e){
+    card.style.display='none';
+  }
+}
+
+// ── Photo Meal Logging ──
+async function analyzeMealPhoto(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  showToast('Analyzing your meal...');
+  try{
+    const reader = new FileReader();
+    reader.onload = async(e)=>{
+      const base64 = e.target.result.split(',')[1];
+      const mimeType = file.type || 'image/jpeg';
+      try{
+        const res = await fetch(SERVER+'/ai-photo-meal', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ image: base64, mimeType })
+        });
+        const data = await res.json();
+        if(data.text){
+          // Open AI modal and pre-fill with photo analysis
+          openAIModal('meal');
+          document.getElementById('ai-log-input').value = data.text;
+          document.getElementById('ai-voice-status').textContent = 'Meal detected from photo — review and tap Parse';
+          // Auto-submit
+          setTimeout(()=>submitAILog(), 600);
+        }
+      }catch(err){ showToast('Could not analyze photo — try describing the meal'); }
+    };
+    reader.readAsDataURL(file);
+  }catch(e){ showToast('Photo error — try again'); }
+}
+
 // ── Boot ──
 (async ()=>{ try {
   activeDay=todayIdx();
