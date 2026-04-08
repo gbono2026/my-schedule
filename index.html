@@ -303,10 +303,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .effort-btn.e1,.effort-btn.e2,.effort-btn.e3{border-color:var(--red);color:var(--red);}
 .effort-btn.e4,.effort-btn.e5,.effort-btn.e6,.effort-btn.e7{border-color:var(--yellow);color:var(--yellow);}
 .effort-btn.e8,.effort-btn.e9,.effort-btn.e10{border-color:var(--green);color:var(--green);}
-.effort-btn.selected{font-weight:700;}
-.effort-btn.e1.selected,.effort-btn.e2.selected,.effort-btn.e3.selected{background:var(--red-dim);}
-.effort-btn.e4.selected,.effort-btn.e5.selected,.effort-btn.e6.selected,.effort-btn.e7.selected{background:var(--yellow-dim);}
-.effort-btn.e8.selected,.effort-btn.e9.selected,.effort-btn.e10.selected{background:var(--green-dim);}
+.effort-btn.selected{font-weight:800;transform:scale(1.15);box-shadow:0 0 0 2px currentColor;}
+.effort-btn.e1.selected,.effort-btn.e2.selected,.effort-btn.e3.selected{background:var(--red);color:#fff;border-color:var(--red);}
+.effort-btn.e4.selected,.effort-btn.e5.selected,.effort-btn.e6.selected,.effort-btn.e7.selected{background:var(--yellow);color:#000;border-color:var(--yellow);}
+.effort-btn.e8.selected,.effort-btn.e9.selected,.effort-btn.e10.selected{background:var(--green);color:#000;border-color:var(--green);}
 .set-done-btn{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:transparent;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;font-size:12px;color:transparent;margin:0 auto;}
 .set-done-btn.done{background:var(--green);border-color:var(--green);color:#000;}
 .add-set-btn{width:100%;padding:8px;border-radius:10px;border:1px dashed var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
@@ -586,6 +586,28 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .hydration-btn{padding:9px 12px;border-radius:10px;border:1px solid rgba(96,165,250,0.3);background:rgba(96,165,250,0.08);color:var(--blue);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center;}
 .hydration-btn:active{opacity:0.7;}
 .hydration-btn.custom{border-color:var(--border);background:var(--surface2);color:var(--muted);}
+
+/* ── EXERCISE HISTORY MODAL ── */
+.ex-history-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:600;align-items:flex-end;}
+.ex-history-modal.open{display:flex;}
+.ex-history-box{background:var(--surface);border-radius:24px 24px 0 0;width:100%;padding:20px 16px max(20px,env(safe-area-inset-bottom));max-height:75vh;overflow-y:auto;}
+.ex-history-session{padding:10px 0;border-bottom:1px solid var(--border);}
+.ex-history-session:last-child{border-bottom:none;}
+.ex-session-date{font-size:11px;color:var(--muted);margin-bottom:4px;}
+.ex-session-sets{display:flex;gap:6px;flex-wrap:wrap;}
+.ex-session-set{font-size:11px;background:var(--surface2);border-radius:6px;padding:3px 8px;color:var(--text);}
+/* ── MEAL COPY SELECTOR ── */
+.meal-copy-check{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);margin-bottom:6px;cursor:pointer;}
+.meal-copy-check.selected{border-color:var(--green);background:var(--green-dim);}
+.meal-copy-check-icon{font-size:16px;}
+.meal-copy-check-label{flex:1;font-size:13px;font-weight:600;}
+.meal-copy-check-count{font-size:11px;color:var(--muted);}
+/* ── RECIPE BUILDER ── */
+.recipe-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:600;align-items:flex-end;}
+.recipe-modal.open{display:flex;}
+.recipe-box{background:var(--surface);border-radius:24px 24px 0 0;width:100%;padding:20px 16px max(20px,env(safe-area-inset-bottom));max-height:90vh;overflow-y:auto;}
+.recipe-ingredient{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
+.recipe-ingredient:last-child{border-bottom:none;}
 /* Admin */
 .admin-btn{position:fixed;bottom:88px;right:12px;height:36px;padding:0 14px;border-radius:20px;background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(61,220,132,0.4);color:var(--green);font-size:11px;font-weight:700;letter-spacing:0.5px;cursor:pointer;display:flex;align-items:center;gap:6px;z-index:200;box-shadow:0 4px 16px rgba(61,220,132,0.15),0 2px 8px rgba(0,0,0,0.4);white-space:nowrap;font-family:inherit;}
 .admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-end;justify-content:center;padding:0;}
@@ -999,7 +1021,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <button style="flex:1;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="openExercisePicker()">+ Exercise</button>
         <button style="flex:1;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="openPresetModal()">+ Preset</button>
       </div>
-      <button class="finish-workout-btn" onclick="finishWorkout()">✓ Finish Workout</button>
+      <button class="finish-workout-btn" onclick="finishWorkout()">✓ Finish Exercise Session</button>
       <button class="cancel-workout-btn" onclick="cancelWorkout()">✕ Cancel Workout</button>
     </div>
 
@@ -1326,6 +1348,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     </div>
     <div class="food-tabs">
       <div class="food-tab active" id="ftab-recent" onclick="switchFoodTab('recent')">⚡ Recent</div>
+      <div class="food-tab" id="ftab-recipe" onclick="openRecipeModal()">🍳 Recipe</div>
       <div class="food-tab" id="ftab-myfoods" onclick="switchFoodTab('myfoods')">⭐ Saved</div>
       <div class="food-tab" id="ftab-search" onclick="switchFoodTab('search')">Search</div>
       <div class="food-tab" id="ftab-manual" onclick="switchFoodTab('manual')">Manual</div>
@@ -1353,10 +1376,18 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <div class="fac-name" id="fac-name"></div>
         <div class="fac-macros" id="fac-macros"></div>
         <div class="fac-qty-row">
-          <input class="fac-qty-input" id="fac-qty" type="number" inputmode="decimal" value="1">
-          <span class="fac-qty-unit" id="fac-unit">serving</span>
+          <input class="fac-qty-input" id="fac-qty" type="number" inputmode="decimal" value="1" oninput="updateConfirmMacros()">
+          <select id="fac-unit-select" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 8px;color:var(--text);font-family:inherit;font-size:12px;outline:none;" onchange="updateConfirmMacros()">
+            <option value="serving">serving</option>
+            <option value="g">g</option>
+            <option value="oz">oz</option>
+            <option value="ml">ml</option>
+            <option value="cup">cup</option>
+            <option value="tbsp">tbsp</option>
+          </select>
           <button class="fac-add-btn" onclick="confirmAddFood()">Add</button>
         </div>
+        <div id="fac-macro-detail" style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.7;"></div>
       </div>
       <button style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit;" onclick="switchFoodTab('search')">← Back to Search</button>
     </div>
@@ -1371,8 +1402,45 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
   <div class="copy-meal-box">
     <div class="copy-meal-title" id="copy-meal-title">Copy Breakfast</div>
     <div class="copy-meal-sub">Pick a prior day to copy from</div>
-    <div id="copy-meal-options"></div>
+    <div id="copy-meal-day-options"></div>
+    <div id="copy-meal-item-options" style="display:none;">
+      <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Select items to copy</div>
+      <div id="copy-meal-checkboxes"></div>
+      <button onclick="confirmCopySelected()" style="width:100%;padding:13px;border-radius:12px;border:none;background:var(--green);color:#000;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:10px;">Copy Selected</button>
+    </div>
     <button style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:6px;" onclick="document.getElementById('copy-meal-modal').classList.remove('open')">Cancel</button>
+  </div>
+</div>
+
+<!-- EXERCISE HISTORY MODAL -->
+<div class="ex-history-modal" id="ex-history-modal">
+  <div class="ex-history-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;" id="ex-history-title">Exercise History</div>
+      <button onclick="document.getElementById('ex-history-modal').classList.remove('open')" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:18px;cursor:pointer;">×</button>
+    </div>
+    <div id="ex-history-content"></div>
+  </div>
+</div>
+
+<!-- RECIPE BUILDER MODAL -->
+<div class="recipe-modal" id="recipe-modal">
+  <div class="recipe-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;">Build a Recipe</div>
+      <button onclick="document.getElementById('recipe-modal').classList.remove('open')" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:18px;cursor:pointer;">×</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Search and add ingredients, then save as a meal</div>
+    <input type="text" id="recipe-search-input" placeholder="Search ingredient..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none;margin-bottom:8px;" oninput="searchRecipeIngredient(this.value)">
+    <div id="recipe-search-results" style="max-height:160px;overflow-y:auto;margin-bottom:12px;"></div>
+    <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Ingredients added</div>
+    <div id="recipe-ingredients-list"></div>
+    <div id="recipe-totals" style="background:var(--surface2);border-radius:10px;padding:10px;margin:10px 0;font-size:12px;color:var(--muted);display:none;"></div>
+    <input type="text" id="recipe-name-input" placeholder="Recipe / meal name..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;outline:none;margin-bottom:8px;">
+    <div style="display:flex;gap:8px;">
+      <button onclick="saveRecipe()" style="flex:1;padding:13px;border-radius:12px;border:none;background:var(--green);color:#000;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Save to My Foods</button>
+      <button onclick="addRecipeToMeal()" style="flex:1;padding:13px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Add to Meal Now</button>
+    </div>
   </div>
 </div>
 
@@ -2528,15 +2596,24 @@ function renderWorkoutHistory(){
   loadWorkoutHistory();
   const wrap = document.getElementById('workout-history-list');
   if(!wrap) return;
-  const recent = [...workoutHistory].reverse().slice(0,5);
+  // Group by date — show one card per day
+  const byDate = {};
+  workoutHistory.forEach(w=>{
+    const dk = w.date ? w.date.split('T')[0] : w.dateLabel;
+    if(!byDate[dk] || w.id > byDate[dk].id) byDate[dk] = w;
+  });
+  const recent = Object.values(byDate).sort((a,b)=>b.id-a.id).slice(0,5);
   if(recent.length===0){ wrap.innerHTML='<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;">No workouts yet — tap Start Workout</div>'; return; }
   wrap.innerHTML = recent.map(w=>`
     <div class="workout-history-item">
       <div class="wh-header">
-        <div class="wh-name">💪 ${w.exercises.map(e=>e.name).slice(0,2).join(', ')}${w.exercises.length>2?'...':''}</div>
-        <div class="wh-date">${w.dateLabel}</div>
+        <div class="wh-name">💪 ${w.exercises.length} exercise${w.exercises.length!==1?'s':''} — ${w.dateLabel}</div>
+        <div class="wh-date">${w.duration} min</div>
       </div>
-      <div class="wh-stats">
+      <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
+        ${w.exercises.map((e,ei)=>`<span onclick="showExerciseHistory('${e.name.replace(/'/g,'')}')" style="font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;color:var(--text);">${e.name}</span>`).join('')}
+      </div>
+      <div class="wh-stats" style="margin-top:8px;">
         <div class="wh-stat"><span>${w.exercises.length}</span> exercises</div>
         <div class="wh-stat"><span>${w.totalSets}</span> sets</div>
         <div class="wh-stat"><span>${w.duration}</span> min</div>
@@ -3628,9 +3705,15 @@ function getThermalToday(){
 
 function startThermal(mode){
   thermalMode = mode;
-  thermalSeconds = 0;
+  // Store start timestamp in localStorage so timer persists if app goes to background
+  const startTime = Date.now();
+  localStorage.setItem('thermal_active_start', startTime);
+  localStorage.setItem('thermal_active_mode', mode);
+  openThermalModal(mode, startTime);
+}
+
+function openThermalModal(mode, startTime){
   const isSauna = mode==='sauna';
-  // Set modal appearance
   document.getElementById('thermal-icon').textContent = isSauna ? '🌡️' : '❄️';
   document.getElementById('thermal-label').textContent = isSauna ? 'SAUNA SESSION' : 'COLD PLUNGE';
   document.getElementById('thermal-label').style.color = isSauna ? 'var(--gold)' : 'var(--blue)';
@@ -3639,25 +3722,35 @@ function startThermal(mode){
   document.getElementById('thermal-target').textContent = THERMAL_TARGETS[mode].label;
   const fill = document.getElementById('thermal-ring-fill');
   fill.className = 'thermal-ring-fill '+(isSauna?'sauna':'cold');
-  fill.style.strokeDashoffset = '515';
   document.getElementById('thermal-modal').classList.add('open');
-  // Start timer
+  clearInterval(thermalTimer);
   thermalTimer = setInterval(()=>{
-    thermalSeconds++;
-    const m = Math.floor(thermalSeconds/60);
-    const s = thermalSeconds%60;
-    document.getElementById('thermal-timer').textContent = m+':'+(s<10?'0':'')+s;
-    // Progress ring — target is max minutes
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    thermalSeconds = elapsed;
+    const m = Math.floor(elapsed/60), s = elapsed%60;
+    const timerEl = document.getElementById('thermal-timer');
+    if(timerEl) timerEl.textContent = m+':'+(s<10?'0':'')+s;
     const target = THERMAL_TARGETS[mode].max * 60;
-    const progress = Math.min(thermalSeconds/target, 1);
-    const dashoffset = 515 - (515 * progress);
-    fill.style.strokeDashoffset = dashoffset;
+    const dashoffset = 515 - Math.min(515*(elapsed/target), 515);
+    if(fill) fill.style.strokeDashoffset = dashoffset;
   }, 1000);
+}
+
+// Resume thermal timer if app was backgrounded
+function resumeThermalIfActive(){
+  const startTime = parseInt(localStorage.getItem('thermal_active_start')||'0');
+  const mode = localStorage.getItem('thermal_active_mode');
+  if(startTime && mode && (Date.now()-startTime) < 3600000){
+    thermalMode = mode;
+    openThermalModal(mode, startTime);
+  }
 }
 
 function finishThermal(){
   clearInterval(thermalTimer);
   thermalTimer = null;
+  localStorage.removeItem('thermal_active_start');
+  localStorage.removeItem('thermal_active_mode');
   const minutes = Math.round(thermalSeconds/60) || 1;
   const session = {
     type: thermalMode,
@@ -3677,6 +3770,8 @@ function finishThermal(){
 function cancelThermal(){
   clearInterval(thermalTimer);
   thermalTimer = null;
+  localStorage.removeItem('thermal_active_start');
+  localStorage.removeItem('thermal_active_mode');
   document.getElementById('thermal-modal').classList.remove('open');
 }
 
@@ -3814,6 +3909,251 @@ function toggleVoiceInput(){
   voiceRecognition.start();
 }
 
+
+// ── Exercise History Modal ──
+function showExerciseHistory(exerciseName){
+  const modal = document.getElementById('ex-history-modal');
+  const title = document.getElementById('ex-history-title');
+  const content = document.getElementById('ex-history-content');
+  if(!modal) return;
+  title.textContent = exerciseName;
+  // Find all sessions containing this exercise
+  const sessions = workoutHistory
+    .filter(w=>w.exercises.some(e=>e.name===exerciseName))
+    .sort((a,b)=>b.id-a.id)
+    .slice(0,10);
+  if(!sessions.length){
+    content.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No history yet</div>';
+  } else {
+    content.innerHTML = sessions.map(w=>{
+      const ex = w.exercises.find(e=>e.name===exerciseName);
+      const sets = (ex.sets||[]).filter(s=>s.weight||s.reps);
+      return `<div class="ex-history-session">
+        <div class="ex-session-date">${w.dateLabel}</div>
+        <div class="ex-session-sets">
+          ${sets.map((s,i)=>`<span class="ex-session-set">Set ${i+1}: ${s.weight||'—'} lbs × ${s.reps||'—'} reps${s.effort?' (${s.effort}/10)':''}</span>`).join('')}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  modal.classList.add('open');
+}
+
+// ── Serving size + macro detail on confirm panel ──
+function updateConfirmMacros(){
+  if(!selectedFood) return;
+  const qty = parseFloat(document.getElementById('fac-qty').value)||1;
+  const unit = document.getElementById('fac-unit-select')?.value||'serving';
+  // Conversion factor relative to serving
+  let factor = qty;
+  if(unit==='g' && selectedFood.serving){
+    const servingG = parseFloat(selectedFood.serving)||100;
+    factor = qty/servingG;
+  } else if(unit==='oz'){
+    const servingG = parseFloat(selectedFood.serving)||100;
+    factor = (qty*28.35)/servingG;
+  }
+  const cals = Math.round((selectedFood.calories||0)*factor);
+  const prot = Math.round((selectedFood.protein||0)*factor*10)/10;
+  const carbs = Math.round((selectedFood.carbs||0)*factor*10)/10;
+  const fat  = Math.round((selectedFood.fat||0)*factor*10)/10;
+  const macroEl = document.getElementById('fac-macro-detail');
+  if(macroEl) macroEl.innerHTML = `<b style="color:var(--text)">${cals} kcal</b> &nbsp; Protein: <b style="color:var(--green)">${prot}g</b> &nbsp; Carbs: <b style="color:var(--blue)">${carbs}g</b> &nbsp; Fat: <b style="color:var(--orange)">${fat}g</b>`;
+  const macrosEl = document.getElementById('fac-macros');
+  if(macrosEl) macrosEl.textContent = `${cals} kcal · P:${prot}g C:${carbs}g F:${fat}g per ${qty} ${unit}`;
+}
+
+// ── Recipe / Meal Builder ──
+let recipeIngredients = [];
+let recipeSearchTimer = null;
+
+function openRecipeModal(){
+  recipeIngredients = [];
+  document.getElementById('recipe-search-input').value='';
+  document.getElementById('recipe-search-results').innerHTML='';
+  document.getElementById('recipe-name-input').value='';
+  renderRecipeIngredients();
+  document.getElementById('recipe-modal').classList.add('open');
+}
+
+function searchRecipeIngredient(query){
+  clearTimeout(recipeSearchTimer);
+  if(!query||query.length<2){ document.getElementById('recipe-search-results').innerHTML=''; return; }
+  recipeSearchTimer = setTimeout(async()=>{
+    const wrap = document.getElementById('recipe-search-results');
+    wrap.innerHTML='<div style="font-size:12px;color:var(--muted);padding:6px;">Searching...</div>';
+    try{
+      const r = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=8&sort_by=unique_scans_n&fields=product_name,brands,serving_size,nutriments`);
+      const data = await r.json();
+      const results = (data.products||[]).filter(p=>p.product_name).slice(0,6);
+      if(!results.length){ wrap.innerHTML='<div style="font-size:12px;color:var(--muted);padding:6px;">No results</div>'; return; }
+      wrap.innerHTML = results.map((p,i)=>{
+        const n = p.nutriments||{};
+        const cals = n['energy-kcal_serving']||n['energy-kcal_100g']||0;
+        return `<div onclick="addRecipeIngredient(${i})" data-idx="${i}" style="padding:8px 10px;border-radius:8px;cursor:pointer;border-bottom:1px solid var(--border);">
+          <div style="font-size:13px;font-weight:500;">${p.product_name}</div>
+          <div style="font-size:11px;color:var(--muted);">${Math.round(cals)} kcal · ${p.serving_size||'100g'}</div>
+        </div>`;
+      }).join('');
+      window._recipeSearchResults = results.map(p=>{
+        const n=p.nutriments||{};
+        return {name:p.product_name,brand:p.brands||'',serving:p.serving_size||'100g',
+          calories:n['energy-kcal_serving']||n['energy-kcal_100g']||0,
+          protein:n['proteins_serving']||n['proteins_100g']||0,
+          carbs:n['carbohydrates_serving']||n['carbohydrates_100g']||0,
+          fat:n['fat_serving']||n['fat_100g']||0};
+      });
+    }catch(e){ wrap.innerHTML='<div style="font-size:12px;color:var(--muted);padding:6px;">Search failed</div>'; }
+  }, 400);
+}
+
+function addRecipeIngredient(idx){
+  const item = window._recipeSearchResults[idx];
+  if(!item) return;
+  recipeIngredients.push({...item, qty:1});
+  document.getElementById('recipe-search-input').value='';
+  document.getElementById('recipe-search-results').innerHTML='';
+  renderRecipeIngredients();
+}
+
+function renderRecipeIngredients(){
+  const list = document.getElementById('recipe-ingredients-list');
+  const totals = document.getElementById('recipe-totals');
+  if(!list) return;
+  if(!recipeIngredients.length){ list.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px 0;">No ingredients yet — search above</div>'; if(totals) totals.style.display='none'; return; }
+  list.innerHTML = recipeIngredients.map((ing,i)=>`
+    <div class="recipe-ingredient">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;">${ing.name}</div>
+        <div style="font-size:10px;color:var(--muted);">${Math.round(ing.calories*ing.qty)} kcal · P:${Math.round(ing.protein*ing.qty)}g</div>
+      </div>
+      <input type="number" value="${ing.qty}" min="0.1" step="0.5" style="width:50px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 6px;color:var(--text);font-size:12px;text-align:center;font-family:inherit;" oninput="recipeIngredients[${i}].qty=parseFloat(this.value)||1;renderRecipeIngredients()">
+      <span style="font-size:10px;color:var(--muted);margin:0 4px;">x</span>
+      <button onclick="recipeIngredients.splice(${i},1);renderRecipeIngredients()" style="width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;cursor:pointer;">×</button>
+    </div>`).join('');
+  // Show totals
+  const totalCals = recipeIngredients.reduce((s,i)=>s+(i.calories*i.qty),0);
+  const totalP = recipeIngredients.reduce((s,i)=>s+(i.protein*i.qty),0);
+  const totalC = recipeIngredients.reduce((s,i)=>s+(i.carbs*i.qty),0);
+  const totalF = recipeIngredients.reduce((s,i)=>s+(i.fat*i.qty),0);
+  if(totals){
+    totals.style.display='block';
+    totals.innerHTML = `Total: <b style="color:var(--text)">${Math.round(totalCals)} kcal</b> &nbsp; P:<b style="color:var(--green)">${Math.round(totalP)}g</b> &nbsp; C:<b style="color:var(--blue)">${Math.round(totalC)}g</b> &nbsp; F:<b style="color:var(--orange)">${Math.round(totalF)}g</b>`;
+  }
+}
+
+function saveRecipe(){
+  const name = document.getElementById('recipe-name-input').value.trim();
+  if(!name){ showToast('Enter a recipe name'); return; }
+  if(!recipeIngredients.length){ showToast('Add at least one ingredient'); return; }
+  const totalCals = recipeIngredients.reduce((s,i)=>s+(i.calories*i.qty),0);
+  const totalP = recipeIngredients.reduce((s,i)=>s+(i.protein*i.qty),0);
+  const totalC = recipeIngredients.reduce((s,i)=>s+(i.carbs*i.qty),0);
+  const totalF = recipeIngredients.reduce((s,i)=>s+(i.fat*i.qty),0);
+  const meal = {name, serving:'1 serving', calories:Math.round(totalCals), protein:Math.round(totalP*10)/10, carbs:Math.round(totalC*10)/10, fat:Math.round(totalF*10)/10, isRecipe:true, ingredients:recipeIngredients};
+  myFoods.unshift(meal);
+  saveMyFoods();
+  document.getElementById('recipe-modal').classList.remove('open');
+  showToast('Recipe saved to My Foods!');
+}
+
+function addRecipeToMeal(){
+  const name = document.getElementById('recipe-name-input').value.trim() || 'Custom meal';
+  if(!recipeIngredients.length){ showToast('Add at least one ingredient'); return; }
+  const totalCals = recipeIngredients.reduce((s,i)=>s+(i.calories*i.qty),0);
+  const totalP = recipeIngredients.reduce((s,i)=>s+(i.protein*i.qty),0);
+  const totalC = recipeIngredients.reduce((s,i)=>s+(i.carbs*i.qty),0);
+  const totalF = recipeIngredients.reduce((s,i)=>s+(i.fat*i.qty),0);
+  const log = getTodayLog();
+  log[currentMeal].push({name, serving:'1 serving', calories:Math.round(totalCals), protein:Math.round(totalP*10)/10, carbs:Math.round(totalC*10)/10, fat:Math.round(totalF*10)/10});
+  saveNutrition();
+  renderNutrition();
+  document.getElementById('recipe-modal').classList.remove('open');
+  closeFoodModal();
+  showToast('Meal added to '+currentMeal);
+}
+
+// ── Selective meal copy ──
+let copyMealSelectedItems = [];
+let copyMealFromKey2 = null;
+
+function openCopyMealModal(meal){
+  copyMealTarget = meal;
+  const mealLabels = {breakfast:'Breakfast',lunch:'Lunch',dinner:'Dinner',snacks:'Snacks'};
+  document.getElementById('copy-meal-title').textContent = 'Copy ' + mealLabels[meal];
+  document.getElementById('copy-meal-day-options').innerHTML='';
+  document.getElementById('copy-meal-item-options').style.display='none';
+  const wrap = document.getElementById('copy-meal-day-options');
+  wrap.innerHTML = '';
+  const today = new Date();
+  let found = 0;
+  for(let i=1;i<=14;i++){
+    const d = new Date(today);
+    d.setDate(today.getDate()-i);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const log = nutritionLog[key];
+    // Show ALL meals from that day, not just the target meal
+    const allItems = [];
+    ['breakfast','lunch','dinner','snacks'].forEach(m=>{
+      (log&&log[m]||[]).forEach(item=>allItems.push({...item,_meal:m}));
+    });
+    if(!allItems.length) continue;
+    const label = i===1?'Yesterday':d.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+    const el = document.createElement('div');
+    el.className = 'copy-day-option';
+    el.innerHTML = `<div><div class="copy-day-label">${label}</div><div class="copy-day-preview">${allItems.length} items across meals</div></div><div class="copy-day-badge">${Math.round(allItems.reduce((s,f)=>s+(f.calories||0),0))} kcal</div>`;
+    el.onclick = ()=>showCopyItemSelector(key, meal);
+    wrap.appendChild(el);
+    found++;
+    if(found>=7) break;
+  }
+  if(!found) wrap.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;">No prior entries found</div>';
+  document.getElementById('copy-meal-modal').classList.add('open');
+}
+
+function showCopyItemSelector(fromKey, targetMeal){
+  copyMealFromKey2 = fromKey;
+  copyMealSelectedItems = [];
+  const log = nutritionLog[fromKey];
+  if(!log) return;
+  const allItems = [];
+  const mealLabels2 = {breakfast:'🌅',lunch:'☀️',dinner:'🌙',snacks:'🍎'};
+  ['breakfast','lunch','dinner','snacks'].forEach(m=>{
+    (log[m]||[]).forEach(item=>allItems.push({...item,_meal:m}));
+  });
+  const wrap = document.getElementById('copy-meal-checkboxes');
+  wrap.innerHTML = allItems.map((item,i)=>`
+    <div class="meal-copy-check" id="copy-check-${i}" onclick="toggleCopyItem(${i},this)">
+      <span class="meal-copy-check-icon">${mealLabels2[item._meal]||'🍽️'}</span>
+      <div class="meal-copy-check-label">${item.name}</div>
+      <div class="meal-copy-check-count">${Math.round(item.calories||0)} kcal</div>
+    </div>`).join('');
+  window._copyAllItems = allItems;
+  document.getElementById('copy-meal-day-options').style.display='none';
+  document.getElementById('copy-meal-item-options').style.display='block';
+}
+
+function toggleCopyItem(idx, el){
+  const item = window._copyAllItems[idx];
+  const existing = copyMealSelectedItems.findIndex(i=>i===idx);
+  if(existing>=0){ copyMealSelectedItems.splice(existing,1); el.classList.remove('selected'); }
+  else { copyMealSelectedItems.push(idx); el.classList.add('selected'); }
+}
+
+function confirmCopySelected(){
+  if(!copyMealSelectedItems.length){ showToast('Select at least one item'); return; }
+  const todayLog = getTodayLog();
+  copyMealSelectedItems.forEach(idx=>{
+    const item = {...window._copyAllItems[idx]};
+    delete item._meal;
+    todayLog[copyMealTarget].push(item);
+  });
+  saveNutrition();
+  renderNutrition();
+  document.getElementById('copy-meal-modal').classList.remove('open');
+  document.getElementById('copy-meal-day-options').style.display='block';
+  showToast(`Copied ${copyMealSelectedItems.length} item${copyMealSelectedItems.length!==1?'s':''} to ${copyMealTarget}`);
+}
 // ── Boot ──
 (async ()=>{ try {
   activeDay=todayIdx();
@@ -3826,6 +4166,7 @@ function toggleVoiceInput(){
   await loadThermalLog();
   await loadHydration();
   render();
+  resumeThermalIfActive();
   renderHealthView();
   loadHealthData();
   const now=new Date(),ch=now.getHours(),cp=ch<12?"AM":"PM",cdh=ch===0?12:ch>12?ch-12:ch,target=`${cdh}:00 ${cp}`;
