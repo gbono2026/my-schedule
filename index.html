@@ -4224,22 +4224,25 @@ function renderQuickLogRow(){
   const top = Object.values(freq).sort((a,b)=>b.count-a.count).slice(0,7);
   if(!top.length){ wrap.style.display='none'; return; }
   wrap.style.display='flex';
-  wrap.innerHTML = top.map(({food})=>`
-    <div class="quick-log-chip" onclick="quickLogFood(${JSON.stringify(food).replace(/"/g,'&quot;')})">
+  // Store foods in window array to avoid JSON in onclick attributes
+  window._quickLogFoods = top.map(({food})=>food);
+  wrap.innerHTML = top.map(({food},i)=>`
+    <div class="quick-log-chip" onclick="quickLogFood(${i})">
       <div class="quick-log-name">${food.name.split(',')[0].split(' ').slice(0,3).join(' ')}</div>
       <div class="quick-log-cal">${Math.round(food.calories||0)} kcal</div>
     </div>`).join('');
 }
 
-function quickLogFood(food){
+function quickLogFood(idx){
+  const food = (window._quickLogFoods||[])[idx];
+  if(!food) return;
   const log = getTodayLog();
-  // Guess meal based on time of day
   const h = new Date().getHours();
   const meal = h<10?'breakfast':h<14?'lunch':h<18?'dinner':'snacks';
   log[meal].push({...food});
   saveNutrition();
   renderNutrition();
-  showToast(`✓ ${food.name.split(',')[0]} added to ${meal}`);
+  showToast('✓ '+food.name.split(',')[0]+' added to '+meal);
 }
 
 // ── AI Morning Briefing ──
@@ -4265,7 +4268,7 @@ async function generateMorningBriefing(){
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         mode:'briefing',
-        system: 'You are a personal wellness coach for a Nordic spa app called Meridian. Give a single short paragraph (2-3 sentences max) morning briefing based on the user's overnight health data. Be specific, warm, and actionable. No bullet points. Reference actual numbers.',
+        system: `You are a personal wellness coach for a Nordic spa app called Meridian. Give a single short paragraph (2-3 sentences max) morning briefing based on the user overnight health data. Be specific, warm, and actionable. No bullet points. Reference actual numbers.`,
         input: `Today's health data: ${summary}. Give me a brief morning wellness summary and one recommendation for today.`
       })
     });
