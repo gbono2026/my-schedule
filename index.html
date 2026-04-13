@@ -635,7 +635,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260409183746">
+<meta name="app-version" content="20260413120000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -1054,11 +1054,29 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 
     <!-- DAILY SCORES -->
     <div class="dash-section"><div class="dash-section-label">Daily Check-In</div><div class="dash-section-line"></div></div>
-    <div class="streak-card">
+    <div class="streak-card" onclick="openGratitudeLog()" style="cursor:pointer;">
       <div class="streak-flame">🔥</div>
       <div class="streak-info">
         <div class="streak-num" id="streak-num">0</div>
-        <div class="streak-sub">day gratitude streak</div>
+        <div class="streak-sub">day gratitude streak · tap to log</div>
+      </div>
+      <div style="font-size:11px;color:var(--gold);font-weight:700;" id="grat-logged-today"></div>
+    </div>
+
+    <!-- Gratitude Log Modal -->
+    <div id="grat-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:700;align-items:flex-end;justify-content:center;">
+      <div style="background:var(--surface2);border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:24px 20px 36px;border-top:1px solid var(--border2);">
+        <div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 18px;"></div>
+        <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:4px;">🙏 Gratitude Log</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:18px;">How grateful are you feeling today?</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <div style="font-size:13px;color:var(--muted2);width:70px;">Level</div>
+          <div id="grat-pips" style="display:flex;gap:3px;flex:1;"></div>
+          <div id="grat-val" style="font-size:14px;font-weight:700;min-width:20px;text-align:right;">—</div>
+        </div>
+        <textarea id="grat-text" placeholder="What are you grateful for today? (optional)" rows="3" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:14px;padding:12px;font-family:inherit;resize:none;box-sizing:border-box;margin-bottom:14px;"></textarea>
+        <button onclick="saveGratitude()" style="width:100%;padding:15px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--gold),#b8860b);color:#000;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:10px;">Save Gratitude ✓</button>
+        <button onclick="document.getElementById('grat-modal').style.display='none'" style="width:100%;padding:12px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;font-family:inherit;cursor:pointer;">Cancel</button>
       </div>
     </div>
     <div class="scores-card">
@@ -1447,6 +1465,52 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
   </div>
 </div>
 
+<!-- FOOD ITEM EDIT MODAL -->
+<div id="food-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:650;align-items:flex-end;justify-content:center;">
+  <div style="background:var(--surface2);border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:20px 20px 36px;border-top:1px solid var(--border2);">
+    <div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;" id="food-edit-name">Edit Food</div>
+      <button onclick="document.getElementById('food-edit-modal').style.display='none'" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:18px;cursor:pointer;">×</button>
+    </div>
+    <!-- Quantity + Unit row -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;">
+      <div style="font-size:13px;color:var(--muted2);width:72px;">Quantity</div>
+      <input type="number" id="food-edit-qty" min="0.1" step="0.1" style="flex:1;background:var(--surface3);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text);font-size:16px;font-family:inherit;outline:none;text-align:center;" />
+      <select id="food-edit-unit" style="flex:1;background:var(--surface3);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text);font-size:14px;font-family:inherit;outline:none;">
+        <option value="serving">serving</option>
+        <option value="g">g</option>
+        <option value="oz">oz</option>
+        <option value="ml">ml</option>
+        <option value="cup">cup</option>
+        <option value="tbsp">tbsp</option>
+        <option value="piece">piece</option>
+      </select>
+    </div>
+    <!-- Macros -->
+    <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Macros per serving</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      <div style="background:var(--surface3);border-radius:10px;padding:10px;">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Calories</div>
+        <input type="number" id="food-edit-cal" min="0" style="width:100%;background:transparent;border:none;color:var(--text);font-size:16px;font-weight:700;font-family:inherit;outline:none;" />
+      </div>
+      <div style="background:var(--surface3);border-radius:10px;padding:10px;">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Protein (g)</div>
+        <input type="number" id="food-edit-pro" min="0" style="width:100%;background:transparent;border:none;color:var(--teal);font-size:16px;font-weight:700;font-family:inherit;outline:none;" />
+      </div>
+      <div style="background:var(--surface3);border-radius:10px;padding:10px;">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Carbs (g)</div>
+        <input type="number" id="food-edit-carb" min="0" style="width:100%;background:transparent;border:none;color:var(--orange);font-size:16px;font-weight:700;font-family:inherit;outline:none;" />
+      </div>
+      <div style="background:var(--surface3);border-radius:10px;padding:10px;">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Fat (g)</div>
+        <input type="number" id="food-edit-fat" min="0" style="width:100%;background:transparent;border:none;color:var(--red);font-size:16px;font-weight:700;font-family:inherit;outline:none;" />
+      </div>
+    </div>
+    <button onclick="saveFoodEdit()" style="width:100%;padding:15px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--gold),#b8860b);color:#000;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;">Save Changes ✓</button>
+  </div>
+</div>
+
 <!-- RECIPE BUILDER MODAL -->
 <div class="recipe-modal" id="recipe-modal">
   <div class="recipe-box">
@@ -1665,6 +1729,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <div class="admin-sub">Describe what you want to change in plain English. Example: "Add yoga on Mondays at 6am"</div>
     <input class="admin-input" type="password" id="admin-password" placeholder="Password" />
     <textarea class="admin-input" id="admin-instruction" placeholder="What would you like to change?" rows="3" style="resize:none;"></textarea>
+    <button id="sched-voice-btn" onclick="toggleSchedVoice()" style="width:100%;margin-bottom:8px;padding:13px;border-radius:12px;border:1px solid var(--gold-border);background:var(--gold-dim);color:var(--gold);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;"><span style="font-size:18px;">🎤</span> Tap to Speak</button>
+    <div id="sched-voice-status" style="font-size:12px;color:var(--muted);text-align:center;min-height:16px;margin-bottom:6px;"></div>
     <div class="admin-status" id="admin-status"></div>
     <button class="admin-submit" id="admin-submit">Update My Schedule</button>
     <button class="admin-cancel" id="admin-cancel">Cancel</button>
@@ -1682,13 +1748,13 @@ function genTimes(){const s=[];let h=8,m=0;while(true){const p=h<12?"AM":"PM",dh
 const TIMES=genTimes();
 
 const SCHED={
-  Monday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Tuesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Wednesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","4:00 PM":"Neck Exercises","4:10 PM":"Scalp Stretch","4:30 PM":"FaceTime Family","5:00 PM":"Relaxation (Reading / Video Games / Walk)","6:00 PM":"Shampoo","6:10 PM":"Deep Conditioner","6:20 PM":"Fascial Head Massage","7:00 PM":"Peloton","7:30 PM":"Ketamine Assisted Therapy","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Thursday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","5:00 PM":"Take Out Trash","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Friday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","4:00 PM":"Shampoo","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Saturday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Neck Exercises","9:30 AM":"Scalp Stretch","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","5:00 PM":"Gym (5–6 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Sunday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Biking","11:00 AM":"FaceTime Family","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","1:00 PM":"Laundry","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","5:00 PM":"Take Out Trash","7:00 PM":"Meal Prep","8:00 PM":"Shampoo","8:10 PM":"Coconut Oil / Castor Oil","8:20 PM":"Rice Water Mix","8:30 PM":"Hair Mask","8:40 PM":"Fascial Head Massage","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"}
+  Monday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Tuesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Wednesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","4:00 PM":"Neck Exercises","4:10 PM":"Scalp Stretch","4:30 PM":"FaceTime Family","5:00 PM":"Relaxation (Reading / Video Games / Walk)","6:00 PM":"Shampoo","6:10 PM":"Deep Conditioner","6:20 PM":"Fascial Head Massage","7:00 PM":"Peloton","7:30 PM":"Ketamine Assisted Therapy","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Thursday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","5:00 PM":"Take Out Trash","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Friday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","4:00 PM":"Shampoo","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Saturday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Neck Exercises","9:30 AM":"Scalp Stretch","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","5:00 PM":"Gym (5–6 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Sunday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Biking","11:00 AM":"FaceTime Family","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","1:00 PM":"Laundry","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","5:00 PM":"Take Out Trash","7:00 PM":"Meal Prep","8:00 PM":"Shampoo","8:10 PM":"Coconut Oil / Castor Oil","8:20 PM":"Rice Water Mix","8:30 PM":"Hair Mask","8:40 PM":"Fascial Head Massage","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
 };
 
 // ── Biomarker definitions ──
@@ -2282,6 +2348,63 @@ function renderStreak(){
   const streak = calcStreak();
   const el = document.getElementById('streak-num');
   if(el) el.textContent = streak;
+  updateGratBadge();
+}
+
+function openGratitudeLog(){
+  const modal = document.getElementById('grat-modal');
+  if(!modal) return;
+  modal.style.display='flex';
+  const today = new Date().toISOString().split('T')[0];
+  let gratData = {};
+  try{ gratData = JSON.parse(localStorage.getItem('gratitude_log')||'{}'); }catch(e){}
+  const todayEntry = gratData[today]||{};
+  const curLevel = todayEntry.level||0;
+  renderGratPips(curLevel);
+  const txt = document.getElementById('grat-text');
+  if(txt) txt.value = todayEntry.text||'';
+}
+
+function renderGratPips(val){
+  const wrap = document.getElementById('grat-pips');
+  if(!wrap) return;
+  wrap.innerHTML='';
+  for(let i=1;i<=10;i++){
+    const pip = document.createElement('button');
+    pip.className='score-pip'+(i<=val?' active-'+Math.min(i,10):'');
+    pip.style.cssText='width:22px;height:10px;border-radius:3px;border:none;cursor:pointer;background:'+(i<=val?'var(--gold)':'var(--border2)');
+    pip.onclick=(()=>{const n=i;return ()=>{ window._gratLevel=n; renderGratPips(n); };})();
+    wrap.appendChild(pip);
+  }
+  window._gratLevel=val;
+  const v=document.getElementById('grat-val'); if(v) v.textContent=val||'—';
+}
+
+async function saveGratitude(){
+  const today = new Date().toISOString().split('T')[0];
+  const level = window._gratLevel||0;
+  const text = (document.getElementById('grat-text')||{}).value||'';
+  let gratData = {};
+  try{ gratData = JSON.parse(localStorage.getItem('gratitude_log')||'{}'); }catch(e){}
+  gratData[today] = { level, text, ts: new Date().toISOString() };
+  try{ localStorage.setItem('gratitude_log', JSON.stringify(gratData)); }catch(e){}
+  saveCloud('gratitude_log', gratData);
+  const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
+  const checks = JSON.parse(localStorage.getItem('sched_checks')||'{}');
+  checks[`${dayName}|10:00 PM`] = true;
+  try{ localStorage.setItem('sched_checks', JSON.stringify(checks)); }catch(e){}
+  document.getElementById('grat-modal').style.display='none';
+  renderStreak();
+  showToast('🙏 Gratitude saved');
+}
+
+function updateGratBadge(){
+  const el = document.getElementById('grat-logged-today');
+  if(!el) return;
+  const today = new Date().toISOString().split('T')[0];
+  let gratData={};
+  try{ gratData=JSON.parse(localStorage.getItem('gratitude_log')||'{}'); }catch(e){}
+  el.textContent = gratData[today] ? '✓ logged' : '';
 }
 
 // ── Weight Sparkline ──
@@ -2795,10 +2918,10 @@ function renderMealFoods(meal, foods){
   if(!wrap) return;
   if(!foods.length){ wrap.innerHTML=''; return; }
   wrap.innerHTML = foods.map((f,i)=>`
-    <div class="meal-food-item">
-      <div class="mfi-name">${f.name}<br><span style="font-size:10px;color:var(--muted)">${f.serving||''}</span></div>
+    <div class="meal-food-item" onclick="openFoodEdit('${meal}',${i})" style="cursor:pointer;">
+      <div class="mfi-name">${f.name}<br><span style="font-size:10px;color:var(--muted)">${f.serving||''} · tap to edit</span></div>
       <div class="mfi-cals">${Math.round(f.calories||0)} kcal</div>
-      <button class="mfi-del" onclick="removeFood('${meal}',${i})">×</button>
+      <button class="mfi-del" onclick="event.stopPropagation();removeFood('${meal}',${i})">×</button>
     </div>`).join('');
 }
 
@@ -2807,6 +2930,55 @@ function removeFood(meal, idx){
   log[meal].splice(idx,1);
   saveNutrition();
   renderNutrition();
+}
+
+// Food item edit modal
+let _foodEditMeal = null;
+let _foodEditIdx = null;
+
+function openFoodEdit(meal, idx){
+  const log = getTodayLog();
+  const f = (log[meal]||[])[idx];
+  if(!f) return;
+  _foodEditMeal = meal;
+  _foodEditIdx = idx;
+  document.getElementById('food-edit-name').textContent = f.name || 'Edit Food';
+  document.getElementById('food-edit-qty').value = f.qty != null ? f.qty : 1;
+  const unitSel = document.getElementById('food-edit-unit');
+  if(unitSel){
+    const u = f.unit || 'serving';
+    const opt = unitSel.querySelector(`option[value="${u}"]`);
+    unitSel.value = opt ? u : 'serving';
+  }
+  document.getElementById('food-edit-cal').value = Math.round(f.calories||0);
+  document.getElementById('food-edit-pro').value = Math.round(f.protein||0);
+  document.getElementById('food-edit-carb').value = Math.round(f.carbs||0);
+  document.getElementById('food-edit-fat').value = Math.round(f.fat||0);
+  document.getElementById('food-edit-modal').style.display='flex';
+}
+
+function saveFoodEdit(){
+  if(_foodEditMeal === null || _foodEditIdx === null) return;
+  const log = getTodayLog();
+  const f = (log[_foodEditMeal]||[])[_foodEditIdx];
+  if(!f) return;
+  const qty = parseFloat(document.getElementById('food-edit-qty').value)||1;
+  const unit = document.getElementById('food-edit-unit').value||'serving';
+  const cal = parseFloat(document.getElementById('food-edit-cal').value)||0;
+  const pro = parseFloat(document.getElementById('food-edit-pro').value)||0;
+  const carb = parseFloat(document.getElementById('food-edit-carb').value)||0;
+  const fat = parseFloat(document.getElementById('food-edit-fat').value)||0;
+  f.qty = qty;
+  f.unit = unit;
+  f.serving = `${qty} ${unit}`;
+  f.calories = cal;
+  f.protein = pro;
+  f.carbs = carb;
+  f.fat = fat;
+  saveNutrition();
+  renderNutrition();
+  document.getElementById('food-edit-modal').style.display='none';
+  showToast('✓ Food updated');
 }
 
 function toggleMeal(meal){
@@ -3955,6 +4127,45 @@ function toggleVoiceInput(){
   voiceRecognition.start();
 }
 
+
+// -- Voice Input for Schedule Update --
+let schedVoiceRec = null;
+let schedVoiceActive = false;
+
+function toggleSchedVoice(){
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+    showToast('Voice not available on this browser'); return;
+  }
+  if(schedVoiceActive){ if(schedVoiceRec) schedVoiceRec.stop(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  schedVoiceRec = new SR();
+  schedVoiceRec.continuous = false;
+  schedVoiceRec.interimResults = true;
+  schedVoiceRec.lang = 'en-US';
+  const btn = document.getElementById('sched-voice-btn');
+  const status = document.getElementById('sched-voice-status');
+  const input = document.getElementById('admin-instruction');
+  schedVoiceRec.onstart = ()=>{
+    schedVoiceActive = true;
+    if(btn){ btn.style.color='var(--red)'; btn.style.borderColor='rgba(248,113,113,0.4)'; btn.style.background='rgba(248,113,113,0.1)'; }
+    if(status) status.textContent='Listening — speak your change...';
+  };
+  schedVoiceRec.onresult = (e)=>{
+    let t=''; for(let i=0;i<e.results.length;i++) t+=e.results[i][0].transcript;
+    if(input) input.value=t;
+  };
+  schedVoiceRec.onend = ()=>{
+    schedVoiceActive=false;
+    if(btn){ btn.style.color='var(--gold)'; btn.style.borderColor='var(--gold-border)'; btn.style.background='var(--gold-dim)'; btn.innerHTML='<span style="font-size:18px;">🎤</span> Tap to Speak'; }
+    if(status) status.textContent='';
+  };
+  schedVoiceRec.onerror = ()=>{
+    schedVoiceActive=false;
+    if(btn){ btn.style.color='var(--gold)'; btn.style.borderColor='var(--gold-border)'; btn.style.background='var(--gold-dim)'; btn.innerHTML='<span style="font-size:18px;">🎤</span> Tap to Speak'; }
+    if(status) status.textContent='';
+  };
+  schedVoiceRec.start();
+}
 
 // ── Exercise History Modal ──
 function showExerciseHistory(exerciseName){
