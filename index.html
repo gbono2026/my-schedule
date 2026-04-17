@@ -635,7 +635,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260413120000">
+<meta name="app-version" content="20260417160000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -1045,7 +1045,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <button style="flex:1;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="openExercisePicker()">+ Exercise</button>
         <button style="flex:1;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="openPresetModal()">+ Preset</button>
       </div>
-      <button class="finish-workout-btn" onclick="finishWorkout()">✓ Finish Exercise Session</button>
+      <button class="finish-workout-btn" onclick="finishWorkout()">✓ Finish Exercise</button>
       <button class="cancel-workout-btn" onclick="cancelWorkout()">✕ Cancel Workout</button>
     </div>
 
@@ -1529,6 +1529,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <button onclick="saveRecipe()" style="flex:1;padding:13px;border-radius:12px;border:none;background:var(--green);color:#000;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Save to My Foods</button>
       <button onclick="addRecipeToMeal()" style="flex:1;padding:13px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Add to Meal Now</button>
     </div>
+    <button onclick="document.getElementById('recipe-modal').classList.remove('open')" style="width:100%;margin-top:8px;padding:12px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">Cancel</button>
   </div>
 </div>
 
@@ -1606,7 +1607,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <div class="ex-picker-title" style="margin-bottom:0">Add Exercise</div>
       <button style="padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="document.getElementById('ex-picker').classList.remove('open')">Cancel</button>
     </div>
-    <input id="ex-search" type="text" placeholder="🔍 Search exercises..." oninput="filterExercises(this.value)" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;margin-bottom:12px;-webkit-appearance:none;">
+    <div style="display:flex;gap:8px;margin-bottom:6px;">
+      <input id="ex-search" type="text" placeholder="🔍 Search or speak an exercise..." oninput="filterExercises(this.value)" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;-webkit-appearance:none;">
+      <button id="ex-voice-btn" onclick="toggleExVoice()" style="padding:0 14px;border-radius:10px;border:1px solid var(--gold-border);background:var(--gold-dim);color:var(--gold);font-size:18px;cursor:pointer;flex-shrink:0;">🎤</button>
+    </div>
+    <div id="ex-voice-status" style="font-size:11px;color:var(--muted);text-align:center;min-height:14px;margin-bottom:8px;"></div>
     <div id="ex-list-wrap">
     <div class="ex-category">💪 Chest</div>
     <div class="ex-item" onclick="addExercise('Bench Press','8-12 reps','strength')">Bench Press</div>
@@ -1699,6 +1704,48 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <div class="ex-item" onclick="addExercise('Swimming','duration','cardio')">Swimming</div>
     <div class="ex-item" onclick="addExercise('Jump Rope','duration','cardio')">Jump Rope</div>
     <div class="ex-item" onclick="addExercise('HIIT','duration','cardio')">HIIT</div>
+    <div class="ex-category">🦒 Neck</div>
+    <div class="ex-item" onclick="addExercise('Neck Flexion','15-20 reps','strength')">Neck Flexion</div>
+    <div class="ex-item" onclick="addExercise('Neck Extension','15-20 reps','strength')">Neck Extension</div>
+    <div class="ex-item" onclick="addExercise('Neck Lateral Flexion (Left)','15-20 reps','strength')">Neck Lateral Flexion (Left)</div>
+    <div class="ex-item" onclick="addExercise('Neck Lateral Flexion (Right)','15-20 reps','strength')">Neck Lateral Flexion (Right)</div>
+    <div class="ex-item" onclick="addExercise('Neck Rotation','15-20 reps','strength')">Neck Rotation</div>
+    <div class="ex-item" onclick="addExercise('Shrug','12-15 reps','strength')">Shrug</div>
+    <div class="ex-category">🧘 Mobility / Flexibility</div>
+    <div class="ex-item" onclick="addExercise('Yoga Flow','duration','cardio')">Yoga Flow</div>
+    <div class="ex-item" onclick="addExercise('Hip Flexor Stretch','30-60 sec','strength')">Hip Flexor Stretch</div>
+    <div class="ex-item" onclick="addExercise('Thoracic Rotation','10-15 reps','strength')">Thoracic Rotation</div>
+    <div class="ex-item" onclick="addExercise('Cat-Cow Stretch','10-15 reps','strength')">Cat-Cow Stretch</div>
+    <div class="ex-item" onclick="addExercise('World Greatest Stretch','5-8 reps','strength')">World Greatest Stretch</div>
+    <div class="ex-item" onclick="addExercise('90/90 Hip Stretch','30-60 sec','strength')">90/90 Hip Stretch</div>
+    <div class="ex-item" onclick="addExercise('Pigeon Pose','30-60 sec','strength')">Pigeon Pose</div>
+    <div class="ex-category">🏋️ Full Body / Olympic</div>
+    <div class="ex-item" onclick="addExercise('Power Clean','4-6 reps','strength')">Power Clean</div>
+    <div class="ex-item" onclick="addExercise('Hang Clean','4-6 reps','strength')">Hang Clean</div>
+    <div class="ex-item" onclick="addExercise('Clean and Press','4-6 reps','strength')">Clean and Press</div>
+    <div class="ex-item" onclick="addExercise('Snatch','4-6 reps','strength')">Snatch</div>
+    <div class="ex-item" onclick="addExercise('Kettlebell Swing','15-20 reps','strength')">Kettlebell Swing</div>
+    <div class="ex-item" onclick="addExercise('Turkish Get-Up','5-8 reps','strength')">Turkish Get-Up</div>
+    <div class="ex-item" onclick="addExercise('Burpee','10-15 reps','strength')">Burpee</div>
+    <div class="ex-item" onclick="addExercise('Box Jump','8-12 reps','strength')">Box Jump</div>
+    <div class="ex-item" onclick="addExercise('Medicine Ball Slam','12-15 reps','strength')">Medicine Ball Slam</div>
+    <div class="ex-category">💪 Additional Chest</div>
+    <div class="ex-item" onclick="addExercise('Low Cable Fly','12-15 reps','strength')">Low Cable Fly</div>
+    <div class="ex-item" onclick="addExercise('Dumbbell Pullover','12-15 reps','strength')">Dumbbell Pullover</div>
+    <div class="ex-item" onclick="addExercise('Landmine Press','10-12 reps','strength')">Landmine Press</div>
+    <div class="ex-category">🏋️ Additional Back</div>
+    <div class="ex-item" onclick="addExercise('Meadows Row','10-12 reps','strength')">Meadows Row</div>
+    <div class="ex-item" onclick="addExercise('Pendlay Row','6-8 reps','strength')">Pendlay Row</div>
+    <div class="ex-item" onclick="addExercise('Rack Pull','5-8 reps','strength')">Rack Pull</div>
+    <div class="ex-item" onclick="addExercise('Chest Supported Row','10-15 reps','strength')">Chest Supported Row</div>
+    <div class="ex-item" onclick="addExercise('Straight Arm Pulldown','12-15 reps','strength')">Straight Arm Pulldown</div>
+    <div class="ex-category">💪 Additional Arms</div>
+    <div class="ex-item" onclick="addExercise('Concentration Curl','10-15 reps','strength')">Concentration Curl</div>
+    <div class="ex-item" onclick="addExercise('Cable Curl','12-15 reps','strength')">Cable Curl</div>
+    <div class="ex-item" onclick="addExercise('Incline Dumbbell Curl','10-15 reps','strength')">Incline Dumbbell Curl</div>
+    <div class="ex-item" onclick="addExercise('Overhead Tricep Extension','12-15 reps','strength')">Overhead Tricep Extension</div>
+    <div class="ex-item" onclick="addExercise('Close Grip Bench Press','8-12 reps','strength')">Close Grip Bench Press</div>
+    <div class="ex-item" onclick="addExercise('Diamond Push-Up','10-15 reps','strength')">Diamond Push-Up</div>
     </div>
 
   </div>
@@ -1869,6 +1916,7 @@ function renderHealthView(){
   safe(loadScores, 'scores');
   safe(renderStreak, 'streak');
   safe(loadWorkoutHistory, 'workoutHistory');
+  safe(restoreActiveDraft, 'restoreDraft');
   safe(renderWorkoutHistory, 'workoutHistoryRender');
   safe(renderNutrition, 'nutrition');
   safe(renderThermal, 'thermal');
@@ -2073,7 +2121,18 @@ function toggle(key){
   if(slot){slot.classList.toggle("checked",on);slot.querySelector(".slot-ring").textContent=on?"✓":"";slot.querySelector(".slot-task").style.textDecoration=on?"line-through":"none";slot.querySelector(".slot-task").style.color=on?"var(--muted)":"var(--text)";}
   else render();
   renderProgress();
+  // Auto-sync water tasks to hydration log
   const day=DAYS[activeDay],tasks=SCHED[day];
+  const taskName=(tasks[key.split('|')[1]]||'').toLowerCase();
+  if(on && (taskName.includes('cup of water')||taskName.includes('hydration check'))){
+    const today=new Date().toISOString().split('T')[0];
+    let hyd={};try{hyd=JSON.parse(localStorage.getItem('hydration_log')||'{}');}catch(e){}
+    if(!hyd[today])hyd[today]={cups:0};
+    hyd[today].cups=(hyd[today].cups||0)+1;
+    try{localStorage.setItem('hydration_log',JSON.stringify(hyd));}catch(e){}
+    saveCloud('hydration_log',hyd);
+    showToast('💧 +1 cup logged to Hydration');
+  }
   if(Object.keys(tasks).filter(t=>checks[`${day}|${t}`]).length===Object.keys(tasks).length)showToast("🎉 All done today!");
 }
 
@@ -2537,6 +2596,28 @@ async function loadWorkoutHistory(){
   try{ workoutHistory = JSON.parse(localStorage.getItem('workout_history')||'[]'); }
   catch(e){ workoutHistory=[]; }
 }
+
+function restoreActiveDraft(){
+  try{
+    const draft = localStorage.getItem('active_workout_draft');
+    if(!draft) return;
+    const parsed = JSON.parse(draft);
+    if(!parsed || !parsed.exercises || parsed.exercises.length===0) return;
+    activeWorkout = parsed;
+    document.getElementById('active-workout').style.display='block';
+    renderExercises();
+    // Restore timer from timestamp
+    const ts = parseInt(localStorage.getItem('workout_start_ts')||'0');
+    if(ts > 0){
+      workoutSeconds = Math.floor((Date.now()-ts)/1000);
+      const m = Math.floor(workoutSeconds/60), s = workoutSeconds%60;
+      const el = document.getElementById('workout-elapsed');
+      if(el) el.textContent = `${m}:${String(s).padStart(2,'0')}`;
+      startWorkoutTimer();
+    }
+    showToast('Workout session restored');
+  }catch(e){}
+}
 function saveWorkoutHistory(){
   try{ localStorage.setItem('workout_history', JSON.stringify(workoutHistory)); }catch(e){}
   saveCloud('workout_history', workoutHistory);
@@ -2553,9 +2634,13 @@ function getPrevPerformance(exerciseName){
 
 
 function startWorkoutTimer(){
+  const startTs = Date.now();
+  localStorage.setItem('workout_start_ts', startTs);
   workoutSeconds = 0;
+  if(workoutTimer) clearInterval(workoutTimer);
   workoutTimer = setInterval(()=>{
-    workoutSeconds++;
+    const stored = parseInt(localStorage.getItem('workout_start_ts')||startTs);
+    workoutSeconds = Math.floor((Date.now() - stored) / 1000);
     const m = Math.floor(workoutSeconds/60), s = workoutSeconds%60;
     const el = document.getElementById('workout-elapsed');
     if(el) el.textContent = `${m}:${String(s).padStart(2,'0')}`;
@@ -2581,6 +2666,7 @@ function addExercise(name, target, type){
   }
   activeWorkout.exercises.push({ id:exId, name, target, type:type||'strength', sets:defaultSets, notes:'' });
   renderExercises();
+  try{ localStorage.setItem('active_workout_draft', JSON.stringify(activeWorkout)); }catch(e){}
   document.getElementById('workout-exercise-count').textContent = activeWorkout.exercises.length + ' exercise' + (activeWorkout.exercises.length!==1?'s':'');
   // Show toast if pre-filled
   if(!isCardio && getPrevPerformance(name)) showToast('Pre-filled from last session');
@@ -2612,9 +2698,10 @@ function renderExercises(){
         lastSessionHtml = `<div style="font-size:10px;color:var(--muted);margin-bottom:8px;padding:6px 8px;background:var(--surface2);border-radius:8px;">Last (${lastSession.date}): ${s.duration||'—'} min${s.intensity?' · '+s.intensity+' intensity':''}</div>`;
       } else {
         const s = lastSession.sets[0];
-        lastSessionHtml = `<div style="font-size:10px;color:var(--muted);margin-bottom:8px;padding:6px 8px;background:var(--surface2);border-radius:8px;">Last (${lastSession.date}): ${s.weight||'—'} lbs × ${s.reps||'—'} reps</div>`;
+        lastSessionHtml = `<div style="font-size:10px;color:var(--muted);margin-bottom:8px;padding:6px 8px;background:var(--surface2);border-radius:8px;">Last (${lastSession.date}): ${s.weight||'—'} lbs × ${s.reps||'—'} reps · Recommended: ${ex.target}</div>`;
       }
     }
+    const supersetBadge = ex.superset ? `<span style="font-size:9px;padding:2px 8px;border-radius:10px;background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-border);margin-left:6px;font-weight:700;letter-spacing:1px;">SUPERSET</span>` : '';
     let setsHtml = '';
     if(isCardio){
       setsHtml = ex.sets.map((set,si)=>`
@@ -2627,10 +2714,11 @@ function renderExercises(){
             <input class="set-input" type="number" inputmode="numeric" placeholder="7" value="${set.intensity||''}" onchange="updateSet(${exIdx},${si},'intensity',this.value)" style="width:100%">
           </div>
           <button class="set-done-btn${set.done?' done':''}" onclick="completeSet(${exIdx},${si})">${set.done?'✓':''}</button>
+          <button onclick="deleteSet(${exIdx},${si})" title="Delete set" style="width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;flex-shrink:0;line-height:1;">×</button>
         </div>`).join('');
     } else {
       setsHtml = `<table class="sets-table">
-        <thead><tr><th>SET</th><th>PREV</th><th>LBS</th><th>REPS</th><th style="min-width:80px">EFFORT</th><th>✓</th></tr></thead>
+        <thead><tr><th>SET</th><th>PREV</th><th>LBS</th><th>REPS</th><th style="min-width:80px">EFFORT</th><th>✓</th><th></th></tr></thead>
         <tbody>${ex.sets.map((set,si)=>{
           const prev = lastSession?.sets?.[si];
           const prevText = prev ? `${prev.weight||'—'}×${prev.reps||'—'}` : '—';
@@ -2639,22 +2727,30 @@ function renderExercises(){
             <td><div class="set-prev">${prevText}</div></td>
             <td><input class="set-input" type="number" inputmode="decimal" placeholder="lbs" value="${set.weight||''}" onchange="updateSet(${exIdx},${si},'weight',this.value)"></td>
             <td><input class="set-input" type="number" inputmode="numeric" placeholder="reps" value="${set.reps||''}" onchange="updateSet(${exIdx},${si},'reps',this.value)"></td>
-            <td><div class="effort-btns">${[6,7,8,9,10].map(e=>`<button class="effort-btn e${e}${set.effort===e?' selected':''}" data-set="${si}" data-effort="${e}" onclick="event.stopPropagation();updateSet(${exIdx},${si},'effort',${e})">${e}</button>`).join('')}</div></td>
+            <td><div class="effort-btns">${[6,7,8,9,10].map(e=>`<button class="effort-btn e${e}${set.effort===e?' selected':''}" data-ex="${exIdx}" data-set="${si}" data-effort="${e}" onclick="event.stopPropagation();updateSet(${exIdx},${si},'effort',${e})">${e}</button>`).join('')}</div></td>
             <td><button class="set-done-btn${set.done?' done':''}" onclick="completeSet(${exIdx},${si})">${set.done?'✓':''}</button></td>
+            <td><button onclick="deleteSet(${exIdx},${si})" title="Delete" style="width:20px;height:20px;border-radius:50%;border:none;background:transparent;color:var(--muted);font-size:14px;cursor:pointer;line-height:1;padding:0;">×</button></td>
           </tr>`;
         }).join('')}</tbody>
       </table>`;
     }
+    const recText = isCardio ? '' : `<div style="font-size:10px;color:var(--gold);margin-bottom:6px;">📊 Recommended: ${ex.target}</div>`;
+    const restTimerId = 'exrest-'+ex.id;
     return `<div class="exercise-block" id="${ex.id}">
-      <div class="exercise-name" style="display:flex;align-items:center;">
-        ${ex.name} ${isCardio?'🚴':''}
-        <a class="yt-btn" href="https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name+' exercise tutorial how to')}" target="_blank" rel="noopener">▶ Demo</a>
+      <div class="exercise-name" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+        <span>${ex.name}${isCardio?' 🚴':''}</span>${supersetBadge}
+        <a class="yt-btn" href="https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name+' exercise tutorial')}" target="_blank" rel="noopener" style="margin-left:4px;">▶ Demo</a>
+        <button onclick="toggleSuperset(${exIdx})" style="font-size:9px;padding:2px 7px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:inherit;margin-left:auto;">${ex.superset?'✕ SS':'+ SS'}</button>
+        <button onclick="deleteExercise(${exIdx})" style="font-size:9px;padding:2px 7px;border-radius:10px;border:1px solid rgba(248,113,113,0.3);background:transparent;color:var(--red);cursor:pointer;font-family:inherit;">🗑</button>
       </div>
-      <div class="exercise-target">${isCardio?'Cardio — track duration':ex.target}</div>
+      <div id="${restTimerId}" style="display:none;font-size:11px;color:var(--teal);font-weight:700;text-align:center;padding:5px;background:rgba(20,184,166,0.08);border-radius:8px;margin:6px 0;">⏱ Rest: <span>—</span></div>
+      ${recText}
       ${lastSessionHtml}
       <input class="exercise-notes-input" type="text" placeholder="Notes..." value="${ex.notes||''}" onchange="activeWorkout.exercises[${exIdx}].notes=this.value">
       ${setsHtml}
-      ${isCardio?`<button class="add-set-btn" onclick="addSet(${exIdx})">+ Add Session</button>`:`<button class="add-set-btn" onclick="addSet(${exIdx})">+ Add Set</button>`}
+      <div style="display:flex;gap:6px;margin-top:6px;">
+        ${isCardio?`<button class="add-set-btn" onclick="addSet(${exIdx})">+ Add Session</button>`:`<button class="add-set-btn" onclick="addSet(${exIdx})">+ Add Set</button>`}
+      </div>
     </div>`;
   }).join('');
 }
@@ -2662,6 +2758,8 @@ function renderExercises(){
 function updateSet(exIdx, si, field, val){
   if(!activeWorkout) return;
   activeWorkout.exercises[exIdx].sets[si][field] = field==='effort'||field==='weight'||field==='reps' ? (isNaN(parseFloat(val))?val:parseFloat(val)) : val;
+  // Persist draft
+  try{ localStorage.setItem('active_workout_draft', JSON.stringify(activeWorkout)); }catch(e){}
   // Re-render effort buttons immediately so selection is visible
   if(field==='effort'){
     const exId = activeWorkout.exercises[exIdx].id;
@@ -2684,6 +2782,25 @@ function addSet(exIdx){
   renderExercises();
 }
 
+function deleteSet(exIdx, si){
+  if(!activeWorkout) return;
+  activeWorkout.exercises[exIdx].sets.splice(si,1);
+  renderExercises();
+}
+
+function deleteExercise(exIdx){
+  if(!activeWorkout) return;
+  activeWorkout.exercises.splice(exIdx,1);
+  renderExercises();
+  showToast('Exercise removed');
+}
+
+function toggleSuperset(exIdx){
+  if(!activeWorkout) return;
+  activeWorkout.exercises[exIdx].superset = !activeWorkout.exercises[exIdx].superset;
+  renderExercises();
+}
+
 function completeSet(exIdx, si){
   if(!activeWorkout) return;
   const ex = activeWorkout.exercises[exIdx];
@@ -2694,7 +2811,27 @@ function completeSet(exIdx, si){
     const allDone = ex.sets.every(s=>s.done);
     if(allDone) showToast('✓ '+ex.name+' — exercise complete!');
     startRestTimer(120);
+    // Start per-exercise rest timer display
+    startExRestTimer(ex.id, 120);
   }
+}
+
+function startExRestTimer(exId, secs){
+  const restId = 'exrest-'+exId;
+  const el = document.getElementById(restId);
+  if(!el) return;
+  el.style.display='block';
+  let remaining = secs;
+  const span = el.querySelector('span');
+  if(span) span.textContent = remaining+'s';
+  const iv = setInterval(()=>{
+    remaining--;
+    if(span) span.textContent = remaining+'s';
+    if(remaining<=0){
+      clearInterval(iv);
+      el.style.display='none';
+    }
+  },1000);
 }
 
 function startRestTimer(secs){
@@ -2746,12 +2883,14 @@ function finishWorkout(){
   workoutHistory.push(record);
   saveWorkoutHistory();
   activeWorkout = null;
+  localStorage.removeItem('workout_start_ts');
   workoutSeconds = 0;
   document.getElementById('active-workout').style.display='none';
   document.getElementById('rest-timer').style.display='none';
   document.getElementById('exercise-list').innerHTML='';
+  localStorage.removeItem('active_workout_draft');
   renderWorkoutHistory();
-  showToast(`✓ Workout saved! ${totalSets} sets in ${duration} min`);
+  showToast(`✓ Exercise session saved — ${totalSets} sets · ${duration} min`);
 }
 
 function renderWorkoutHistory(){
@@ -4127,6 +4266,45 @@ function toggleVoiceInput(){
   voiceRecognition.start();
 }
 
+
+// -- Voice Input for Exercise Search --
+let exVoiceRec = null;
+let exVoiceActive = false;
+
+function toggleExVoice(){
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+    showToast('Voice not available on this browser'); return;
+  }
+  if(exVoiceActive){ if(exVoiceRec) exVoiceRec.stop(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  exVoiceRec = new SR();
+  exVoiceRec.continuous = false;
+  exVoiceRec.interimResults = true;
+  exVoiceRec.lang = 'en-US';
+  const btn = document.getElementById('ex-voice-btn');
+  const status = document.getElementById('ex-voice-status');
+  const input = document.getElementById('ex-search');
+  exVoiceRec.onstart = ()=>{
+    exVoiceActive = true;
+    if(btn){ btn.style.color='var(--red)'; btn.style.borderColor='rgba(248,113,113,0.4)'; btn.style.background='rgba(248,113,113,0.1)'; }
+    if(status) status.textContent='Listening — say an exercise name...';
+  };
+  exVoiceRec.onresult = (e)=>{
+    let t=''; for(let i=0;i<e.results.length;i++) t+=e.results[i][0].transcript;
+    if(input){ input.value=t; filterExercises(t); }
+  };
+  exVoiceRec.onend = ()=>{
+    exVoiceActive=false;
+    if(btn){ btn.style.color='var(--gold)'; btn.style.borderColor='var(--gold-border)'; btn.style.background='var(--gold-dim)'; }
+    if(status) status.textContent='';
+  };
+  exVoiceRec.onerror = ()=>{
+    exVoiceActive=false;
+    if(btn){ btn.style.color='var(--gold)'; btn.style.borderColor='var(--gold-border)'; btn.style.background='var(--gold-dim)'; }
+    if(status) status.textContent='';
+  };
+  exVoiceRec.start();
+}
 
 // -- Voice Input for Schedule Update --
 let schedVoiceRec = null;
