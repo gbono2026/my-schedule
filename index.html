@@ -635,7 +635,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260422100000">
+<meta name="app-version" content="20260422120000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -1052,8 +1052,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <button class="cancel-workout-btn" onclick="cancelWorkout()">✕ Cancel Workout</button>
     </div>
 
-    <!-- Workout history -->
-    <div id="workout-history-list"></div>
+    <!-- Workout history — collapsed by default -->
+    <div style="margin-bottom:12px;">
+      <button onclick="toggleWorkoutHistory()" id="wh-toggle-btn" style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:space-between;">
+        <span>📋 View Workout History</span>
+        <span id="wh-toggle-arrow">▼</span>
+      </button>
+      <div id="workout-history-list" style="display:none;margin-top:8px;"></div>
+    </div>
 
     <!-- DAILY SCORES -->
     <div class="dash-section"><div class="dash-section-label">Daily Check-In</div><div class="dash-section-line"></div></div>
@@ -1936,7 +1942,7 @@ function renderHealthView(){
   safe(loadWorkoutHistory, 'workoutHistory');
   safe(renderCustomPresets, 'customPresets');
   safe(restoreActiveDraft, 'restoreDraft');
-  safe(renderWorkoutHistory, 'workoutHistoryRender');
+  // Workout history is collapsed — render on demand
   safe(renderNutrition, 'nutrition');
   safe(renderThermal, 'thermal');
   safe(renderHydration, 'hydration');
@@ -2150,11 +2156,14 @@ function toggle(key){
     if(on && (keyTask.includes('cup of water')||keyTask.includes('hydration check'))){
       const today=new Date().toISOString().split('T')[0];
       let hyd={};try{hyd=JSON.parse(localStorage.getItem('hydration_log')||'{}');}catch(e2){}
-      if(!hyd[today])hyd[today]={cups:0};
-      hyd[today].cups=(hyd[today].cups||0)+1;
-      try{localStorage.setItem('hydration_log',JSON.stringify(hyd));}catch(e2){}
-      saveCloud('hydration_log',hyd);
-      showToast('💧 +1 cup logged to Hydration');
+      // Use the main hydrationLog object so oz display updates
+      const todayHydKey = new Date().toISOString().split('T')[0];
+      if(!hydrationLog[todayHydKey]) hydrationLog[todayHydKey]={oz:0,entries:[]};
+      hydrationLog[todayHydKey].oz = (hydrationLog[todayHydKey].oz||0) + 8;
+      hydrationLog[todayHydKey].entries = hydrationLog[todayHydKey].entries||[];
+      hydrationLog[todayHydKey].entries.push({oz:8, time:new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})});
+      saveHydration();
+      showToast('💧 +8 oz logged to Hydration');
       renderHydration();
     }
   }catch(e2){}
@@ -2381,8 +2390,9 @@ let dailyScores = {};
 async function loadScores(){
   const today = new Date().toISOString().split('T')[0];
   const cloud = await loadCloud('daily_scores');
-  if(cloud){ dailyScores = cloud; localStorage.setItem('daily_scores', JSON.stringify(cloud)); return; }
-  try{ dailyScores = JSON.parse(localStorage.getItem('daily_scores')||'{}'); }catch(e){ dailyScores={}; }
+  if(cloud){ dailyScores = cloud; localStorage.setItem('daily_scores', JSON.stringify(cloud)); }
+  else { try{ dailyScores = JSON.parse(localStorage.getItem('daily_scores')||'{}'); }catch(e){ dailyScores={}; } }
+  // Always render pips after loading
   SCORES.forEach(s => renderPips(s, dailyScores[today]?.[s]||0));
 }
 
@@ -3007,8 +3017,27 @@ function finishWorkout(){
   document.getElementById('rest-timer').style.display='none';
   document.getElementById('exercise-list').innerHTML='';
   localStorage.removeItem('active_workout_draft');
-  renderWorkoutHistory();
+  // Refresh history only if panel is open
+  const whList = document.getElementById('workout-history-list');
+  if(whList && whList.style.display!=='none') renderWorkoutHistory();
   showToast(`✓ Exercise session saved — ${totalSets} sets · ${duration} min`);
+}
+
+function toggleWorkoutHistory(){
+  const list = document.getElementById('workout-history-list');
+  const arrow = document.getElementById('wh-toggle-arrow');
+  const btn = document.getElementById('wh-toggle-btn');
+  if(!list) return;
+  if(list.style.display==='none'){
+    list.style.display='block';
+    if(arrow) arrow.textContent='▲';
+    if(btn) btn.querySelector('span').textContent='📋 Workout History';
+    renderWorkoutHistory();
+  } else {
+    list.style.display='none';
+    if(arrow) arrow.textContent='▼';
+    if(btn) btn.querySelector('span').textContent='📋 View Workout History';
+  }
 }
 
 function renderWorkoutHistory(){
