@@ -635,7 +635,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260417160000">
+<meta name="app-version" content="20260422100000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -1045,7 +1045,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <button style="flex:1;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="openExercisePicker()">+ Exercise</button>
         <button style="flex:1;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="openPresetModal()">+ Preset</button>
       </div>
-      <button class="finish-workout-btn" onclick="finishWorkout()">✓ Finish Exercise</button>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+      <button class="finish-workout-btn" onclick="finishWorkout()" style="flex:1;">✓ Finish Exercise</button>
+      <button onclick="saveAsPreset()" style="padding:14px 16px;border-radius:12px;border:1px solid var(--gold-border);background:var(--gold-dim);color:var(--gold);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">💾 Save Preset</button>
+    </div>
       <button class="cancel-workout-btn" onclick="cancelWorkout()">✕ Cancel Workout</button>
     </div>
 
@@ -1597,6 +1600,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     </div>
     <div class="preset-or">— or —</div>
     <button style="width:100%;padding:13px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="document.getElementById('preset-modal').classList.remove('open')">Cancel</button>
+      <div id="custom-presets-wrap"></div>
   </div>
 </div>
 
@@ -1900,12 +1904,26 @@ async function loadHealthData(){
   try{
     const res=await fetch(`${SERVER}/health`);
     const data=await res.json();
-    healthToday=data.today||{};
-    if(Object.keys(healthToday).length>0) document.getElementById("setup-banner").style.display="none";
+    // Only update if we got real data — never overwrite with empty
+    if(data.today && Object.keys(data.today).length>0){
+      healthToday=data.today;
+      try{ localStorage.setItem('health_today_cache', JSON.stringify(healthToday)); }catch(e){}
+      document.getElementById("setup-banner").style.display="none";
+    }
     renderDailyMetrics(data.history||{});
     showToast("✓ Data refreshed");
     generateMorningBriefing();
-  }catch(e){showToast("⚠ Using cached data");}
+  }catch(e){
+    // Railway down — use local cache so data doesn't disappear
+    try{
+      const cached = localStorage.getItem('health_today_cache');
+      if(cached && Object.keys(healthToday).length===0){
+        healthToday = JSON.parse(cached);
+        renderDailyMetrics();
+      }
+    }catch(e2){}
+    showToast("⚠ Using cached data");
+  }
 }
 
 function renderHealthView(){
@@ -1916,6 +1934,7 @@ function renderHealthView(){
   safe(loadScores, 'scores');
   safe(renderStreak, 'streak');
   safe(loadWorkoutHistory, 'workoutHistory');
+  safe(renderCustomPresets, 'customPresets');
   safe(restoreActiveDraft, 'restoreDraft');
   safe(renderWorkoutHistory, 'workoutHistoryRender');
   safe(renderNutrition, 'nutrition');
@@ -2123,16 +2142,22 @@ function toggle(key){
   renderProgress();
   // Auto-sync water tasks to hydration log
   const day=DAYS[activeDay],tasks=SCHED[day];
-  const taskName=(tasks[key.split('|')[1]]||'').toLowerCase();
-  if(on && (taskName.includes('cup of water')||taskName.includes('hydration check'))){
-    const today=new Date().toISOString().split('T')[0];
-    let hyd={};try{hyd=JSON.parse(localStorage.getItem('hydration_log')||'{}');}catch(e){}
-    if(!hyd[today])hyd[today]={cups:0};
-    hyd[today].cups=(hyd[today].cups||0)+1;
-    try{localStorage.setItem('hydration_log',JSON.stringify(hyd));}catch(e){}
-    saveCloud('hydration_log',hyd);
-    showToast('💧 +1 cup logged to Hydration');
-  }
+  // Water sync — extract day+time from key directly (key = "Monday|8:30 AM")
+  try{
+    const parts = key.split('|');
+    const keyDay = parts[0], keyTime = parts[1];
+    const keyTask = (SCHED[keyDay]?.[keyTime]||'').toLowerCase();
+    if(on && (keyTask.includes('cup of water')||keyTask.includes('hydration check'))){
+      const today=new Date().toISOString().split('T')[0];
+      let hyd={};try{hyd=JSON.parse(localStorage.getItem('hydration_log')||'{}');}catch(e2){}
+      if(!hyd[today])hyd[today]={cups:0};
+      hyd[today].cups=(hyd[today].cups||0)+1;
+      try{localStorage.setItem('hydration_log',JSON.stringify(hyd));}catch(e2){}
+      saveCloud('hydration_log',hyd);
+      showToast('💧 +1 cup logged to Hydration');
+      renderHydration();
+    }
+  }catch(e2){}
   if(Object.keys(tasks).filter(t=>checks[`${day}|${t}`]).length===Object.keys(tasks).length)showToast("🎉 All done today!");
 }
 
@@ -2811,8 +2836,31 @@ function completeSet(exIdx, si){
     const allDone = ex.sets.every(s=>s.done);
     if(allDone) showToast('✓ '+ex.name+' — exercise complete!');
     startRestTimer(120);
-    // Start per-exercise rest timer display
     startExRestTimer(ex.id, 120);
+    // Push notification for rest complete
+    scheduleRestNotification(120, ex.name);
+  }
+}
+
+function scheduleRestNotification(secs, exName){
+  if(!('Notification' in window)) return;
+  if(Notification.permission === 'denied') return;
+  const doNotify = ()=>{
+    try{
+      new Notification('Rest complete ✓', {
+        body: exName+' rest done — next set ready',
+        icon: '/favicon.ico',
+        tag: 'rest-timer',
+        silent: false
+      });
+    }catch(e){}
+  };
+  if(Notification.permission === 'granted'){
+    setTimeout(doNotify, secs*1000);
+  } else {
+    Notification.requestPermission().then(p=>{
+      if(p==='granted') setTimeout(doNotify, secs*1000);
+    });
   }
 }
 
@@ -2864,6 +2912,76 @@ function skipRest(){
   clearInterval(restInterval);
   const timerEl = document.getElementById('rest-timer');
   if(timerEl) timerEl.style.display='none';
+}
+
+function saveAsPreset(){
+  if(!activeWorkout || activeWorkout.exercises.length===0){ showToast('No exercises to save'); return; }
+  const name = prompt('Name this preset:');
+  if(!name || !name.trim()) return;
+  const key = 'custom_'+Date.now();
+  let customPresets = {};
+  try{ customPresets = JSON.parse(localStorage.getItem('custom_presets')||'{}'); }catch(e){}
+  customPresets[key] = {
+    name: name.trim(),
+    exercises: activeWorkout.exercises.map(ex=>({
+      name: ex.name,
+      target: ex.target,
+      type: ex.type||'strength'
+    }))
+  };
+  try{ localStorage.setItem('custom_presets', JSON.stringify(customPresets)); }catch(e){}
+  saveCloud('custom_presets', customPresets);
+  showToast('💾 Saved as "'+name.trim()+'"');
+  renderCustomPresets();
+}
+
+function renderCustomPresets(){
+  const wrap = document.getElementById('custom-presets-wrap');
+  if(!wrap) return;
+  let customPresets = {};
+  try{ customPresets = JSON.parse(localStorage.getItem('custom_presets')||'{}'); }catch(e){}
+  const keys = Object.keys(customPresets);
+  if(!keys.length){ wrap.innerHTML=''; return; }
+  wrap.innerHTML = '<div class="preset-sub" style="margin-top:12px;">My Saved Workouts</div>'+
+    keys.map(k=>`
+      <div class="preset-card" style="position:relative;" onclick="startCustomPreset('${k}')">
+        <div class="preset-card-icon">⭐</div>
+        <div class="preset-card-name">${customPresets[k].name}</div>
+        <div class="preset-card-count">${customPresets[k].exercises.length} exercises</div>
+        <button onclick="event.stopPropagation();deleteCustomPreset('${k}')" style="position:absolute;top:6px;right:6px;border:none;background:transparent;color:var(--muted);font-size:14px;cursor:pointer;">×</button>
+      </div>`).join('');
+}
+
+function startCustomPreset(key){
+  let customPresets = {};
+  try{ customPresets = JSON.parse(localStorage.getItem('custom_presets')||'{}'); }catch(e){}
+  const preset = customPresets[key];
+  if(!preset) return;
+  document.getElementById('preset-modal').classList.remove('open');
+  if(!activeWorkout){
+    activeWorkout = {exercises:[], startTime:Date.now()};
+    document.getElementById('active-workout').style.display='block';
+    startWorkoutTimer();
+  }
+  preset.exercises.forEach(ex=>{
+    const exId = 'ex-'+Date.now()+Math.random();
+    const prev = getPrevPerformance(ex.name);
+    const sets = prev ? prev.map(s=>({weight:s.weight||'',reps:s.reps||'',effort:0,done:false}))
+      : [{weight:'',reps:'',effort:0,done:false},{weight:'',reps:'',effort:0,done:false},{weight:'',reps:'',effort:0,done:false}];
+    activeWorkout.exercises.push({id:exId, name:ex.name, target:ex.target, type:ex.type||'strength', sets, notes:''});
+  });
+  renderExercises();
+  showToast('⭐ '+preset.name+' loaded!');
+}
+
+function deleteCustomPreset(key){
+  let customPresets = {};
+  try{ customPresets = JSON.parse(localStorage.getItem('custom_presets')||'{}'); }catch(e){}
+  delete customPresets[key];
+  try{ localStorage.setItem('custom_presets', JSON.stringify(customPresets)); }catch(e){}
+  saveCloud('custom_presets', customPresets);
+  renderCustomPresets();
+  showToast('Preset deleted');
 }
 
 function finishWorkout(){
@@ -3098,22 +3216,27 @@ function openFoodEdit(meal, idx){
 
 function saveFoodEdit(){
   if(_foodEditMeal === null || _foodEditIdx === null) return;
-  const log = getTodayLog();
-  const f = (log[_foodEditMeal]||[])[_foodEditIdx];
-  if(!f) return;
+  const today = new Date().toISOString().split('T')[0];
+  // Ensure the food item is updated directly in nutritionLog
+  if(!nutritionLog[today]) nutritionLog[today] = {breakfast:[],lunch:[],dinner:[],snacks:[]};
+  const foods = nutritionLog[today][_foodEditMeal]||[];
+  if(_foodEditIdx >= foods.length) return;
   const qty = parseFloat(document.getElementById('food-edit-qty').value)||1;
   const unit = document.getElementById('food-edit-unit').value||'serving';
   const cal = parseFloat(document.getElementById('food-edit-cal').value)||0;
   const pro = parseFloat(document.getElementById('food-edit-pro').value)||0;
   const carb = parseFloat(document.getElementById('food-edit-carb').value)||0;
   const fat = parseFloat(document.getElementById('food-edit-fat').value)||0;
-  f.qty = qty;
-  f.unit = unit;
-  f.serving = `${qty} ${unit}`;
-  f.calories = cal;
-  f.protein = pro;
-  f.carbs = carb;
-  f.fat = fat;
+  // Update the item in place
+  nutritionLog[today][_foodEditMeal][_foodEditIdx] = {
+    ...foods[_foodEditIdx],
+    qty, unit,
+    serving: `${qty} ${unit}`,
+    calories: cal,
+    protein: pro,
+    carbs: carb,
+    fat: fat
+  };
   saveNutrition();
   renderNutrition();
   document.getElementById('food-edit-modal').style.display='none';
@@ -3903,7 +4026,7 @@ async function submitAILog(){
 
   try{
     const systemPrompt = aiLogMode === 'meal'
-      ? `You are a nutrition expert. The user will describe a meal in plain English. Extract each food item and estimate calories, protein, carbs, and fat. Return ONLY a JSON array, no markdown, no explanation. Format: [{"name":"Food name","calories":200,"protein":10,"carbs":25,"fat":5,"serving":"1 serving"}]`
+      ? `You are a nutrition expert. The user will describe a meal or food items in plain English, including restaurant items, commercial foods, bakery items, and branded products. Extract each food item and estimate calories, protein, carbs, and fat based on standard nutritional data for that specific item. For commercial/restaurant items (e.g. Tatte Bakery almond croissant, Starbucks latte), use realistic estimates for that brand. Return ONLY a JSON array, no markdown, no explanation. Format: [{"name":"Food name","calories":200,"protein":10,"carbs":25,"fat":5,"serving":"1 serving"}]`
       : `You are a fitness expert. The user will describe a workout in plain English. Extract each exercise with sets, reps, and weight. Return ONLY a JSON array, no markdown. Format: [{"name":"Exercise name","sets":[{"weight":185,"reps":8},{"weight":185,"reps":8}],"target":"3x8","type":"strength"}]`;
 
     const res = await fetch(SERVER+'/ai-log', {
