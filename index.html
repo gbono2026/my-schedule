@@ -636,7 +636,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260424120000">
+<meta name="app-version" content="20260424130000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -1951,13 +1951,18 @@ function switchView(v){
   document.querySelectorAll(".nav-item").forEach(el=>el.classList.remove("active"));
   document.getElementById("view-"+v).classList.add("active");
   document.getElementById("nav-"+v).classList.add("active");
-  // Close any open modals
-  const overlays = ['admin-overlay','capture-overlay','food-modal','ai-modal','barcode-modal',
-    'recipe-modal','preset-modal','ex-picker','copy-meal-modal','thermal-modal',
-    'ex-history-modal','grat-modal','therapy-modal','food-edit-modal'];
-  overlays.forEach(id=>{
+  // Close CSS-class-based modals (classList only — never inline style, which breaks reopening)
+  ['admin-overlay','capture-overlay','food-modal','ai-modal','barcode-modal',
+   'recipe-modal','preset-modal','ex-picker','copy-meal-modal','thermal-modal',
+   'ex-history-modal'].forEach(id=>{
     const el=document.getElementById(id);
-    if(el){ el.classList.remove('open'); el.style.display='none'; }
+    if(el) el.classList.remove('open');
+  });
+  // Close inline-style modals
+  ['grat-modal','therapy-modal','food-edit-modal',
+   'thermal-history-modal','therapy-history-modal'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display='none';
   });
   if(v==="health"){renderHealthView();loadHealthData();}
   if(v==="progress") renderSessions();
