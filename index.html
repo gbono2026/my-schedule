@@ -618,7 +618,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .quick-log-name{font-size:11px;font-weight:600;color:var(--text);max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .quick-log-cal{font-size:9px;color:var(--muted);margin-top:2px;}
 /* Admin */
-.admin-btn{position:fixed;bottom:88px;right:12px;height:36px;padding:0 14px;border-radius:20px;background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(61,220,132,0.4);color:var(--green);font-size:11px;font-weight:700;letter-spacing:0.5px;cursor:pointer;display:flex;align-items:center;gap:6px;z-index:200;box-shadow:0 4px 16px rgba(61,220,132,0.15),0 2px 8px rgba(0,0,0,0.4);white-space:nowrap;font-family:inherit;}
+.admin-btn{position:fixed;bottom:152px;right:12px;height:36px;padding:0 14px;border-radius:20px;background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(61,220,132,0.4);color:var(--green);font-size:11px;font-weight:700;letter-spacing:0.5px;cursor:pointer;display:flex;align-items:center;gap:6px;z-index:200;box-shadow:0 4px 16px rgba(61,220,132,0.15),0 2px 8px rgba(0,0,0,0.4);white-space:nowrap;font-family:inherit;}
 .admin-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-end;justify-content:center;padding:0;}
 .admin-overlay.open{display:flex;}
 .admin-box{background:var(--surface);border:1px solid var(--border2);border-radius:24px 24px 0 0;padding:24px 24px max(24px,env(safe-area-inset-bottom));width:100%;max-width:500px;}
@@ -636,7 +636,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260423210000">
+<meta name="app-version" content="20260424090000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -838,7 +838,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
           <div style="font-size:10px;color:var(--muted);">sessions this month</div>
         </div>
       </div>
-      <button onclick="openTherapyLog()" style="width:100%;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:10px;">+ Log Session</button>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <button onclick="openTherapyLog()" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">+ Log Session</button>
+        <button onclick="openTherapyHistory()" style="padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">📋 History</button>
+      </div>
       <div id="therapy-recent-list" style="font-size:12px;color:var(--muted);"></div>
     </div>
 
@@ -983,6 +986,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <div class="thermal-btns">
         <button class="thermal-btn" onclick="startThermal('sauna')">🌡️ Start Sauna</button>
         <button class="thermal-btn cold" onclick="startThermal('cold')">❄️ Cold Plunge</button>
+        <button onclick="openThermalHistory()" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;">📊 View Weekly Trend</button>
       </div>
     </div>
 
@@ -1017,6 +1021,21 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <button class="hydration-btn" onclick="logWater(20)">+20 oz<br><span style="font-size:9px;opacity:0.7;">large</span></button>
         <button class="hydration-btn custom" onclick="logWaterCustom()">Custom</button>
         <button class="hydration-btn custom" onclick="resetHydration()" style="color:var(--red);border-color:rgba(248,113,113,0.3);">Reset</button>
+      </div>
+      <button onclick="toggleHydrationHistory()" style="width:100%;padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;">📊 Weekly History</button>
+      <div id="hydration-history-panel" style="display:none;margin-top:10px;"></div>
+      <div style="display:none">
+      </div>
+      <!-- Weekly hydration trend -->
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;">This Week</div>
+          <div style="font-size:12px;color:var(--blue);font-weight:700;"><span id="hydration-week-oz">0</span> oz total</div>
+        </div>
+        <div style="height:4px;background:var(--border);border-radius:2px;margin-bottom:10px;">
+          <div id="hydration-week-bar" style="height:100%;background:var(--blue);border-radius:2px;width:0%;transition:width 0.3s;"></div>
+        </div>
+        <div id="hydration-day-bars" style="display:flex;gap:4px;align-items:flex-end;height:50px;"></div>
       </div>
     </div>
 
@@ -1531,7 +1550,33 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <input type="number" id="food-edit-fat" min="0" style="width:100%;background:transparent;border:none;color:var(--red);font-size:16px;font-weight:700;font-family:inherit;outline:none;" />
       </div>
     </div>
-    <button onclick="saveFoodEdit()" style="width:100%;padding:15px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--gold),#b8860b);color:#000;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;">Save Changes ✓</button>
+    <div style="display:flex;gap:8px;">
+      <button onclick="saveFoodEdit()" style="flex:1;padding:15px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--gold),#b8860b);color:#000;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;">Save Changes ✓</button>
+      <button onclick="saveFoodEditToFavorites()" style="padding:15px 16px;border-radius:14px;border:1px solid var(--gold-border);background:var(--gold-dim);color:var(--gold);font-size:15px;cursor:pointer;" title="Save to Favorites">⭐</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- THERMAL HISTORY MODAL -->
+<div id="thermal-history-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:700;align-items:flex-end;justify-content:center;">
+  <div style="background:var(--surface2);border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:24px 20px 36px;border-top:1px solid var(--border2);max-height:85vh;overflow-y:auto;">
+    <div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 18px;"></div>
+    <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:4px;">🌡️ Thermal History</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Weekly sauna & cold plunge trend</div>
+    <div id="thermal-history-content"></div>
+    <button onclick="document.getElementById('thermal-history-modal').style.display='none'" style="width:100%;margin-top:16px;padding:12px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;font-family:inherit;cursor:pointer;">Close</button>
+  </div>
+</div>
+
+<!-- THERAPY HISTORY MODAL -->
+<div id="therapy-history-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:700;align-items:flex-end;justify-content:center;">
+  <div style="background:var(--surface2);border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:24px 20px 36px;border-top:1px solid var(--border2);max-height:85vh;overflow-y:auto;">
+    <div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 18px;"></div>
+    <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:4px;">🧠 Therapy History</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">All logged sessions</div>
+    <div id="therapy-history-content"></div>
+    <button onclick="document.getElementById('therapy-history-modal').style.display='none'" style="width:100%;margin-top:16px;padding:12px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;font-family:inherit;cursor:pointer;">Close</button>
   </div>
 </div>
 
@@ -2172,13 +2217,11 @@ function toggle(key){
     const keyDay = parts[0], keyTime = parts[1];
     const keyTask = (SCHED[keyDay]?.[keyTime]||'').toLowerCase();
     if(on && (keyTask.includes('cup of water')||keyTask.includes('hydration check'))){
-      const today=new Date().toISOString().split('T')[0];
-      let hyd={};try{hyd=JSON.parse(localStorage.getItem('hydration_log')||'{}');}catch(e2){}
-      // Use the main hydrationLog object so oz display updates
+      // Add 8oz to hydration log
       const todayHydKey = new Date().toISOString().split('T')[0];
       if(!hydrationLog[todayHydKey]) hydrationLog[todayHydKey]={oz:0,entries:[]};
       hydrationLog[todayHydKey].oz = (hydrationLog[todayHydKey].oz||0) + 8;
-      hydrationLog[todayHydKey].entries = hydrationLog[todayHydKey].entries||[];
+      if(!hydrationLog[todayHydKey].entries) hydrationLog[todayHydKey].entries=[];
       hydrationLog[todayHydKey].entries.push({oz:8, time:new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})});
       saveHydration();
       showToast('💧 +8 oz logged to Hydration');
@@ -2247,8 +2290,8 @@ function checkMonthlyReminder(){
   }
 }
 
-function renderSessions(){
-  loadPhotoSessions();
+async function renderSessions(){
+  await loadPhotoSessions();
   checkMonthlyReminder();
   const list=document.getElementById("sessions-list");
   if(photoSessions.length===0){
@@ -3275,6 +3318,7 @@ function renderMealFoods(meal, foods){
     <div class="meal-food-item" onclick="openFoodEdit('${meal}',${i})" style="cursor:pointer;">
       <div class="mfi-name">${f.name}<br><span style="font-size:10px;color:var(--muted)">${f.serving||''} · tap to edit</span></div>
       <div class="mfi-cals">${Math.round(f.calories||0)} kcal</div>
+      <button onclick="event.stopPropagation();saveFoodToFavorites('${meal}',${i})" style="background:transparent;border:none;font-size:14px;cursor:pointer;padding:4px;" title="Save to favorites">⭐</button>
       <button class="mfi-del" onclick="event.stopPropagation();removeFood('${meal}',${i})">×</button>
     </div>`).join('');
 }
@@ -3326,6 +3370,36 @@ function recalcFoodMacros(){
   document.getElementById('food-edit-pro').value  = Math.round(_foodBaseProtein  * qty);
   document.getElementById('food-edit-carb').value = Math.round(_foodBaseCarbs    * qty);
   document.getElementById('food-edit-fat').value  = Math.round(_foodBaseFat      * qty);
+}
+
+function saveFoodEditToFavorites(){
+  if(_foodEditMeal === null || _foodEditIdx === null) return;
+  const today = new Date().toISOString().split('T')[0];
+  const foods = nutritionLog[today]?.[_foodEditMeal]||[];
+  const f = foods[_foodEditIdx];
+  if(!f) return;
+  // Use current edited values
+  const qty = parseFloat(document.getElementById('food-edit-qty').value)||1;
+  const unit = document.getElementById('food-edit-unit').value||'serving';
+  const cal = parseFloat(document.getElementById('food-edit-cal').value)||0;
+  const pro = parseFloat(document.getElementById('food-edit-pro').value)||0;
+  const carb = parseFloat(document.getElementById('food-edit-carb').value)||0;
+  const fat = parseFloat(document.getElementById('food-edit-fat').value)||0;
+  const favFood = {
+    name: f.name,
+    serving: `${qty} ${unit}`,
+    qty, unit,
+    calories: cal,
+    protein: pro,
+    carbs: carb,
+    fat: fat,
+    source: 'edited'
+  };
+  const exists = myFoods.some(mf => mf.name.toLowerCase()===favFood.name.toLowerCase());
+  if(exists){ showToast('Already in favorites'); return; }
+  myFoods.unshift(favFood);
+  saveMyFoods();
+  showToast('⭐ Saved to My Foods!');
 }
 
 function saveFoodEdit(){
@@ -3664,7 +3738,7 @@ async function lookupBarcodeCode(code){
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        system: 'You are a nutrition database. Look up the food product with barcode/UPC code provided. Return ONLY a JSON object (no markdown) with: {"name":"Product Name","brand":"Brand","serving":"serving size","calories":200,"protein":10,"carbs":25,"fat":5}. If unknown, return {"error":"not found"}.',
+        system: 'You are a comprehensive nutrition database with knowledge of thousands of food products. Look up the food product with the exact barcode/UPC code provided. For known products like OWYN protein shakes, Quest bars, Fairlife, etc, return exact nutrition info. Return ONLY a JSON object (no markdown, no explanation) with: {"name":"Full Product Name","brand":"Brand Name","serving":"serving size e.g. 1 bottle (355ml)","calories":200,"protein":10,"carbs":25,"fat":5}. If you cannot identify the exact product, make your best estimate based on similar products and still return valid JSON.',
         input: `Barcode: ${code}`
       })
     });
@@ -4372,6 +4446,40 @@ function cancelThermal(){
   document.getElementById('thermal-modal').classList.remove('open');
 }
 
+function toggleThermalHistory(){
+  const panel = document.getElementById('thermal-history-panel');
+  if(!panel) return;
+  if(panel.style.display==='none'){
+    panel.style.display='block';
+    renderThermalHistory();
+  } else {
+    panel.style.display='none';
+  }
+}
+
+function renderThermalHistory(){
+  const panel = document.getElementById('thermal-history-panel');
+  if(!panel) return;
+  // Show last 14 days
+  const rows = [];
+  for(let i=0;i<14;i++){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const key=d.toISOString().split('T')[0];
+    const dayLog=thermalLog[key]||[];
+    if(dayLog.length){
+      const saunaMin=dayLog.filter(s=>s.type==='sauna').reduce((s,e)=>s+e.minutes,0);
+      const coldMin=dayLog.filter(s=>s.type==='cold').reduce((s,e)=>s+e.minutes,0);
+      const label=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      rows.push(`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--border);font-size:12px;">
+        <span style="color:var(--muted2);">${label}</span>
+        ${saunaMin?`<span style="color:var(--gold);">🪵 ${saunaMin} min</span>`:''}
+        ${coldMin?`<span style="color:var(--teal);">❄️ ${coldMin} min</span>`:''}
+      </div>`);
+    }
+  }
+  panel.innerHTML = rows.length ? rows.join('') : '<div style="font-size:12px;color:var(--muted);padding:8px 0;">No thermal sessions logged yet</div>';
+}
+
 function renderThermal(){
   // Calculate weekly totals
   const now = new Date();
@@ -4456,6 +4564,41 @@ function resetHydration(){
   saveHydration();
   renderHydration();
 }
+function toggleHydrationHistory(){
+  const panel = document.getElementById('hydration-history-panel');
+  if(!panel) return;
+  if(panel.style.display==='none'){
+    panel.style.display='block';
+    renderHydrationHistory();
+  } else {
+    panel.style.display='none';
+  }
+}
+
+function renderHydrationHistory(){
+  const panel = document.getElementById('hydration-history-panel');
+  if(!panel) return;
+  const rows = [];
+  for(let i=0;i<7;i++){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const key=d.toISOString().split('T')[0];
+    const dayData=hydrationLog[key]||{oz:0};
+    const oz=dayData.oz||0;
+    const pct=Math.min(oz/hydrationGoalOz*100,100);
+    const label=i===0?'Today':d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    rows.push(`<div style="padding:6px 0;border-top:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">
+        <span style="color:var(--muted2);">${label}</span>
+        <span style="color:${oz>=hydrationGoalOz?'var(--green)':'var(--text)'};">${oz} oz</span>
+      </div>
+      <div style="height:4px;background:var(--border2);border-radius:2px;">
+        <div style="height:100%;width:${pct}%;background:var(--blue);border-radius:2px;transition:width 0.3s;"></div>
+      </div>
+    </div>`);
+  }
+  panel.innerHTML = rows.join('');
+}
+
 function renderHydration(){
   const today = getTodayHydration();
   const total = today.oz||0;
@@ -4464,6 +4607,32 @@ function renderHydration(){
   const bar = document.getElementById('hydration-bar');
   if(el) el.textContent = total;
   if(bar) bar.style.width = pct+'%';
+  // Weekly total
+  let weekOz = 0;
+  const weekDays = [];
+  for(let i=6;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const k=d.toISOString().split('T')[0];
+    const dayOz = hydrationLog[k]?.oz||0;
+    weekOz += dayOz;
+    weekDays.push({date:k, oz:dayOz, label:['S','M','T','W','T','F','S'][d.getDay()]});
+  }
+  const wkEl = document.getElementById('hydration-week-oz');
+  const wkBar = document.getElementById('hydration-week-bar');
+  if(wkEl) wkEl.textContent = Math.round(weekOz);
+  if(wkBar) wkBar.style.width = Math.min(weekOz/(hydrationGoalOz*7)*100,100)+'%';
+  // Day bars
+  const dayBars = document.getElementById('hydration-day-bars');
+  if(dayBars){
+    const maxOz = Math.max(...weekDays.map(d=>d.oz), hydrationGoalOz);
+    dayBars.innerHTML = weekDays.map(d=>`
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;">
+        <div style="width:100%;height:40px;background:var(--border);border-radius:4px;position:relative;overflow:hidden;">
+          <div style="position:absolute;bottom:0;width:100%;background:var(--blue);border-radius:4px;height:${Math.min(d.oz/maxOz*100,100)}%;transition:height 0.3s;"></div>
+        </div>
+        <div style="font-size:9px;color:var(--muted);">${d.label}</div>
+      </div>`).join('');
+  }
 }
 
 // -- Voice Input for AI Logger --
@@ -5042,6 +5211,17 @@ async function saveTherapySession(){
   renderTherapySessions();
   showToast('🧠 Session logged');
 }
+function toggleTherapyHistory(){
+  const list = document.getElementById('therapy-recent-list');
+  if(!list) return;
+  if(list.style.display==='none'){
+    list.style.display='block';
+    renderTherapySessions();
+  } else {
+    list.style.display='none';
+  }
+}
+
 function renderTherapySessions(){
   const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
   const thisMonth = therapyLog.filter(s=>new Date(s.date)>=monthStart);
@@ -5049,8 +5229,14 @@ function renderTherapySessions(){
   if(countEl) countEl.textContent = thisMonth.length;
   const list = document.getElementById('therapy-recent-list');
   if(!list) return;
-  const recent = [...therapyLog].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,4);
-  if(!recent.length){ list.innerHTML='<div style="padding:8px 0;">No sessions logged yet</div>'; return; }
+  // Also update modal if open
+  const modalWrap = document.getElementById('therapy-hist-wrap');
+  const recent = [...therapyLog].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,12);
+  if(!recent.length){
+    if(list) list.innerHTML='';
+    if(modalWrap) modalWrap.innerHTML='<div style="padding:8px 0;color:var(--muted);">No sessions logged yet</div>';
+    return;
+  }
   const typeLabels = {individual:'Individual',ketamine:'Ketamine Assisted',group:'Group',couples:'Couples',other:'Other'};
   list.innerHTML = recent.map(s=>`
     <div style="padding:8px 0;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
@@ -5060,6 +5246,88 @@ function renderTherapySessions(){
         ${s.notes?`<div style="font-size:10px;color:var(--muted);margin-top:2px;">${s.notes.slice(0,60)}${s.notes.length>60?'...':''}</div>`:''}
       </div>
     </div>`).join('');
+}
+
+
+// ── Thermal History Modal ──
+function openThermalHistory(){
+  const modal = document.getElementById('thermal-history-modal');
+  if(!modal) return;
+  modal.style.display='flex';
+  const wrap = document.getElementById('thermal-history-content');
+  if(!wrap) return;
+  // Build 4-week trend
+  let html = '';
+  for(let w=3;w>=0;w--){
+    let saunaMin=0, coldMin=0, sessions=0;
+    const weekLabel = w===0?'This Week':`${w} Week${w>1?'s':''} Ago`;
+    const days=[];
+    for(let d=6;d>=0;d--){
+      const date=new Date();
+      date.setDate(date.getDate() - (w*7+d));
+      const k=date.toISOString().split('T')[0];
+      const dayLog=thermalLog[k]||[];
+      dayLog.forEach(s=>{
+        if(s.type==='sauna') saunaMin+=s.minutes;
+        else coldMin+=s.minutes;
+        sessions++;
+      });
+    }
+    html+=`<div style="padding:12px;background:var(--surface3);border-radius:10px;margin-bottom:8px;">
+      <div style="font-size:12px;font-weight:700;color:var(--muted2);margin-bottom:6px;">${weekLabel}</div>
+      <div style="display:flex;gap:16px;">
+        <div><div style="font-size:18px;font-weight:700;color:var(--orange)">${saunaMin}</div><div style="font-size:10px;color:var(--muted);">sauna min</div></div>
+        <div><div style="font-size:18px;font-weight:700;color:var(--blue)">${coldMin}</div><div style="font-size:10px;color:var(--muted);">cold min</div></div>
+        <div><div style="font-size:18px;font-weight:700;color:var(--text)">${sessions}</div><div style="font-size:10px;color:var(--muted);">sessions</div></div>
+      </div>
+    </div>`;
+  }
+  wrap.innerHTML = html || '<div style="color:var(--muted);padding:12px 0;">No thermal sessions logged yet</div>';
+}
+
+// ── Therapy History Modal ──
+function openTherapyHistory(){
+  const modal = document.getElementById('therapy-history-modal');
+  if(!modal) return;
+  modal.style.display='flex';
+  const wrap = document.getElementById('therapy-history-content');
+  if(!wrap) return;
+  const typeLabels={individual:'Individual',ketamine:'Ketamine Assisted',group:'Group',couples:'Couples',other:'Other'};
+  const sorted=[...therapyLog].sort((a,b)=>b.date.localeCompare(a.date));
+  if(!sorted.length){wrap.innerHTML='<div style="color:var(--muted);padding:12px 0;">No sessions logged yet</div>';return;}
+  wrap.innerHTML=sorted.map(s=>`
+    <div style="padding:12px;background:var(--surface3);border-radius:10px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">${typeLabels[s.type]||s.type}</div>
+        <div style="font-size:11px;color:var(--muted);">${s.date}</div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);">${s.duration} min${s.mood?' · Mood '+s.mood+'/10':''}</div>
+      ${s.notes?`<div style="font-size:11px;color:var(--muted2);margin-top:4px;font-style:italic;">${s.notes}</div>`:''}
+    </div>`).join('');
+}
+
+// ── Save logged food to favorites ──
+function saveFoodToFavorites(meal, idx){
+  const today = new Date().toISOString().split('T')[0];
+  const foods = nutritionLog[today]?.[meal]||[];
+  const f = foods[idx];
+  if(!f){ showToast('Food not found'); return; }
+  const exists = myFoods.some(x=>x.name.toLowerCase()===f.name.toLowerCase());
+  if(exists){ showToast('Already in saved foods'); return; }
+  // Save with current adjusted macros and serving
+  myFoods.unshift({
+    name: f.name,
+    calories: f.calories,
+    protein: f.protein,
+    carbs: f.carbs,
+    fat: f.fat,
+    serving: f.serving||'1 serving',
+    qty: f.qty||1,
+    unit: f.unit||'serving',
+    saved: new Date().toISOString()
+  });
+  saveMyFoods();
+  showToast('⭐ Saved to My Foods!');
 }
 
 // ── Scroll to top button ──
