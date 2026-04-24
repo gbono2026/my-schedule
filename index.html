@@ -636,7 +636,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260424090000">
+<meta name="app-version" content="20260424120000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -1855,7 +1855,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 </div>
 
 <div class="toast" id="toast"></div>
-<button id="scroll-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" style="display:none;position:fixed;bottom:148px;right:16px;width:42px;height:42px;border-radius:50%;border:2px solid var(--gold-border);background:var(--gold-dim);color:var(--gold);font-size:18px;font-weight:700;cursor:pointer;z-index:500;box-shadow:0 4px 14px rgba(184,150,90,0.3);align-items:center;justify-content:center;">↑</button>
+<button id="scroll-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" style="display:none;position:fixed;bottom:200px;left:16px;width:40px;height:40px;border-radius:50%;border:2px solid var(--gold-border);background:var(--gold-dim);color:var(--gold);font-size:16px;font-weight:700;cursor:pointer;z-index:500;box-shadow:0 4px 14px rgba(184,150,90,0.3);align-items:center;justify-content:center;">↑</button>
 
 <script>
 const SERVER="https://my-schedule-server-production.up.railway.app";
@@ -1946,10 +1946,19 @@ function saveBio(){try{localStorage.setItem("bio_data",JSON.stringify(bioData));
 let currentView="health";
 function switchView(v){
   currentView=v;
+  // Close ALL overlays/modals when switching tabs
   document.querySelectorAll(".view").forEach(el=>el.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach(el=>el.classList.remove("active"));
   document.getElementById("view-"+v).classList.add("active");
   document.getElementById("nav-"+v).classList.add("active");
+  // Close any open modals
+  const overlays = ['admin-overlay','capture-overlay','food-modal','ai-modal','barcode-modal',
+    'recipe-modal','preset-modal','ex-picker','copy-meal-modal','thermal-modal',
+    'ex-history-modal','grat-modal','therapy-modal','food-edit-modal'];
+  overlays.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.classList.remove('open'); el.style.display='none'; }
+  });
   if(v==="health"){renderHealthView();loadHealthData();}
   if(v==="progress") renderSessions();
 }
@@ -2219,13 +2228,18 @@ function toggle(key){
     if(on && (keyTask.includes('cup of water')||keyTask.includes('hydration check'))){
       // Add 8oz to hydration log
       const todayHydKey = new Date().toISOString().split('T')[0];
+      // Ensure hydrationLog is initialized (may not be if health tab hasn't loaded)
+      if(typeof hydrationLog === 'undefined' || hydrationLog === null) window.hydrationLog = {};
       if(!hydrationLog[todayHydKey]) hydrationLog[todayHydKey]={oz:0,entries:[]};
       hydrationLog[todayHydKey].oz = (hydrationLog[todayHydKey].oz||0) + 8;
       if(!hydrationLog[todayHydKey].entries) hydrationLog[todayHydKey].entries=[];
       hydrationLog[todayHydKey].entries.push({oz:8, time:new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})});
+      // Also persist to localStorage immediately so health tab picks it up
+      try{ localStorage.setItem('hydration_log', JSON.stringify(hydrationLog)); }catch(e2){}
       saveHydration();
       showToast('💧 +8 oz logged to Hydration');
-      renderHydration();
+      // Refresh health tab hydration if visible
+      if(typeof renderHydration === 'function') renderHydration();
     }
   }catch(e2){}
   if(Object.keys(tasks).filter(t=>checks[`${day}|${t}`]).length===Object.keys(tasks).length)showToast("🎉 All done today!");
