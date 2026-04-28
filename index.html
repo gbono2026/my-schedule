@@ -636,7 +636,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260427130000">
+<meta name="app-version" content="20260428090000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -983,6 +983,24 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       </div>
       <!-- Today's sessions -->
       <div id="thermal-today-list" style="margin-bottom:12px;"></div>
+      <!-- Science-based weekly targets -->
+      <div style="margin:0 0 14px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+          <span style="font-size:11px;color:var(--gold);">🌡️ Sauna target: 57 min/week</span>
+          <span id="thermal-sauna-pct" style="font-size:11px;color:var(--muted);">0%</span>
+        </div>
+        <div style="height:4px;background:var(--border2);border-radius:2px;margin-bottom:8px;overflow:hidden;">
+          <div id="thermal-sauna-bar" style="height:100%;width:0%;background:var(--gold);border-radius:2px;transition:width 0.6s;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+          <span style="font-size:11px;color:var(--teal);">❄️ Cold target: 11 min/week</span>
+          <span id="thermal-cold-pct" style="font-size:11px;color:var(--muted);">0%</span>
+        </div>
+        <div style="height:4px;background:var(--border2);border-radius:2px;margin-bottom:8px;overflow:hidden;">
+          <div id="thermal-cold-bar" style="height:100%;width:0%;background:var(--teal);border-radius:2px;transition:width 0.6s;"></div>
+        </div>
+        <div id="thermal-protocol-tip" style="font-size:11px;color:var(--muted);padding:8px 10px;background:var(--surface2);border-radius:8px;line-height:1.5;font-style:italic;display:none;"></div>
+      </div>
       <div class="thermal-btns">
         <button class="thermal-btn" onclick="startThermal('sauna')">🌡️ Start Sauna</button>
         <button class="thermal-btn cold" onclick="startThermal('cold')">❄️ Cold Plunge</button>
@@ -1175,7 +1193,32 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     </div>
 
     <!-- DAILY SCORES -->
-            <div class="dash-section"><div class="dash-section-label">Function Health Labs</div><div class="dash-section-line"></div></div>
+        
+    <!-- SOCIAL CONNECTION -->
+    <div class="dash-section"><div class="dash-section-label" style="color:#a78bfa;">Social Connection</div><div class="dash-section-line" style="background:rgba(167,139,250,0.3);"></div></div>
+    <div class="health-card" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div>
+          <div style="font-size:14px;font-weight:700;">🤝 Meaningful Connections</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">The #1 longevity variable</div>
+        </div>
+        <div style="text-align:center;">
+          <div id="social-today-count" style="font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:#a78bfa;line-height:1;">0</div>
+          <div style="font-size:10px;color:var(--muted);">today</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+        <button onclick="logSocial(1)" class="hydration-btn" style="border-color:rgba(167,139,250,0.4);color:#a78bfa;">+1 interaction</button>
+        <button onclick="logSocial(2)" class="hydration-btn" style="border-color:rgba(167,139,250,0.4);color:#a78bfa;">+2 interactions</button>
+        <button onclick="logSocialCustom()" class="hydration-btn" style="background:var(--surface3);">Custom</button>
+      </div>
+      <!-- Weekly bar chart -->
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">This week</div>
+      <div id="social-week-chart" style="display:flex;gap:4px;align-items:flex-end;height:40px;margin-bottom:6px;"></div>
+      <div style="font-size:11px;color:var(--muted);text-align:center;" id="social-week-total">0 meaningful interactions this week</div>
+    </div>
+
+    <div class="dash-section"><div class="dash-section-label">Function Health Labs</div><div class="dash-section-line"></div></div>
 
     <div id="biomarker-categories"></div>
 
@@ -1191,6 +1234,33 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <div class="category-header-label" style="color:var(--gold);">✨ SOUL</div>
       <div class="category-header-line" style="background:linear-gradient(90deg,rgba(184,150,90,0.5),transparent);"></div>
     </div>
+
+    <!-- MERIDIAN SCORE -->
+    <div class="dash-section"><div class="dash-section-label" style="color:var(--gold);">Meridian Score</div><div class="dash-section-line" style="background:rgba(184,150,90,0.3);"></div></div>
+    <div class="health-card" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div>
+          <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700;">⚡ Your Meridian Score</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Biological readiness index</div>
+        </div>
+        <div style="text-align:center;">
+          <div id="meridian-score-val" style="font-family:'Playfair Display',serif;font-size:42px;font-weight:700;color:var(--gold);line-height:1;">—</div>
+          <div style="font-size:10px;color:var(--muted);">out of 100</div>
+        </div>
+      </div>
+      <!-- Score bar -->
+      <div style="height:6px;background:var(--border2);border-radius:3px;margin-bottom:10px;overflow:hidden;">
+        <div id="meridian-score-bar" style="height:100%;width:0%;border-radius:3px;background:linear-gradient(90deg,var(--red),var(--gold),var(--green));transition:width 1s ease;"></div>
+      </div>
+      <!-- Score breakdown -->
+      <div id="meridian-score-breakdown" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;"></div>
+      <!-- Trend sparkline -->
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">7-day trend</div>
+      <canvas id="meridian-score-sparkline" height="32" style="width:100%;display:block;"></canvas>
+      <!-- Label -->
+      <div id="meridian-score-label" style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;"></div>
+    </div>
+
     <div class="dash-section"><div class="dash-section-label">Daily Check-In</div><div class="dash-section-line"></div></div>
     <div class="streak-card" onclick="openGratitudeLog()" style="cursor:pointer;">
       <div class="streak-flame">🔥</div>
@@ -2017,6 +2087,8 @@ function renderHealthView(){
   safe(renderBiomarkers, 'biomarkers');
   safe(loadScores, 'scores');
   safe(renderStreak, 'streak');
+  safe(renderMeridianScore, 'meridianScore');
+  safe(renderSocialTracker, 'socialTracker');
   safe(renderCustomPresets, 'customPresets');
   // Load history then restore draft (history must load first for pre-fill to work)
   loadWorkoutHistory().then(()=>{ restoreActiveDraft(); }).catch(()=>{ restoreActiveDraft(); });
@@ -4248,6 +4320,15 @@ async function submitAILog(){
       ? `You are a nutrition expert. The user will describe a meal or food items in plain English, including restaurant items, commercial foods, bakery items, and branded products. Extract each food item and estimate calories, protein, carbs, and fat based on standard nutritional data for that specific item. For commercial/restaurant items (e.g. Tatte Bakery almond croissant, Starbucks latte), use realistic estimates for that brand. Return ONLY a JSON array, no markdown, no explanation. Format: [{"name":"Food name","calories":200,"protein":10,"carbs":25,"fat":5,"serving":"1 serving"}]`
       : `You are a fitness expert. The user will describe a workout in plain English. Extract each exercise with sets, reps, and weight. Return ONLY a JSON array, no markdown. Format: [{"name":"Exercise name","sets":[{"weight":185,"reps":8},{"weight":185,"reps":8}],"target":"3x8","type":"strength"}]`;
 
+    // Gather extra context for smarter briefing
+    const meridianScore = calcMeridianScore()?.score || '—';
+    let saunaWeek=0, coldWeek=0;
+    for(let i=0;i<7;i++){
+      const d=new Date(); d.setDate(d.getDate()-i);
+      const k=d.toISOString().split('T')[0];
+      const dl=thermalLog[k]||[];
+      dl.forEach(s=>{ if(s.type==='sauna') saunaWeek+=s.minutes; else coldWeek+=s.minutes; });
+    }
     const res = await fetch(SERVER+'/ai-log', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -4523,6 +4604,7 @@ function renderThermal(){
   if(sw) sw.textContent = saunaMin;
   if(cw) cw.textContent = coldMin;
   if(sess) sess.textContent = sessions;
+  updateThermalTargets(saunaMin, coldMin);
 
   // Today's sessions list
   const today = getThermalToday();
@@ -5094,8 +5176,8 @@ async function generateMorningBriefing(){
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         mode:'briefing',
-        system: `You are a personal wellness coach for a Nordic spa app called Meridian. Give a single short paragraph (2-3 sentences max) morning briefing based on the user overnight health data. Be specific, warm, and actionable. No bullet points. Reference actual numbers.`,
-        input: `Today's health data: ${summary}. Give me a brief morning wellness summary and one recommendation for today.`
+        system: `You are Meridian — an elite wellness coach for a Nordic spa. Give a 2-3 sentence morning briefing. Be specific with numbers, warm but direct. End with ONE clear action recommendation based on the data (sauna, cold plunge, workout, rest, walk, etc). Never be generic.`,
+        input: `Health data: ${summary}. Meridian score: ${meridianScore}. Thermal this week: sauna ${saunaWeek}min, cold ${coldWeek}min. Give a smart morning briefing and tell me exactly what to prioritize today and why.`
       })
     });
     const data = await res.json();
@@ -5371,6 +5453,282 @@ function saveFoodToFavorites(meal, idx){
   document.addEventListener('scroll', checkScroll, {passive:true, capture:true});
 })();
 
+
+// ══════════════════════════════════════════
+// FEATURE: MERIDIAN SCORE
+// ══════════════════════════════════════════
+
+function calcMeridianScore(){
+  const d = healthToday;
+  if(!d || Object.keys(d).length === 0) return null;
+
+  let score = 0;
+  let maxScore = 0;
+  const breakdown = [];
+
+  // HRV (25 pts) — higher is better, 50ms+ is excellent
+  if(d.hrv){
+    const hrvScore = Math.min(d.hrv / 70 * 25, 25);
+    score += hrvScore;
+    maxScore += 25;
+    const label = d.hrv >= 60 ? '🟢' : d.hrv >= 40 ? '🟡' : '🔴';
+    breakdown.push({name:'HRV', val:Math.round(d.hrv)+'ms', score:Math.round(hrvScore), max:25, label});
+  }
+
+  // Sleep (25 pts) — 7-9hrs optimal, REM bonus
+  if(d.sleep){
+    const sleepBase = Math.min(d.sleep / 8 * 20, 20);
+    const remBonus = d.sleepREM ? Math.min(d.sleepREM / 2 * 5, 5) : 0;
+    const sleepScore = sleepBase + remBonus;
+    score += sleepScore;
+    maxScore += 25;
+    const label = d.sleep >= 7 ? '🟢' : d.sleep >= 6 ? '🟡' : '🔴';
+    breakdown.push({name:'Sleep', val:d.sleep.toFixed(1)+'h', score:Math.round(sleepScore), max:25, label});
+  }
+
+  // Resting HR (20 pts) — lower is better, <60 excellent
+  if(d.restingHR){
+    const hrScore = Math.min((100 - d.restingHR) / 40 * 20, 20);
+    score += Math.max(hrScore, 0);
+    maxScore += 20;
+    const label = d.restingHR < 60 ? '🟢' : d.restingHR < 70 ? '🟡' : '🔴';
+    breakdown.push({name:'Resting HR', val:Math.round(d.restingHR)+'bpm', score:Math.round(Math.max(hrScore,0)), max:20, label});
+  }
+
+  // Activity (15 pts) — 10k steps target
+  if(d.steps){
+    const stepsScore = Math.min(d.steps / 10000 * 15, 15);
+    score += stepsScore;
+    maxScore += 15;
+    const label = d.steps >= 10000 ? '🟢' : d.steps >= 7000 ? '🟡' : '🔴';
+    breakdown.push({name:'Steps', val:Math.round(d.steps).toLocaleString(), score:Math.round(stepsScore), max:15, label});
+  }
+
+  // Body composition (15 pts) — body fat 10-15% optimal for male
+  if(d.bodyFat){
+    const bfScore = d.bodyFat >= 8 && d.bodyFat <= 18 ? 15 : d.bodyFat < 25 ? 10 : 5;
+    score += bfScore;
+    maxScore += 15;
+    const label = d.bodyFat <= 15 ? '🟢' : d.bodyFat <= 20 ? '🟡' : '🔴';
+    breakdown.push({name:'Body Fat', val:d.bodyFat.toFixed(1)+'%', score:bfScore, max:15, label});
+  }
+
+  if(maxScore === 0) return null;
+  const finalScore = Math.round(score / maxScore * 100);
+  return {score: finalScore, breakdown};
+}
+
+function renderMeridianScore(){
+  const result = calcMeridianScore();
+  const valEl = document.getElementById('meridian-score-val');
+  const barEl = document.getElementById('meridian-score-bar');
+  const bdEl  = document.getElementById('meridian-score-breakdown');
+  const lblEl = document.getElementById('meridian-score-label');
+  const sparkEl = document.getElementById('meridian-score-sparkline');
+
+  if(!valEl) return;
+
+  if(!result){
+    valEl.textContent = '—';
+    if(lblEl) lblEl.textContent = 'Sync health data to see your score';
+    return;
+  }
+
+  const {score, breakdown} = result;
+  valEl.textContent = score;
+  if(barEl) barEl.style.width = score + '%';
+
+  // Color the score
+  const color = score >= 75 ? 'var(--green)' : score >= 50 ? 'var(--gold)' : 'var(--red)';
+  valEl.style.color = color;
+
+  // Label
+  const labels = [[90,'At Your Meridian — Peak Readiness'],[75,'Strong — Perform & Push'],[60,'Good — Maintain Your Rhythm'],[45,'Moderate — Recovery Recommended'],[0,'Low — Rest & Restore Today']];
+  const lbl = labels.find(([min]) => score >= min);
+  if(lblEl) lblEl.textContent = lbl ? lbl[1] : '';
+
+  // Breakdown chips
+  if(bdEl && breakdown.length){
+    bdEl.innerHTML = breakdown.map(b=>`
+      <div style="background:var(--surface2);border-radius:8px;padding:6px 8px;text-align:center;">
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:2px;">${b.name}</div>
+        <div style="font-size:12px;font-weight:700;">${b.label} ${b.val}</div>
+        <div style="font-size:9px;color:var(--muted);">${b.score}/${b.max}pts</div>
+      </div>`).join('');
+  }
+
+  // Sparkline from history
+  if(sparkEl){
+    renderScoreSparkline(sparkEl);
+  }
+
+  // Save today's score to history
+  const today = new Date().toISOString().split('T')[0];
+  let scoreHistory = {};
+  try{ scoreHistory = JSON.parse(localStorage.getItem('meridian_score_history')||'{}'); }catch(e){}
+  scoreHistory[today] = score;
+  try{ localStorage.setItem('meridian_score_history', JSON.stringify(scoreHistory)); }catch(e){}
+}
+
+function renderScoreSparkline(canvas){
+  const ctx = canvas.getContext('2d');
+  const w = canvas.offsetWidth || 300;
+  const h = 32;
+  canvas.width = w;
+  canvas.height = h;
+  ctx.clearRect(0,0,w,h);
+
+  let scoreHistory = {};
+  try{ scoreHistory = JSON.parse(localStorage.getItem('meridian_score_history')||'{}'); }catch(e){}
+
+  const days = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const k = d.toISOString().split('T')[0];
+    days.push(scoreHistory[k] || null);
+  }
+
+  const validDays = days.filter(v=>v!==null);
+  if(validDays.length < 2) return;
+
+  const min = 0, max = 100;
+  const points = days.map((v,i)=>({
+    x: (i/(days.length-1)) * w,
+    y: v !== null ? h - ((v-min)/(max-min)) * h : null
+  }));
+
+  ctx.strokeStyle = 'rgba(184,150,90,0.8)';
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  let started = false;
+  points.forEach(p=>{
+    if(p.y === null) return;
+    if(!started){ ctx.moveTo(p.x, p.y); started=true; }
+    else ctx.lineTo(p.x, p.y);
+  });
+  ctx.stroke();
+
+  // Dots
+  points.forEach(p=>{
+    if(p.y === null) return;
+    ctx.fillStyle = 'var(--gold)';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI*2);
+    ctx.fill();
+  });
+}
+
+// ══════════════════════════════════════════
+// FEATURE: SOCIAL CONNECTION TRACKER
+// ══════════════════════════════════════════
+
+let socialLog = {};
+
+async function loadSocialLog(){
+  const cloud = await loadCloud('social_log');
+  if(cloud){ socialLog=cloud; localStorage.setItem('social_log',JSON.stringify(cloud)); return; }
+  try{ socialLog=JSON.parse(localStorage.getItem('social_log')||'{}'); }catch(e){ socialLog={}; }
+}
+
+function saveSocialLog(){
+  try{ localStorage.setItem('social_log',JSON.stringify(socialLog)); }catch(e){}
+  saveCloud('social_log', socialLog);
+}
+
+function logSocial(count){
+  const today = new Date().toISOString().split('T')[0];
+  if(!socialLog[today]) socialLog[today]={count:0};
+  socialLog[today].count = (socialLog[today].count||0) + count;
+  saveSocialLog();
+  renderSocialTracker();
+  showToast('🤝 +'+count+' connection'+(count>1?'s':'')+' logged');
+}
+
+function logSocialCustom(){
+  const val = prompt('How many meaningful interactions today?');
+  const n = parseInt(val);
+  if(n && n > 0) logSocial(n);
+}
+
+function renderSocialTracker(){
+  const today = new Date().toISOString().split('T')[0];
+  const todayCount = socialLog[today]?.count || 0;
+  const el = document.getElementById('social-today-count');
+  if(el) el.textContent = todayCount;
+
+  // Weekly bar chart
+  const chartEl = document.getElementById('social-week-chart');
+  const totalEl = document.getElementById('social-week-total');
+  if(!chartEl) return;
+
+  const days = [];
+  let weekTotal = 0;
+  for(let i=6;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const k = d.toISOString().split('T')[0];
+    const count = socialLog[k]?.count || 0;
+    const label = d.toLocaleDateString('en-US',{weekday:'short'});
+    days.push({label, count, isToday: i===0});
+    weekTotal += count;
+  }
+
+  const maxCount = Math.max(...days.map(d=>d.count), 1);
+  chartEl.innerHTML = days.map(d=>`
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <div style="flex:1;width:100%;display:flex;align-items:flex-end;">
+        <div style="width:100%;background:${d.isToday?'#a78bfa':'rgba(167,139,250,0.3)'};border-radius:3px 3px 0 0;height:${d.count?Math.max(d.count/maxCount*100,10):0}%;transition:height 0.3s;"></div>
+      </div>
+      <div style="font-size:9px;color:var(--muted);">${d.label}</div>
+      ${d.count?`<div style="font-size:9px;color:#a78bfa;font-weight:700;">${d.count}</div>`:''}
+    </div>`).join('');
+
+  if(totalEl) totalEl.textContent = weekTotal+' meaningful interaction'+(weekTotal!==1?'s':'')+' this week';
+}
+
+// ══════════════════════════════════════════
+// FEATURE: THERMAL PROTOCOL TIPS + TARGETS
+// ══════════════════════════════════════════
+
+const THERMAL_PROTOCOLS = [
+  {condition: s=>s>=57&&c>=11, tip:"🏆 You've hit both targets this week. You're operating at full Meridian protocol."},
+  {condition: s=>s>=57, tip:"✅ Sauna goal reached. Add cold plunge to complete the contrast protocol — aim for 11 min/week."},
+  {condition: c=>c>=11, tip:"✅ Cold target reached. Keep building sauna time — 57 min/week supports cardiovascular longevity."},
+  {condition: s=>s>=30, tip:"📈 Good sauna progress. Research suggests 4-7 sessions/week at 80°C+ for maximum cardiovascular benefit."},
+  {condition: ()=>true, tip:"💡 Science target: 57 min/week sauna reduces cardiovascular mortality by 50% (Laukkanen, 2018). Start with 15 min sessions."}
+];
+
+function updateThermalTargets(saunaMin, coldMin){
+  const saunaPct = Math.min(Math.round(saunaMin/57*100),100);
+  const coldPct  = Math.min(Math.round(coldMin/11*100),100);
+
+  const spEl = document.getElementById('thermal-sauna-pct');
+  const sbEl = document.getElementById('thermal-sauna-bar');
+  const cpEl = document.getElementById('thermal-cold-pct');
+  const cbEl = document.getElementById('thermal-cold-bar');
+  const tipEl = document.getElementById('thermal-protocol-tip');
+
+  if(spEl) spEl.textContent = saunaPct+'%';
+  if(sbEl) sbEl.style.width = saunaPct+'%';
+  if(cpEl) cpEl.textContent = coldPct+'%';
+  if(cbEl) cbEl.style.width = coldPct+'%';
+
+  // Show appropriate tip
+  if(tipEl){
+    let tip = '';
+    if(saunaMin>=57 && coldMin>=11) tip = "🏆 Both targets hit this week — you're at full Meridian protocol.";
+    else if(saunaMin>=57) tip = "✅ Sauna goal reached. Add cold plunge to complete contrast therapy — aim for 11 min/week.";
+    else if(coldMin>=11) tip = "✅ Cold target reached. Keep building sauna time to 57 min/week for cardiovascular benefit.";
+    else if(saunaMin>=30) tip = "📈 Good progress. Research: 4-7 sauna sessions/week at 80°C+ maximizes longevity benefit.";
+    else tip = "💡 Target: 57 min sauna/week reduces cardiovascular risk by 50% (Laukkanen 2018). You have " + (57-saunaMin) + " min to go.";
+    tipEl.textContent = tip;
+    tipEl.style.display = 'block';
+  }
+}
+
+// ══════════════════════════════════════════
+// FEATURE: SMARTER AI MORNING BRIEFING
+// ══════════════════════════════════════════
 // ── Boot ──
 (async ()=>{ try {
   activeDay=todayIdx();
@@ -5384,6 +5742,7 @@ function saveFoodToFavorites(meal, idx){
   await loadHydration();
   await loadMindfulLog();
   await loadTherapyLog();
+  await loadSocialLog();
   render();
   resumeThermalIfActive();
   renderHealthView();
