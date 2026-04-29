@@ -96,6 +96,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 
 /* Section headers */
 .dash-section{display:flex;align-items:center;gap:12px;margin:28px 0 12px;}
+.section-collapsed { display: none; }
 .category-header{margin:36px 0 20px;padding:0;display:flex;align-items:center;gap:16px;}
 .category-header-label{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;letter-spacing:1px;white-space:nowrap;}
 .category-header-line{flex:1;height:1px;}
@@ -636,7 +637,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260428150000">
+<meta name="app-version" content="20260429120000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -708,7 +709,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 </div>
 
 <!-- HEALTH VIEW -->
-<div class="view" id="view-health">
+<div class="view active" id="view-health">
   <div class="dash-wrap">
     <!-- MERIDIAN HEADER -->
     <div class="meridian-header">
@@ -812,7 +813,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <div class="category-header-line" style="background:linear-gradient(90deg,rgba(167,139,250,0.5),transparent);flex:1;"></div>
       <div id="arrow-section-mind" style="font-size:14px;color:#a78bfa;margin-left:8px;transition:transform 0.3s;">▼</div>
     </div>
-    <div id="section-mind" style="overflow:hidden;transition:max-height 0.4s ease;">
+    <div id="section-mind">
     <div class="dash-section"><div class="dash-section-label" style="color:var(--purple, #a78bfa);">Mindfulness</div><div class="dash-section-line" style="background:rgba(167,139,250,0.3);"></div></div>
     <div class="health-card" style="margin-bottom:10px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -924,19 +925,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <div style="font-size:11px;color:var(--muted);">Sessions this week: <span id="breathwork-week-count" style="color:var(--text);font-weight:700;">0</span></div>
     </div>
 
-    <!-- BREATHWORK MODAL -->
-    <div id="breathwork-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:800;align-items:center;justify-content:center;flex-direction:column;">
-      <div style="text-align:center;padding:40px 20px;max-width:320px;width:100%;">
-        <div id="bw-protocol-name" style="font-size:14px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:20px;"></div>
-        <div id="bw-circle" style="width:160px;height:160px;border-radius:50%;border:3px solid rgba(167,139,250,0.3);margin:0 auto 24px;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:transform 3s ease,border-color 0.5s;">
-          <div id="bw-phase" style="font-size:16px;font-weight:700;color:#a78bfa;margin-bottom:4px;">Inhale</div>
-          <div id="bw-count" style="font-family:'Playfair Display',serif;font-size:42px;font-weight:700;color:var(--text);">4</div>
-        </div>
-        <div id="bw-rep-info" style="font-size:13px;color:var(--muted);margin-bottom:32px;">Round <span id="bw-round">1</span></div>
-        <button onclick="stopBreathwork()" style="padding:14px 32px;border-radius:14px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:14px;font-family:inherit;cursor:pointer;">End Session</button>
-      </div>
-    </div>
-
     <!-- STRESS TRACKING -->
     <div class="dash-section"><div class="dash-section-label" style="color:#a78bfa;">Stress</div><div class="dash-section-line" style="background:rgba(167,139,250,0.3);"></div></div>
     <div class="health-card" style="margin-bottom:10px;">
@@ -1022,14 +1010,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <div id="screen-week-chart" style="margin-top:6px;"></div>
     </div>
 
-                <div class="category-header" onclick="toggleSection('section-body')" style="cursor:pointer;user-select:none;"     </div><!-- end section-mind -->
+            </div><!-- end section-mind -->
 
-    id="hdr-section-body">
+        <div class="category-header" onclick="toggleSection('section-body')" style="cursor:pointer;user-select:none;" id="hdr-section-body">
       <div class="category-header-label" style="color:var(--text);">🏃 BODY</div>
       <div class="category-header-line" style="background:linear-gradient(90deg,var(--border),transparent);flex:1;"></div>
       <div id="arrow-section-body" style="font-size:14px;color:var(--text);margin-left:8px;transition:transform 0.3s;">▼</div>
     </div>
-    <div id="section-body" style="overflow:hidden;transition:max-height 0.4s ease;">
+    <div id="section-body">
     <div class="dash-section"><div class="dash-section-label">Body</div><div class="dash-section-line"></div></div>
     <div class="metric-grid">
       <div class="metric-card" id="card-weight">
@@ -1354,14 +1342,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <button class="import-btn" onclick="document.getElementById('function-import-input').click()">Import Lab Data</button>
       <input type="file" id="function-import-input" class="import-input" accept=".json,application/json" onchange="importFunctionHealth(event)">
 
-        <div class="category-header" onclick="toggleSection('section-soul')" style="cursor:pointer;user-select:none;"     </div><!-- end section-body -->
+    </div><!-- end section-body -->
 
-    id="hdr-section-soul">
+        <div class="category-header" onclick="toggleSection('section-soul')" style="cursor:pointer;user-select:none;" id="hdr-section-soul">
       <div class="category-header-label" style="color:var(--gold);">✨ SOUL</div>
       <div class="category-header-line" style="background:linear-gradient(90deg,rgba(184,150,90,0.5),transparent);flex:1;"></div>
       <div id="arrow-section-soul" style="font-size:14px;color:var(--gold);margin-left:8px;transition:transform 0.3s;">▼</div>
     </div>
-    <div id="section-soul" style="overflow:hidden;transition:max-height 0.4s ease;">
+    <div id="section-soul">
 
 
     <!-- SOCIAL CONNECTION -->
@@ -2049,6 +2037,19 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
   </div>
 </div>
 
+
+    <!-- BREATHWORK MODAL -->
+    <div id="breathwork-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:800;align-items:center;justify-content:center;flex-direction:column;">
+      <div style="text-align:center;padding:40px 20px;max-width:320px;width:100%;">
+        <div id="bw-protocol-name" style="font-size:14px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:20px;"></div>
+        <div id="bw-circle" style="width:160px;height:160px;border-radius:50%;border:3px solid rgba(167,139,250,0.3);margin:0 auto 24px;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:transform 3s ease,border-color 0.5s;">
+          <div id="bw-phase" style="font-size:16px;font-weight:700;color:#a78bfa;margin-bottom:4px;">Inhale</div>
+          <div id="bw-count" style="font-family:'Playfair Display',serif;font-size:42px;font-weight:700;color:var(--text);">4</div>
+        </div>
+        <div id="bw-rep-info" style="font-size:13px;color:var(--muted);margin-bottom:32px;">Round <span id="bw-round">1</span></div>
+        <button onclick="stopBreathwork()" style="padding:14px 32px;border-radius:14px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:14px;font-family:inherit;cursor:pointer;">End Session</button>
+      </div>
+    </div>
 
 <!-- BOTTOM NAV -->
 <div class="bottom-nav">
@@ -6240,23 +6241,13 @@ function toggleSection(id){
   if(!el) return;
   _sectionState[id] = !_sectionState[id];
   const open = _sectionState[id];
-  if(open){
-    el.style.maxHeight = el.scrollHeight + 'px';
-    setTimeout(()=>{ el.style.maxHeight = 'none'; }, 420);
-    if(arrow) arrow.style.transform = 'rotate(0deg)';
-  } else {
-    el.style.maxHeight = el.scrollHeight + 'px';
-    requestAnimationFrame(()=>{ el.style.maxHeight = '0px'; });
-    if(arrow) arrow.style.transform = 'rotate(-90deg)';
-  }
+  el.classList.toggle('section-collapsed', !open);
+  if(arrow) arrow.style.transform = open ? 'rotate(0deg)' : 'rotate(-90deg)';
 }
 
 function initSections(){
-  // All start open — set maxHeight to none so they render naturally
-  ['section-mind','section-body','section-soul'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.style.maxHeight = 'none';
-  });
+  // All sections start open - nothing to do
+  // toggleSection uses display:none via .section-collapsed class
 }
 
 // ══════════════════════════════════════════
@@ -6346,8 +6337,8 @@ function scheduleAutoLog(taskName, checked){
   await loadNatureLog();
   await loadScreenLog();
   render();
+  switchView('health');
   resumeThermalIfActive();
-  renderHealthView();
   loadHealthData();
   const now=new Date(),ch=now.getHours(),cp=ch<12?"AM":"PM",cdh=ch===0?12:ch>12?ch-12:ch,target=`${cdh}:00 ${cp}`;
   setTimeout(()=>{document.querySelectorAll(".slot-time").forEach(el=>{if(el.textContent.trim()===target)el.closest(".slot").scrollIntoView({behavior:"smooth",block:"center"});});},400);
