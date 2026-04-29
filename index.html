@@ -636,7 +636,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260428090000">
+<meta name="app-version" content="20260428150000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -765,6 +765,20 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
           <div class="hero-stat-label">active cal</div>
         </div>
       </div>
+      <!-- Meridian Score row -->
+      <div style="margin:8px 0 4px;padding:10px 12px;background:rgba(184,150,90,0.08);border-radius:12px;border:1px solid rgba(184,150,90,0.2);display:flex;align-items:center;justify-content:space-between;" onclick="document.getElementById('meridian-score-val')?.scrollIntoView({behavior:'smooth'})" style="cursor:pointer;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="font-size:20px;">⚡</div>
+          <div>
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Meridian Score</div>
+            <div id="hero-meridian-label" style="font-size:11px;color:var(--gold);font-style:italic;margin-top:1px;">—</div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div id="hero-meridian-score" style="font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:var(--gold);line-height:1;">—</div>
+          <div style="font-size:9px;color:var(--muted);">/ 100</div>
+        </div>
+      </div>
       <div class="hero-bottom">
         <div class="hero-wide">
           <div class="hero-wide-icon">🍽️</div>
@@ -793,10 +807,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 
     </div>
 
-        <div class="category-header">
+        <div class="category-header" onclick="toggleSection('section-mind')" style="cursor:pointer;user-select:none;" id="hdr-section-mind">
       <div class="category-header-label" style="color:#a78bfa;">🧘 MIND</div>
-      <div class="category-header-line" style="background:linear-gradient(90deg,rgba(167,139,250,0.5),transparent);"></div>
+      <div class="category-header-line" style="background:linear-gradient(90deg,rgba(167,139,250,0.5),transparent);flex:1;"></div>
+      <div id="arrow-section-mind" style="font-size:14px;color:#a78bfa;margin-left:8px;transition:transform 0.3s;">▼</div>
     </div>
+    <div id="section-mind" style="overflow:hidden;transition:max-height 0.4s ease;">
     <div class="dash-section"><div class="dash-section-label" style="color:var(--purple, #a78bfa);">Mindfulness</div><div class="dash-section-line" style="background:rgba(167,139,250,0.3);"></div></div>
     <div class="health-card" style="margin-bottom:10px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -878,10 +894,142 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 
 
 
-        <div class="category-header">
-      <div class="category-header-label" style="color:var(--text);">🏃 BODY</div>
-      <div class="category-header-line" style="background:linear-gradient(90deg,var(--border),transparent);"></div>
+    <!-- BREATHWORK -->
+    <div class="dash-section"><div class="dash-section-label" style="color:#a78bfa;">Breathwork</div><div class="dash-section-line" style="background:rgba(167,139,250,0.3);"></div></div>
+    <div class="health-card" style="margin-bottom:10px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:4px;">🫁 Breathwork Sessions</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:14px;">Guided breathing protocols</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <button onclick="startBreathwork('box')" style="padding:12px 8px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;">
+          <div style="font-size:18px;margin-bottom:4px;">📦</div>
+          <div>Box Breathing</div>
+          <div style="font-size:10px;color:var(--muted);">4-4-4-4 · Calm focus</div>
+        </button>
+        <button onclick="startBreathwork('478')" style="padding:12px 8px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;">
+          <div style="font-size:18px;margin-bottom:4px;">😴</div>
+          <div>4-7-8 Sleep</div>
+          <div style="font-size:10px;color:var(--muted);">4-7-8 · Pre-sleep</div>
+        </button>
+        <button onclick="startBreathwork('wimhof')" style="padding:12px 8px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;">
+          <div style="font-size:18px;margin-bottom:4px;">🧊</div>
+          <div>Wim Hof</div>
+          <div style="font-size:10px;color:var(--muted);">30 breaths · Energy</div>
+        </button>
+        <button onclick="startBreathwork('coherence')" style="padding:12px 8px;border-radius:12px;border:1px solid var(--surface2);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-align:left;border:1px solid var(--border);">
+          <div style="font-size:18px;margin-bottom:4px;">💜</div>
+          <div>Coherence</div>
+          <div style="font-size:10px;color:var(--muted);">5-5 · HRV boost</div>
+        </button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);">Sessions this week: <span id="breathwork-week-count" style="color:var(--text);font-weight:700;">0</span></div>
     </div>
+
+    <!-- BREATHWORK MODAL -->
+    <div id="breathwork-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:800;align-items:center;justify-content:center;flex-direction:column;">
+      <div style="text-align:center;padding:40px 20px;max-width:320px;width:100%;">
+        <div id="bw-protocol-name" style="font-size:14px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:20px;"></div>
+        <div id="bw-circle" style="width:160px;height:160px;border-radius:50%;border:3px solid rgba(167,139,250,0.3);margin:0 auto 24px;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:transform 3s ease,border-color 0.5s;">
+          <div id="bw-phase" style="font-size:16px;font-weight:700;color:#a78bfa;margin-bottom:4px;">Inhale</div>
+          <div id="bw-count" style="font-family:'Playfair Display',serif;font-size:42px;font-weight:700;color:var(--text);">4</div>
+        </div>
+        <div id="bw-rep-info" style="font-size:13px;color:var(--muted);margin-bottom:32px;">Round <span id="bw-round">1</span></div>
+        <button onclick="stopBreathwork()" style="padding:14px 32px;border-radius:14px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:14px;font-family:inherit;cursor:pointer;">End Session</button>
+      </div>
+    </div>
+
+    <!-- STRESS TRACKING -->
+    <div class="dash-section"><div class="dash-section-label" style="color:#a78bfa;">Stress</div><div class="dash-section-line" style="background:rgba(167,139,250,0.3);"></div></div>
+    <div class="health-card" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div>
+          <div style="font-size:14px;font-weight:700;">🌊 Stress Level</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Log daily to track HRV correlation</div>
+        </div>
+        <div style="text-align:right;">
+          <div id="stress-today-val" style="font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--text);line-height:1;">—</div>
+          <div style="font-size:10px;color:var(--muted);">today</div>
+        </div>
+      </div>
+      <div id="stress-pips" style="display:flex;gap:3px;margin-bottom:10px;"></div>
+      <div id="stress-label" style="font-size:11px;color:var(--muted);text-align:center;font-style:italic;margin-bottom:8px;"></div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">7-day trend</div>
+      <div id="stress-week-chart" style="display:flex;gap:3px;align-items:flex-end;height:36px;"></div>
+    </div>
+
+    <!-- JOURNALING -->
+    <div class="dash-section"><div class="dash-section-label" style="color:#a78bfa;">Reflection</div><div class="dash-section-line" style="background:rgba(167,139,250,0.3);"></div></div>
+    <div class="health-card" style="margin-bottom:10px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:4px;">📓 Daily Reflection</div>
+      <div id="journal-prompt" style="font-size:12px;color:var(--gold);font-style:italic;margin-bottom:12px;padding:10px;background:rgba(184,150,90,0.06);border-radius:8px;border-left:2px solid var(--gold);line-height:1.5;"></div>
+      <textarea id="journal-entry" placeholder="Write your reflection here..." rows="4" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;padding:12px;font-family:inherit;resize:none;box-sizing:border-box;outline:none;line-height:1.6;margin-bottom:10px;"></textarea>
+      <div style="display:flex;gap:8px;">
+        <button onclick="saveJournalEntry()" style="flex:1;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;">Save Entry ✓</button>
+        <button onclick="newJournalPrompt()" style="padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit;">↺</button>
+      </div>
+      <div id="journal-streak" style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px;"></div>
+    </div>
+
+    <!-- NATURE & SUNLIGHT -->
+    <div class="dash-section"><div class="dash-section-label" style="color:#a78bfa;">Nature</div><div class="dash-section-line" style="background:rgba(167,139,250,0.3);"></div></div>
+    <div class="health-card" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div>
+          <div style="font-size:14px;font-weight:700;">☀️ Sunlight & Nature</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Circadian rhythm & cortisol regulator</div>
+        </div>
+        <div style="text-align:right;">
+          <div id="nature-today-min" style="font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:#f59e0b;line-height:1;">0</div>
+          <div style="font-size:10px;color:var(--muted);">min today</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+        <button onclick="logNature(10)" class="hydration-btn" style="border-color:rgba(245,158,11,0.4);color:#f59e0b;">+10 min</button>
+        <button onclick="logNature(20)" class="hydration-btn" style="border-color:rgba(245,158,11,0.4);color:#f59e0b;">+20 min</button>
+        <button onclick="logNature(30)" class="hydration-btn" style="border-color:rgba(245,158,11,0.4);color:#f59e0b;">+30 min</button>
+        <button onclick="logNatureCustom()" class="hydration-btn" style="background:var(--surface3);">Custom</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;font-size:11px;color:var(--muted);">
+        <span>Week:</span>
+        <div style="flex:1;height:4px;background:var(--border);border-radius:2px;">
+          <div id="nature-week-bar" style="height:100%;background:#f59e0b;border-radius:2px;width:0%;transition:width 0.3s;"></div>
+        </div>
+        <span id="nature-week-min">0</span><span>/ 140 min goal</span>
+      </div>
+    </div>
+
+    <!-- SCREEN TIME -->
+    <div class="dash-section"><div class="dash-section-label" style="color:#a78bfa;">Screen Time</div><div class="dash-section-line" style="background:rgba(167,139,250,0.3);"></div></div>
+    <div class="health-card" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div>
+          <div style="font-size:14px;font-weight:700;">📱 Evening Screen Log</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Blue light disrupts melatonin &amp; sleep</div>
+        </div>
+        <div style="text-align:right;">
+          <div id="screen-cutoff-val" style="font-size:22px;font-weight:700;color:var(--text);line-height:1;" id="screen-cutoff-display">—</div>
+          <div style="font-size:10px;color:var(--muted);">cutoff tonight</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">What time did you put screens away last night?</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+        <button onclick="logScreenCutoff('9:00 PM')" class="hydration-btn">9:00 PM</button>
+        <button onclick="logScreenCutoff('9:30 PM')" class="hydration-btn">9:30 PM</button>
+        <button onclick="logScreenCutoff('10:00 PM')" class="hydration-btn">10:00 PM</button>
+        <button onclick="logScreenCutoff('10:30 PM')" class="hydration-btn">10:30 PM</button>
+        <button onclick="logScreenCutoff('11:00 PM')" class="hydration-btn" style="color:var(--red);border-color:rgba(248,113,113,0.4);">11:00 PM</button>
+        <button onclick="logScreenCutoffCustom()" class="hydration-btn" style="background:var(--surface3);">Other</button>
+      </div>
+      <div id="screen-week-chart" style="margin-top:6px;"></div>
+    </div>
+
+                <div class="category-header" onclick="toggleSection('section-body')" style="cursor:pointer;user-select:none;"     </div><!-- end section-mind -->
+
+    id="hdr-section-body">
+      <div class="category-header-label" style="color:var(--text);">🏃 BODY</div>
+      <div class="category-header-line" style="background:linear-gradient(90deg,var(--border),transparent);flex:1;"></div>
+      <div id="arrow-section-body" style="font-size:14px;color:var(--text);margin-left:8px;transition:transform 0.3s;">▼</div>
+    </div>
+    <div id="section-body" style="overflow:hidden;transition:max-height 0.4s ease;">
     <div class="dash-section"><div class="dash-section-label">Body</div><div class="dash-section-line"></div></div>
     <div class="metric-grid">
       <div class="metric-card" id="card-weight">
@@ -1194,6 +1342,28 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 
     <!-- DAILY SCORES -->
         
+    <div class="dash-section"><div class="dash-section-label">Function Health Labs</div><div class="dash-section-line"></div></div>
+
+    <div id="biomarker-categories"></div>
+
+
+    <!-- FUNCTION HEALTH IMPORT -->
+    <div class="import-card">
+      <div class="import-title">📥 Import Function Health Labs</div>
+      
+      <button class="import-btn" onclick="document.getElementById('function-import-input').click()">Import Lab Data</button>
+      <input type="file" id="function-import-input" class="import-input" accept=".json,application/json" onchange="importFunctionHealth(event)">
+
+        <div class="category-header" onclick="toggleSection('section-soul')" style="cursor:pointer;user-select:none;"     </div><!-- end section-body -->
+
+    id="hdr-section-soul">
+      <div class="category-header-label" style="color:var(--gold);">✨ SOUL</div>
+      <div class="category-header-line" style="background:linear-gradient(90deg,rgba(184,150,90,0.5),transparent);flex:1;"></div>
+      <div id="arrow-section-soul" style="font-size:14px;color:var(--gold);margin-left:8px;transition:transform 0.3s;">▼</div>
+    </div>
+    <div id="section-soul" style="overflow:hidden;transition:max-height 0.4s ease;">
+
+
     <!-- SOCIAL CONNECTION -->
     <div class="dash-section"><div class="dash-section-label" style="color:#a78bfa;">Social Connection</div><div class="dash-section-line" style="background:rgba(167,139,250,0.3);"></div></div>
     <div class="health-card" style="margin-bottom:10px;">
@@ -1218,48 +1388,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <div style="font-size:11px;color:var(--muted);text-align:center;" id="social-week-total">0 meaningful interactions this week</div>
     </div>
 
-    <div class="dash-section"><div class="dash-section-label">Function Health Labs</div><div class="dash-section-line"></div></div>
-
-    <div id="biomarker-categories"></div>
-
-
-    <!-- FUNCTION HEALTH IMPORT -->
-    <div class="import-card">
-      <div class="import-title">📥 Import Function Health Labs</div>
-      
-      <button class="import-btn" onclick="document.getElementById('function-import-input').click()">Import Lab Data</button>
-      <input type="file" id="function-import-input" class="import-input" accept=".json,application/json" onchange="importFunctionHealth(event)">
-
-        <div class="category-header">
-      <div class="category-header-label" style="color:var(--gold);">✨ SOUL</div>
-      <div class="category-header-line" style="background:linear-gradient(90deg,rgba(184,150,90,0.5),transparent);"></div>
-    </div>
-
-    <!-- MERIDIAN SCORE -->
-    <div class="dash-section"><div class="dash-section-label" style="color:var(--gold);">Meridian Score</div><div class="dash-section-line" style="background:rgba(184,150,90,0.3);"></div></div>
-    <div class="health-card" style="margin-bottom:10px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <div>
-          <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700;">⚡ Your Meridian Score</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Biological readiness index</div>
-        </div>
-        <div style="text-align:center;">
-          <div id="meridian-score-val" style="font-family:'Playfair Display',serif;font-size:42px;font-weight:700;color:var(--gold);line-height:1;">—</div>
-          <div style="font-size:10px;color:var(--muted);">out of 100</div>
-        </div>
-      </div>
-      <!-- Score bar -->
-      <div style="height:6px;background:var(--border2);border-radius:3px;margin-bottom:10px;overflow:hidden;">
-        <div id="meridian-score-bar" style="height:100%;width:0%;border-radius:3px;background:linear-gradient(90deg,var(--red),var(--gold),var(--green));transition:width 1s ease;"></div>
-      </div>
-      <!-- Score breakdown -->
-      <div id="meridian-score-breakdown" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;"></div>
-      <!-- Trend sparkline -->
-      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">7-day trend</div>
-      <canvas id="meridian-score-sparkline" height="32" style="width:100%;display:block;"></canvas>
-      <!-- Label -->
-      <div id="meridian-score-label" style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;"></div>
-    </div>
 
     <div class="dash-section"><div class="dash-section-label">Daily Check-In</div><div class="dash-section-line"></div></div>
     <div class="streak-card" onclick="openGratitudeLog()" style="cursor:pointer;">
@@ -1307,7 +1435,35 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     </div>
 
 
-    <!-- FUNCTION HEALTH BIOMARKERS -->
+    <!-- MERIDIAN SCORE -->
+    <div class="dash-section"><div class="dash-section-label" style="color:var(--gold);">Meridian Score</div><div class="dash-section-line" style="background:rgba(184,150,90,0.3);"></div></div>
+    <div class="health-card" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div>
+          <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700;">⚡ Your Meridian Score</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Biological readiness index</div>
+        </div>
+        <div style="text-align:center;">
+          <div id="meridian-score-val" style="font-family:'Playfair Display',serif;font-size:42px;font-weight:700;color:var(--gold);line-height:1;">—</div>
+          <div style="font-size:10px;color:var(--muted);">out of 100</div>
+        </div>
+      </div>
+      <!-- Score bar -->
+      <div style="height:6px;background:var(--border2);border-radius:3px;margin-bottom:10px;overflow:hidden;">
+        <div id="meridian-score-bar" style="height:100%;width:0%;border-radius:3px;background:linear-gradient(90deg,var(--red),var(--gold),var(--green));transition:width 1s ease;"></div>
+      </div>
+      <!-- Score breakdown -->
+      <div id="meridian-score-breakdown" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;"></div>
+      <!-- Trend sparkline -->
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">7-day trend</div>
+      <canvas id="meridian-score-sparkline" height="32" style="width:100%;display:block;"></canvas>
+      <!-- Label -->
+      <div id="meridian-score-label" style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;"></div>
+    </div>
+
+    </div><!-- end section-soul -->
+
+        <!-- FUNCTION HEALTH BIOMARKERS -->
 
 
   </div><!-- extra close for inner div -->
@@ -2088,7 +2244,15 @@ function renderHealthView(){
   safe(loadScores, 'scores');
   safe(renderStreak, 'streak');
   safe(renderMeridianScore, 'meridianScore');
+  safe(initSections, 'initSections');
   safe(renderSocialTracker, 'socialTracker');
+  safe(renderBreathworkCount, 'breathwork');
+  safe(renderStressPips, 'stress');
+  safe(renderStressWeekChart, 'stressChart');
+  safe(newJournalPrompt, 'journalPrompt');
+  safe(renderJournalStreak, 'journalStreak');
+  safe(renderNatureTracker, 'nature');
+  safe(renderScreenLog, 'screen');
   safe(renderCustomPresets, 'customPresets');
   // Load history then restore draft (history must load first for pre-fill to work)
   loadWorkoutHistory().then(()=>{ restoreActiveDraft(); }).catch(()=>{ restoreActiveDraft(); });
@@ -2121,6 +2285,8 @@ function renderDailyMetrics(history={}){
   setHero('hero-steps', d.steps?Math.round(d.steps).toLocaleString():null);
   setHero('hero-cals', d.activeCalories?Math.round(d.activeCalories):null);
   setHero('hero-rhr', d.restingHR?Math.round(d.restingHR)+' bpm':null);
+  // Update Meridian Score in hero after health data loads
+  setTimeout(()=>{ try{ renderMeridianScore(); }catch(e){} }, 100);
   // Biological age from Function Health labs
   const bioAge = bioData['bioage']||null;
   const bioCard = document.getElementById('bio-age-card');
@@ -2300,11 +2466,14 @@ function toggle(key){
   renderProgress();
   // Auto-sync water tasks to hydration log
   const day=DAYS[activeDay],tasks=SCHED[day];
-  // Water sync — extract day+time from key directly (key = "Monday|8:30 AM")
+  // Water sync + MIND auto-logging from schedule tasks
   try{
     const parts = key.split('|');
     const keyDay = parts[0], keyTime = parts[1];
     const keyTask = (SCHED[keyDay]?.[keyTime]||'').toLowerCase();
+    // Auto-log MIND activities from schedule
+    const taskName = SCHED[keyDay]?.[keyTime]||'';
+    scheduleAutoLog(taskName, on);
     if(on && (keyTask.includes('cup of water')||keyTask.includes('hydration check'))){
       // Add 8oz to hydration log
       const todayHydKey = new Date().toISOString().split('T')[0];
@@ -5562,6 +5731,12 @@ function renderMeridianScore(){
     renderScoreSparkline(sparkEl);
   }
 
+  // Update hero tile
+  const heroScore = document.getElementById('hero-meridian-score');
+  const heroLabel = document.getElementById('hero-meridian-label');
+  if(heroScore) { heroScore.textContent = score; heroScore.style.color = color; }
+  if(heroLabel) heroLabel.textContent = lbl ? lbl[1] : '';
+
   // Save today's score to history
   const today = new Date().toISOString().split('T')[0];
   let scoreHistory = {};
@@ -5729,6 +5904,428 @@ function updateThermalTargets(saunaMin, coldMin){
 // ══════════════════════════════════════════
 // FEATURE: SMARTER AI MORNING BRIEFING
 // ══════════════════════════════════════════
+
+// ══════════════════════════════════════════
+// BREATHWORK
+// ══════════════════════════════════════════
+
+const BREATHWORK_PROTOCOLS = {
+  box:       { name:'Box Breathing',  phases:[['Inhale',4],['Hold',4],['Exhale',4],['Hold',4]], rounds:8 },
+  '478':     { name:'4-7-8 Sleep',    phases:[['Inhale',4],['Hold',7],['Exhale',8]], rounds:4 },
+  wimhof:    { name:'Wim Hof',        phases:[['Inhale',2],['Exhale',2]], rounds:30 },
+  coherence: { name:'HRV Coherence',  phases:[['Inhale',5],['Exhale',5]], rounds:12 },
+};
+
+let bwTimer = null, bwActive = false;
+let bwProtocol = null, bwPhaseIdx = 0, bwRound = 1, bwSec = 0;
+let breathworkLog = {};
+
+async function loadBreathworkLog(){
+  const cloud = await loadCloud('breathwork_log');
+  if(cloud){ breathworkLog=cloud; localStorage.setItem('breathwork_log',JSON.stringify(cloud)); return; }
+  try{ breathworkLog=JSON.parse(localStorage.getItem('breathwork_log')||'{}'); }catch(e){ breathworkLog={}; }
+}
+function saveBreathworkLog(){
+  try{ localStorage.setItem('breathwork_log',JSON.stringify(breathworkLog)); }catch(e){}
+  saveCloud('breathwork_log', breathworkLog);
+}
+
+function startBreathwork(type){
+  bwProtocol = BREATHWORK_PROTOCOLS[type];
+  if(!bwProtocol) return;
+  bwPhaseIdx = 0; bwRound = 1; bwSec = bwProtocol.phases[0][1];
+  const modal = document.getElementById('breathwork-modal');
+  if(modal) modal.style.display='flex';
+  document.getElementById('bw-protocol-name').textContent = bwProtocol.name;
+  bwActive = true;
+  runBreathworkTick();
+}
+
+function runBreathworkTick(){
+  if(!bwActive) return;
+  const phase = bwProtocol.phases[bwPhaseIdx];
+  const phaseEl = document.getElementById('bw-phase');
+  const countEl = document.getElementById('bw-count');
+  const circleEl = document.getElementById('bw-circle');
+  const roundEl = document.getElementById('bw-round');
+  if(phaseEl) phaseEl.textContent = phase[0];
+  if(countEl) countEl.textContent = bwSec;
+  if(roundEl) roundEl.textContent = `${bwRound} / ${bwProtocol.rounds}`;
+  // Animate circle
+  if(circleEl){
+    if(phase[0]==='Inhale'){ circleEl.style.transform='scale(1.15)'; circleEl.style.borderColor='rgba(167,139,250,0.8)'; }
+    else if(phase[0]==='Exhale'){ circleEl.style.transform='scale(0.9)'; circleEl.style.borderColor='rgba(167,139,250,0.3)'; }
+    else { circleEl.style.transform='scale(1.0)'; circleEl.style.borderColor='rgba(184,150,90,0.6)'; }
+  }
+  bwTimer = setTimeout(()=>{
+    bwSec--;
+    if(bwSec <= 0){
+      bwPhaseIdx++;
+      if(bwPhaseIdx >= bwProtocol.phases.length){
+        bwPhaseIdx = 0;
+        bwRound++;
+        if(bwRound > bwProtocol.rounds){ completeBreathwork(); return; }
+      }
+      bwSec = bwProtocol.phases[bwPhaseIdx][1];
+    }
+    runBreathworkTick();
+  }, 1000);
+}
+
+function stopBreathwork(){
+  bwActive = false;
+  if(bwTimer) clearTimeout(bwTimer);
+  const modal = document.getElementById('breathwork-modal');
+  if(modal) modal.style.display='none';
+}
+
+function completeBreathwork(){
+  bwActive = false;
+  if(bwTimer) clearTimeout(bwTimer);
+  const modal = document.getElementById('breathwork-modal');
+  if(modal) modal.style.display='none';
+  const today = new Date().toISOString().split('T')[0];
+  if(!breathworkLog[today]) breathworkLog[today]=[];
+  breathworkLog[today].push({protocol:bwProtocol.name, ts:new Date().toISOString()});
+  saveBreathworkLog();
+  renderBreathworkCount();
+  showToast('🫁 Breathwork complete — great work');
+}
+
+function renderBreathworkCount(){
+  const el = document.getElementById('breathwork-week-count');
+  if(!el) return;
+  let count = 0;
+  for(let i=0;i<7;i++){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const k=d.toISOString().split('T')[0];
+    count += (breathworkLog[k]||[]).length;
+  }
+  el.textContent = count;
+}
+
+// ══════════════════════════════════════════
+// STRESS TRACKING
+// ══════════════════════════════════════════
+
+let stressLog = {};
+
+async function loadStressLog(){
+  const cloud = await loadCloud('stress_log');
+  if(cloud){ stressLog=cloud; localStorage.setItem('stress_log',JSON.stringify(cloud)); return; }
+  try{ stressLog=JSON.parse(localStorage.getItem('stress_log')||'{}'); }catch(e){ stressLog={}; }
+}
+function saveStressLog(){
+  try{ localStorage.setItem('stress_log',JSON.stringify(stressLog)); }catch(e){}
+  saveCloud('stress_log', stressLog);
+}
+
+function renderStressPips(){
+  const wrap = document.getElementById('stress-pips');
+  if(!wrap) return;
+  const today = new Date().toISOString().split('T')[0];
+  const current = stressLog[today]?.level || 0;
+  wrap.innerHTML = '';
+  for(let i=1;i<=10;i++){
+    const pip = document.createElement('button');
+    const color = i<=3?'var(--green)':i<=6?'var(--gold)':'var(--red)';
+    pip.style.cssText = `flex:1;height:10px;border-radius:3px;border:none;cursor:pointer;background:${i<=current?color:'var(--border2)'};transition:background 0.2s;`;
+    pip.onclick=(()=>{const n=i;return()=>logStress(n);})();
+    wrap.appendChild(pip);
+  }
+  const valEl = document.getElementById('stress-today-val');
+  const lblEl = document.getElementById('stress-label');
+  if(valEl) valEl.textContent = current || '—';
+  if(valEl && current) valEl.style.color = current<=3?'var(--green)':current<=6?'var(--gold)':'var(--red)';
+  const labels = ['','Very low','Low','Manageable','Moderate','Moderate','Elevated','High','High','Very high','Peak stress'];
+  if(lblEl) lblEl.textContent = current ? labels[current] : 'Tap to log your stress level';
+}
+
+function logStress(level){
+  const today = new Date().toISOString().split('T')[0];
+  stressLog[today] = {level, ts:new Date().toISOString()};
+  saveStressLog();
+  renderStressPips();
+  renderStressWeekChart();
+  showToast('🌊 Stress level logged');
+}
+
+function renderStressWeekChart(){
+  const el = document.getElementById('stress-week-chart');
+  if(!el) return;
+  const days = [];
+  for(let i=6;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const k=d.toISOString().split('T')[0];
+    const level=stressLog[k]?.level||0;
+    const label=d.toLocaleDateString('en-US',{weekday:'short'});
+    days.push({label,level,isToday:i===0});
+  }
+  el.innerHTML = `<div style="display:flex;gap:3px;align-items:flex-end;height:36px;width:100%;">${days.map(d=>{
+    const color=d.level<=3?'var(--green)':d.level<=6?'var(--gold)':'var(--red)';
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <div style="width:100%;background:${d.level?(d.isToday?color:color.replace(')',',0.5)').replace('var(','rgba(').replace('#','')):'var(--border2)'};border-radius:3px 3px 0 0;height:${d.level?Math.max(d.level/10*100,8):4}%;"></div>
+      <div style="font-size:9px;color:var(--muted);">${d.label}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ══════════════════════════════════════════
+// JOURNALING
+// ══════════════════════════════════════════
+
+let journalLog = {};
+let _currentPrompt = '';
+
+const JOURNAL_PROMPTS = [
+  'What is one thing your body is telling you today that you should listen to?',
+  'What would "at your meridian" look and feel like today?',
+  'What habit from this week are you most proud of?',
+  'Where are you carrying unnecessary stress right now — and what would help?',
+  'What does your ideal version of rest look like this week?',
+  'What connection in your life deserves more attention?',
+  'If your HRV data could speak, what would it say about how you\'ve been living?',
+  'What is one thing you want to do differently tomorrow?',
+  'What gave you genuine energy today — not stimulation, but real energy?',
+  'How aligned is how you\'re spending your time with what actually matters to you?',
+  'What would you tell yourself three months ago about health?',
+  'What does your body need that your schedule isn\'t currently making room for?',
+];
+
+async function loadJournalLog(){
+  const cloud = await loadCloud('journal_log');
+  if(cloud){ journalLog=cloud; localStorage.setItem('journal_log',JSON.stringify(cloud)); return; }
+  try{ journalLog=JSON.parse(localStorage.getItem('journal_log')||'{}'); }catch(e){ journalLog={}; }
+}
+function saveJournalLog(){
+  try{ localStorage.setItem('journal_log',JSON.stringify(journalLog)); }catch(e){}
+  saveCloud('journal_log', journalLog);
+}
+
+function newJournalPrompt(){
+  const idx = Math.floor(Math.random()*JOURNAL_PROMPTS.length);
+  _currentPrompt = JOURNAL_PROMPTS[idx];
+  const el = document.getElementById('journal-prompt');
+  if(el) el.textContent = '"' + _currentPrompt + '"';
+}
+
+function saveJournalEntry(){
+  const text = (document.getElementById('journal-entry')||{}).value||'';
+  if(!text.trim()){ showToast('Write something first'); return; }
+  const today = new Date().toISOString().split('T')[0];
+  if(!journalLog[today]) journalLog[today]=[];
+  journalLog[today].push({prompt:_currentPrompt, entry:text.trim(), ts:new Date().toISOString()});
+  saveJournalLog();
+  document.getElementById('journal-entry').value='';
+  newJournalPrompt();
+  renderJournalStreak();
+  showToast('📓 Reflection saved');
+}
+
+function renderJournalStreak(){
+  const el = document.getElementById('journal-streak');
+  if(!el) return;
+  let streak = 0;
+  const today = new Date();
+  for(let i=0;i<30;i++){
+    const d=new Date(today); d.setDate(today.getDate()-i);
+    const k=d.toISOString().split('T')[0];
+    if(journalLog[k]?.length){ streak++; } else if(i>0){ break; }
+  }
+  el.textContent = streak>0?`🔥 ${streak}-day reflection streak`:'';
+}
+
+// ══════════════════════════════════════════
+// NATURE & SUNLIGHT
+// ══════════════════════════════════════════
+
+let natureLog = {};
+
+async function loadNatureLog(){
+  const cloud = await loadCloud('nature_log');
+  if(cloud){ natureLog=cloud; localStorage.setItem('nature_log',JSON.stringify(cloud)); return; }
+  try{ natureLog=JSON.parse(localStorage.getItem('nature_log')||'{}'); }catch(e){ natureLog={}; }
+}
+function saveNatureLog(){
+  try{ localStorage.setItem('nature_log',JSON.stringify(natureLog)); }catch(e){}
+  saveCloud('nature_log', natureLog);
+}
+function logNature(mins){
+  const today=new Date().toISOString().split('T')[0];
+  if(!natureLog[today]) natureLog[today]={minutes:0};
+  natureLog[today].minutes=(natureLog[today].minutes||0)+mins;
+  saveNatureLog(); renderNatureTracker();
+  showToast('☀️ +'+mins+' min sunlight logged');
+}
+function logNatureCustom(){
+  const v=prompt('Minutes of sunlight/nature exposure:');
+  const n=parseInt(v); if(n&&n>0) logNature(n);
+}
+function renderNatureTracker(){
+  const today=new Date().toISOString().split('T')[0];
+  const todayMin=natureLog[today]?.minutes||0;
+  const el=document.getElementById('nature-today-min');
+  if(el) el.textContent=todayMin;
+  let weekMin=0;
+  for(let i=0;i<7;i++){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    weekMin+=(natureLog[d.toISOString().split('T')[0]]?.minutes||0);
+  }
+  const bar=document.getElementById('nature-week-bar');
+  const wk=document.getElementById('nature-week-min');
+  if(bar) bar.style.width=Math.min(weekMin/140*100,100)+'%';
+  if(wk) wk.textContent=weekMin;
+}
+
+// ══════════════════════════════════════════
+// SCREEN TIME
+// ══════════════════════════════════════════
+
+let screenLog = {};
+
+async function loadScreenLog(){
+  const cloud = await loadCloud('screen_log');
+  if(cloud){ screenLog=cloud; localStorage.setItem('screen_log',JSON.stringify(cloud)); return; }
+  try{ screenLog=JSON.parse(localStorage.getItem('screen_log')||'{}'); }catch(e){ screenLog={}; }
+}
+function saveScreenLog(){
+  try{ localStorage.setItem('screen_log',JSON.stringify(screenLog)); }catch(e){}
+  saveCloud('screen_log', screenLog);
+}
+function logScreenCutoff(time){
+  const today=new Date().toISOString().split('T')[0];
+  screenLog[today]={cutoff:time, ts:new Date().toISOString()};
+  saveScreenLog(); renderScreenLog();
+  showToast('📱 Screen cutoff logged: '+time);
+}
+function logScreenCutoffCustom(){
+  const v=prompt('What time did you put screens away? (e.g. 10:15 PM)');
+  if(v&&v.trim()) logScreenCutoff(v.trim());
+}
+function renderScreenLog(){
+  const today=new Date().toISOString().split('T')[0];
+  const todayCutoff=screenLog[today]?.cutoff||'—';
+  const el=document.getElementById('screen-cutoff-val');
+  if(el){ el.textContent=todayCutoff; el.style.color=todayCutoff==='—'?'var(--muted)':todayCutoff<='10:00 PM'?'var(--green)':'var(--red)'; }
+  // Weekly chart
+  const chartEl=document.getElementById('screen-week-chart');
+  if(!chartEl) return;
+  const days=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const k=d.toISOString().split('T')[0];
+    const cutoff=screenLog[k]?.cutoff||'';
+    const label=d.toLocaleDateString('en-US',{weekday:'short'});
+    const isGood=cutoff&&cutoff<='10:00 PM';
+    days.push({label,cutoff,isGood,isToday:i===0});
+  }
+  chartEl.innerHTML=`<div style="display:flex;gap:4px;margin-top:4px;">${days.map(d=>`
+    <div style="flex:1;text-align:center;">
+      <div style="font-size:14px;">${d.cutoff?(d.isGood?'🟢':'🔴'):'○'}</div>
+      <div style="font-size:9px;color:var(--muted);">${d.label}</div>
+      ${d.cutoff?`<div style="font-size:8px;color:var(--muted);">${d.cutoff.replace(' PM','').replace(' AM','')}</div>`:''}
+    </div>`).join('')}</div>`;
+}
+
+
+// ══════════════════════════════════════════
+// COLLAPSIBLE MIND/BODY/SOUL SECTIONS
+// ══════════════════════════════════════════
+
+const _sectionState = { 'section-mind': true, 'section-body': true, 'section-soul': true };
+
+function toggleSection(id){
+  const el = document.getElementById(id);
+  const arrow = document.getElementById('arrow-'+id);
+  if(!el) return;
+  _sectionState[id] = !_sectionState[id];
+  const open = _sectionState[id];
+  if(open){
+    el.style.maxHeight = el.scrollHeight + 'px';
+    setTimeout(()=>{ el.style.maxHeight = 'none'; }, 420);
+    if(arrow) arrow.style.transform = 'rotate(0deg)';
+  } else {
+    el.style.maxHeight = el.scrollHeight + 'px';
+    requestAnimationFrame(()=>{ el.style.maxHeight = '0px'; });
+    if(arrow) arrow.style.transform = 'rotate(-90deg)';
+  }
+}
+
+function initSections(){
+  // All start open — set maxHeight to none so they render naturally
+  ['section-mind','section-body','section-soul'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.style.maxHeight = 'none';
+  });
+}
+
+// ══════════════════════════════════════════
+// SCHEDULE → MIND AUTO-LOGGING
+// ══════════════════════════════════════════
+// When certain schedule tasks are checked, auto-log to MIND sections
+
+const SCHEDULE_MIND_MAPPINGS = {
+  // task name (lowercase) → {type, action}
+  'sunlight':          { type:'nature',     mins:10 },
+  'deep breathing':    { type:'mindful',    mins:5 },
+  'nasal breathing':   { type:'breathwork', protocol:'coherence' },
+  'thumb pulling':     { type:'nature',     mins:0 },  // neck/posture - skip
+  'lymphatic drainage': { type:'mindful',   mins:10 },
+  'mewing posture':    { type:'mindful',    mins:2 },
+  'chin tuck':         { type:'mindful',    mins:2 },
+};
+
+function scheduleAutoLog(taskName, checked){
+  if(!checked) return;
+  const lower = taskName.toLowerCase().trim();
+  
+  // Nature / sunlight
+  if(lower.includes('sunlight') || lower.includes('nature walk') || lower.includes('outdoor')){
+    const today=new Date().toISOString().split('T')[0];
+    if(!natureLog[today]) natureLog[today]={minutes:0};
+    natureLog[today].minutes=(natureLog[today].minutes||0)+15;
+    saveNatureLog(); renderNatureTracker();
+    showToast('☀️ +15 min sunlight logged from schedule');
+    return;
+  }
+  
+  // Deep breathing / breathwork
+  if(lower.includes('deep breath') || lower.includes('breathing')){
+    const today=new Date().toISOString().split('T')[0];
+    if(!mindfulLog[today]) mindfulLog[today]={minutes:0,entries:[]};
+    mindfulLog[today].minutes=(mindfulLog[today].minutes||0)+5;
+    if(!mindfulLog[today].entries) mindfulLog[today].entries=[];
+    mindfulLog[today].entries.push({mins:5,time:new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}),source:'schedule'});
+    saveMindfulLog(); renderMindfulness();
+    showToast('🫁 +5 min mindfulness logged from schedule');
+    return;
+  }
+  
+  // Nasal breathing
+  if(lower.includes('nasal breath')){
+    const today=new Date().toISOString().split('T')[0];
+    if(!mindfulLog[today]) mindfulLog[today]={minutes:0,entries:[]};
+    mindfulLog[today].minutes=(mindfulLog[today].minutes||0)+5;
+    if(!mindfulLog[today].entries) mindfulLog[today].entries=[];
+    mindfulLog[today].entries.push({mins:5,time:new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}),source:'schedule'});
+    saveMindfulLog(); renderMindfulness();
+    showToast('🫁 +5 min mindfulness from Nasal Breathing');
+    return;
+  }
+  
+  // Meditation / mindfulness tasks
+  if(lower.includes('meditat') || lower.includes('mindful') || lower.includes('yoga')){
+    const today=new Date().toISOString().split('T')[0];
+    if(!mindfulLog[today]) mindfulLog[today]={minutes:0,entries:[]};
+    mindfulLog[today].minutes=(mindfulLog[today].minutes||0)+10;
+    if(!mindfulLog[today].entries) mindfulLog[today].entries=[];
+    mindfulLog[today].entries.push({mins:10,time:new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}),source:'schedule'});
+    saveMindfulLog(); renderMindfulness();
+    showToast('🧘 +10 min mindfulness logged from schedule');
+    return;
+  }
+}
+
 // ── Boot ──
 (async ()=>{ try {
   activeDay=todayIdx();
@@ -5743,6 +6340,11 @@ function updateThermalTargets(saunaMin, coldMin){
   await loadMindfulLog();
   await loadTherapyLog();
   await loadSocialLog();
+  await loadBreathworkLog();
+  await loadStressLog();
+  await loadJournalLog();
+  await loadNatureLog();
+  await loadScreenLog();
   render();
   resumeThermalIfActive();
   renderHealthView();
