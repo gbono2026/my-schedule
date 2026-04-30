@@ -637,7 +637,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260429120000">
+<meta name="app-version" content="20260430170000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -1060,6 +1060,21 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 
 
 
+    <!-- BMR & CALORIE TARGETS -->
+    <div class="dash-section"><div class="dash-section-label" style="color:var(--gold);">Nutrition Targets</div><div class="dash-section-line" style="background:rgba(184,150,90,0.3);"></div></div>
+    <div class="health-card" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div>
+          <div style="font-size:14px;font-weight:700;">🔥 BMR & Calorie Targets</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Mifflin-St Jeor formula</div>
+        </div>
+        <button onclick="openBMRProfile()" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;">Edit Profile</button>
+      </div>
+      <div id="bmr-card-content">
+        <div style="font-size:12px;color:var(--muted);text-align:center;padding:16px;">Tap Edit Profile to set your age, height &amp; activity level</div>
+      </div>
+    </div>
+
     <div class="dash-section"><div class="dash-section-label">Recovery</div><div class="dash-section-line"></div></div>
     <div class="metric-grid">
       <div class="metric-card" id="card-sleep">
@@ -1137,6 +1152,19 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         </div>
         <div id="thermal-protocol-tip" style="font-size:11px;color:var(--muted);padding:8px 10px;background:var(--surface2);border-radius:8px;line-height:1.5;font-style:italic;display:none;"></div>
       </div>
+      <!-- Sauna Socialization -->
+      <div style="margin:12px 0 0;padding:12px;background:var(--surface2);border-radius:12px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;">👥 Sauna Socialization</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">The Meridian differentiator — thermal + community</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+          <button onclick="logSaunaSocial('Solo')" class="hydration-btn">Solo session</button>
+          <button onclick="logSaunaSocial('With friends')" class="hydration-btn" style="border-color:rgba(167,139,250,0.4);color:#a78bfa;">With friends</button>
+          <button onclick="logSaunaSocial('Met someone new')" class="hydration-btn" style="border-color:rgba(184,150,90,0.4);color:var(--gold);">Met someone new</button>
+        </div>
+        <div id="sauna-social-today" style="font-size:11px;color:var(--muted);margin-bottom:6px;">0 sessions today</div>
+        <div id="sauna-social-history"></div>
+      </div>
+
       <div class="thermal-btns">
         <button class="thermal-btn" onclick="startThermal('sauna')">🌡️ Start Sauna</button>
         <button class="thermal-btn cold" onclick="startThermal('cold')">❄️ Cold Plunge</button>
@@ -1268,6 +1296,23 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <div class="meal-macro-row" id="macros-snacks" style="display:none"></div>
     <!-- WORKOUT LOGGER -->
     <div style="height:1px;background:linear-gradient(90deg,transparent,var(--green),transparent);margin:8px 0 4px;opacity:0.4;"></div>
+
+    <!-- INTERMITTENT FASTING -->
+    <div class="dash-section"><div class="dash-section-label" style="color:var(--teal);">Fasting</div><div class="dash-section-line" style="background:rgba(94,234,212,0.3);"></div></div>
+    <div class="health-card" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div>
+          <div style="font-size:14px;font-weight:700;">⏱️ Intermittent Fasting</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">16:8 protocol · Track your eating window</div>
+        </div>
+        <div id="fasting-today-label" style="font-size:11px;color:var(--muted);"></div>
+      </div>
+      <div id="fasting-display" style="margin-bottom:12px;">
+        <div style="font-size:12px;color:var(--muted);">No fast logged today.</div>
+      </div>
+      <button id="fasting-btn" onclick="fastingActive?endFast():startFast()" style="width:100%;padding:13px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--gold),#b8860b);color:#000;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">Start Fast</button>
+    </div>
+
     <div class="workout-section-header" style="margin-top:20px;">
       <div style="display:flex;align-items:center;gap:12px;flex:1;">
         <div class="dash-section-label" style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--text);letter-spacing:0.5px;white-space:nowrap;">Workout</div>
@@ -1342,14 +1387,17 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <button class="import-btn" onclick="document.getElementById('function-import-input').click()">Import Lab Data</button>
       <input type="file" id="function-import-input" class="import-input" accept=".json,application/json" onchange="importFunctionHealth(event)">
 
-    </div><!-- end section-body -->
-
-        <div class="category-header" onclick="toggleSection('section-soul')" style="cursor:pointer;user-select:none;" id="hdr-section-soul">
+    </div><!-- end import-card -->
+</div><!-- end section-body -->
+</div><!-- CLOSE SECTION-BODY -->
+<div class="category-header" onclick="toggleSection('section-soul')" style="cursor:pointer;user-select:none;" id="hdr-section-soul">
       <div class="category-header-label" style="color:var(--gold);">✨ SOUL</div>
       <div class="category-header-line" style="background:linear-gradient(90deg,rgba(184,150,90,0.5),transparent);flex:1;"></div>
       <div id="arrow-section-soul" style="font-size:14px;color:var(--gold);margin-left:8px;transition:transform 0.3s;">▼</div>
     </div>
-    <div id="section-soul">
+
+
+            <div id="section-soul">
 
 
     <!-- SOCIAL CONNECTION -->
@@ -1454,9 +1502,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <!-- FUNCTION HEALTH BIOMARKERS -->
 
 
-  </div><!-- extra close for inner div -->
   </div><!-- end dash-wrap -->
-</div><!-- end view-health -->
+<!-- end view-health -->
 
 
 <!-- PROGRESS PHOTOS VIEW -->
@@ -2248,6 +2295,9 @@ function renderHealthView(){
   safe(initSections, 'initSections');
   safe(renderSocialTracker, 'socialTracker');
   safe(renderBreathworkCount, 'breathwork');
+  safe(renderBMRCard, 'bmrCard');
+  safe(renderFastingCard, 'fastingCard');
+  safe(renderSaunaSocial, 'saunaSocial');
   safe(renderStressPips, 'stress');
   safe(renderStressWeekChart, 'stressChart');
   safe(newJournalPrompt, 'journalPrompt');
@@ -2997,15 +3047,43 @@ function startWorkoutTimer(){
   const startTs = Date.now();
   localStorage.setItem('workout_start_ts', startTs);
   workoutSeconds = 0;
+  _startWorkoutInterval();
+}
+
+function _startWorkoutInterval(){
   if(workoutTimer) clearInterval(workoutTimer);
   workoutTimer = setInterval(()=>{
-    const stored = parseInt(localStorage.getItem('workout_start_ts')||startTs);
+    const stored = parseInt(localStorage.getItem('workout_start_ts')||Date.now());
     workoutSeconds = Math.floor((Date.now() - stored) / 1000);
     const m = Math.floor(workoutSeconds/60), s = workoutSeconds%60;
     const el = document.getElementById('workout-elapsed');
-    if(el) el.textContent = `${m}:${String(s).padStart(2,'0')}`;
+    if(el) el.textContent = m+':'+(s<10?'0':'')+s;
   }, 1000);
 }
+
+// Resume timer when user returns to app
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible'){
+    const stored = localStorage.getItem('workout_start_ts');
+    if(stored && activeWorkout){
+      workoutSeconds = Math.floor((Date.now() - parseInt(stored)) / 1000);
+      _startWorkoutInterval();
+    }
+    // Also resume per-exercise rest timer if active
+    const restEnd = localStorage.getItem('rest_timer_end');
+    if(restEnd){
+      const remaining = Math.ceil((parseInt(restEnd) - Date.now()) / 1000);
+      if(remaining > 0) resumeRestTimer(remaining);
+      else { localStorage.removeItem('rest_timer_end'); hideRestTimer(); }
+    }
+  } else {
+    // App going to background — store rest timer end time
+    if(restInterval && restSeconds > 0){
+      localStorage.setItem('rest_timer_end', Date.now() + restSeconds * 1000);
+    }
+  }
+});
+
 
 function addExercise(name, target, type){
   document.getElementById('ex-picker').classList.remove('open');
@@ -3104,9 +3182,13 @@ function renderExercises(){
     }
     const recText = isCardio ? '' : `<div style="font-size:10px;color:var(--gold);margin-bottom:6px;">📊 Recommended: ${ex.target}</div>`;
     const restTimerId = 'exrest-'+ex.id;
-    return `<div class="exercise-block" id="${ex.id}" style="${ssBorderStyle}">
+    return `<div class="exercise-block" id="${ex.id}" style="${ssBorderStyle}" ${ssGroup?`data-ss="${ssGroup}"`:''}>
       <div class="exercise-name" style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
         <span>${ex.name}${isCardio?' 🚴':''}</span>${supersetBadge}
+        <span style="display:inline-flex;align-items:center;gap:3px;margin-left:4px;">
+          <button id="ex-timer-btn-${exIdx}" onclick="toggleExTimer('${exIdx}')" style="font-size:11px;background:none;border:none;cursor:pointer;color:var(--muted);padding:2px 4px;line-height:1;">▶</button>
+          <span id="ex-timer-${exIdx}" style="font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:30px;">0:00</span>
+        </span>
         <a class="yt-btn" href="https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name+' exercise tutorial')}" target="_blank" rel="noopener" style="margin-left:4px;">▶ Demo</a>
         <button onclick="toggleSuperset(${exIdx})" style="font-size:9px;padding:2px 7px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:inherit;margin-left:auto;">${ex.ssGroup?'✕ SS':'+ SS'}</button>
         <button onclick="deleteExercise(${exIdx})" style="font-size:9px;padding:2px 7px;border-radius:10px;border:1px solid rgba(248,113,113,0.3);background:transparent;color:var(--red);cursor:pointer;font-family:inherit;">🗑</button>
@@ -3121,6 +3203,27 @@ function renderExercises(){
       </div>
     </div>`;
   }).join('');
+  
+  // Group supersets side by side
+  const ssGroups = {};
+  wrap.querySelectorAll('.exercise-item[data-ss]').forEach(el=>{
+    const g = el.dataset.ss;
+    if(!ssGroups[g]) ssGroups[g]=[];
+    ssGroups[g].push(el);
+  });
+  Object.values(ssGroups).forEach(els=>{
+    if(els.length < 2) return;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'ss-pair-wrap';
+    wrapper.style.cssText = 'display:flex;gap:8px;margin-bottom:12px;';
+    els[0].parentNode.insertBefore(wrapper, els[0]);
+    els.forEach(el=>{
+      el.style.flex='1';
+      el.style.minWidth='0';
+      el.style.marginBottom='0';
+      wrapper.appendChild(el);
+    });
+  });
 }
 
 function updateSet(exIdx, si, field, val){
@@ -3265,6 +3368,25 @@ function startExRestTimer(exId, secs){
       el.style.display='none';
     }
   },1000);
+}
+
+function resumeRestTimer(seconds){
+  restSeconds = seconds;
+  const timerEl = document.getElementById('rest-timer');
+  const timeEl = document.getElementById('rest-time');
+  if(timerEl) timerEl.style.display='flex';
+  clearInterval(restInterval);
+  restInterval = setInterval(()=>{
+    restSeconds--;
+    if(timeEl) timeEl.textContent = restSeconds+'s';
+    if(restSeconds <= 0){
+      clearInterval(restInterval);
+      restInterval = null;
+      localStorage.removeItem('rest_timer_end');
+      if(timerEl) timerEl.style.display='none';
+      showToast('✅ Rest done — next set');
+    }
+  }, 1000);
 }
 
 function startRestTimer(secs){
@@ -6246,8 +6368,19 @@ function toggleSection(id){
 }
 
 function initSections(){
-  // All sections start open - nothing to do
-  // toggleSection uses display:none via .section-collapsed class
+  // Start MIND and BODY collapsed, SOUL open
+  // User can expand what they need
+  _sectionState['section-mind'] = false;
+  _sectionState['section-body'] = false;
+  _sectionState['section-soul'] = true;
+  const mindEl = document.getElementById('section-mind');
+  const bodyEl = document.getElementById('section-body');
+  const mindArrow = document.getElementById('arrow-section-mind');
+  const bodyArrow = document.getElementById('arrow-section-body');
+  if(mindEl){ mindEl.classList.add('section-collapsed'); }
+  if(bodyEl){ bodyEl.classList.add('section-collapsed'); }
+  if(mindArrow) mindArrow.style.transform = 'rotate(-90deg)';
+  if(bodyArrow) bodyArrow.style.transform = 'rotate(-90deg)';
 }
 
 // ══════════════════════════════════════════
@@ -6292,15 +6425,10 @@ function scheduleAutoLog(taskName, checked){
     return;
   }
   
-  // Nasal breathing
+  // Nasal breathing → open Coherence breathwork
   if(lower.includes('nasal breath')){
-    const today=new Date().toISOString().split('T')[0];
-    if(!mindfulLog[today]) mindfulLog[today]={minutes:0,entries:[]};
-    mindfulLog[today].minutes=(mindfulLog[today].minutes||0)+5;
-    if(!mindfulLog[today].entries) mindfulLog[today].entries=[];
-    mindfulLog[today].entries.push({mins:5,time:new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}),source:'schedule'});
-    saveMindfulLog(); renderMindfulness();
-    showToast('🫁 +5 min mindfulness from Nasal Breathing');
+    showToast('🫁 Opening Coherence Breathing for Nasal Practice...');
+    setTimeout(()=>startBreathwork('coherence'), 600);
     return;
   }
   
@@ -6315,6 +6443,267 @@ function scheduleAutoLog(taskName, checked){
     showToast('🧘 +10 min mindfulness logged from schedule');
     return;
   }
+}
+
+
+// ══════════════════════════════════════════
+// BMR + NUTRITION TARGETS CALCULATOR
+// ══════════════════════════════════════════
+let bmrProfile = {};
+function loadBMRProfile(){
+  try{ bmrProfile = JSON.parse(localStorage.getItem('bmr_profile')||'{}'); }catch(e){ bmrProfile={}; }
+}
+function saveBMRProfile(){
+  localStorage.setItem('bmr_profile', JSON.stringify(bmrProfile));
+  saveCloud('bmr_profile', bmrProfile);
+}
+function calcBMR(){
+  const weight = bmrProfile.weight || healthToday.weight || 175;
+  const height = bmrProfile.height || 70; // inches
+  const age = bmrProfile.age || 30;
+  const sex = bmrProfile.sex || 'male';
+  const activityLevel = bmrProfile.activityLevel || 1.55;
+  // Mifflin-St Jeor formula
+  const weightKg = weight * 0.453592;
+  const heightCm = height * 2.54;
+  let bmr;
+  if(sex === 'male') bmr = 10*weightKg + 6.25*heightCm - 5*age + 5;
+  else bmr = 10*weightKg + 6.25*heightCm - 5*age - 161;
+  const tdee = Math.round(bmr * activityLevel);
+  return {
+    bmr: Math.round(bmr),
+    tdee,
+    deficit: tdee - 500,    // ~1lb/week loss
+    maintenance: tdee,
+    bulk: tdee + 300,        // lean bulk
+    aggressiveBulk: tdee + 500
+  };
+}
+
+function renderBMRCard(){
+  const el = document.getElementById('bmr-card-content');
+  if(!el) return;
+  loadBMRProfile();
+  const result = calcBMR();
+  const goal = bmrProfile.goal || 'maintenance';
+  const target = result[goal] || result.maintenance;
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
+      <div style="text-align:center;background:var(--surface2);border-radius:10px;padding:10px;">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;">BMR</div>
+        <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;">${result.bmr}</div>
+        <div style="font-size:9px;color:var(--muted);">kcal at rest</div>
+      </div>
+      <div style="text-align:center;background:var(--surface2);border-radius:10px;padding:10px;">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;">TDEE</div>
+        <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;">${result.tdee}</div>
+        <div style="font-size:9px;color:var(--muted);">maintenance</div>
+      </div>
+      <div style="text-align:center;background:rgba(184,150,90,0.1);border:1px solid var(--gold-border);border-radius:10px;padding:10px;">
+        <div style="font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;">TARGET</div>
+        <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--gold);">${target}</div>
+        <div style="font-size:9px;color:var(--muted);">${goal}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;">
+      ${[['deficit','Deficit (-500)','var(--blue)'],['maintenance','Maintenance','var(--green)'],['bulk','Lean Bulk (+300)','var(--gold)'],['aggressiveBulk','Bulk (+500)','var(--orange)']].map(([key,label,color])=>`
+        <button onclick="setBMRGoal('${key}')" style="padding:8px;border-radius:10px;border:1px solid ${goal===key?color:'var(--border)'};background:${goal===key?`rgba(${color.replace('var(--','').replace(')','')},0.1)`:'var(--surface2)'};color:${goal===key?color:'var(--muted)'};font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">
+          ${label}<br><span style="font-size:13px;font-weight:700;color:${color}">${result[key]}</span>
+        </button>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--muted);text-align:center;">Based on ${bmrProfile.weight||healthToday.weight||175}lbs · tap to update profile</div>
+  `;
+}
+
+function setBMRGoal(goal){
+  loadBMRProfile();
+  bmrProfile.goal = goal;
+  saveBMRProfile();
+  renderBMRCard();
+  showToast('Goal set: '+goal);
+}
+
+function openBMRProfile(){
+  const age = prompt('Age:', bmrProfile.age||30);
+  if(!age) return;
+  const height = prompt('Height in inches (e.g. 70 for 5\'10"):', bmrProfile.height||70);
+  if(!height) return;
+  const sex = prompt('Biological sex (male/female):', bmrProfile.sex||'male');
+  if(!sex) return;
+  const activityOptions = '1.2=Sedentary, 1.375=Light, 1.55=Moderate, 1.725=Very active, 1.9=Extremely active';
+  const activity = prompt('Activity level multiplier:\n'+activityOptions, bmrProfile.activityLevel||1.55);
+  if(!activity) return;
+  bmrProfile = { ...bmrProfile, age:parseInt(age), height:parseFloat(height), sex:sex.toLowerCase().trim(), activityLevel:parseFloat(activity) };
+  saveBMRProfile();
+  renderBMRCard();
+  showToast('Profile updated');
+}
+
+// ══════════════════════════════════════════
+// INTERMITTENT FASTING TRACKER
+// ══════════════════════════════════════════
+let fastingLog = {};
+let fastingActive = false;
+let fastingStart = null;
+let fastingInterval = null;
+const FASTING_GOAL_HOURS = 16;
+
+function loadFastingLog(){
+  try{ fastingLog = JSON.parse(localStorage.getItem('fasting_log')||'{}'); }catch(e){ fastingLog={}; }
+  const activeStr = localStorage.getItem('fasting_active');
+  if(activeStr){
+    fastingActive = true;
+    fastingStart = parseInt(activeStr);
+  }
+}
+function saveFastingLog(){
+  localStorage.setItem('fasting_log', JSON.stringify(fastingLog));
+  saveCloud('fasting_log', fastingLog);
+}
+
+function startFast(){
+  fastingStart = Date.now();
+  fastingActive = true;
+  localStorage.setItem('fasting_active', fastingStart);
+  renderFastingCard();
+  runFastingTick();
+  showToast('⏱️ Fast started');
+}
+
+function endFast(){
+  if(!fastingActive || !fastingStart) return;
+  const hours = (Date.now() - fastingStart) / 3600000;
+  const today = new Date().toISOString().split('T')[0];
+  if(!fastingLog[today]) fastingLog[today] = [];
+  fastingLog[today].push({ start: fastingStart, end: Date.now(), hours: parseFloat(hours.toFixed(1)) });
+  saveFastingLog();
+  fastingActive = false;
+  fastingStart = null;
+  localStorage.removeItem('fasting_active');
+  clearInterval(fastingInterval);
+  fastingInterval = null;
+  renderFastingCard();
+  showToast('✅ Fast complete: '+hours.toFixed(1)+'h');
+}
+
+function runFastingTick(){
+  if(fastingInterval) clearInterval(fastingInterval);
+  fastingInterval = setInterval(()=>{ renderFastingCard(); }, 60000);
+}
+
+function renderFastingCard(){
+  const el = document.getElementById('fasting-display');
+  if(!el) return;
+  const btnEl = document.getElementById('fasting-btn');
+  
+  if(fastingActive && fastingStart){
+    const elapsedMs = Date.now() - fastingStart;
+    const elapsedH = elapsedMs / 3600000;
+    const pct = Math.min(elapsedH / FASTING_GOAL_HOURS * 100, 100);
+    const hh = Math.floor(elapsedH);
+    const mm = Math.floor((elapsedH - hh) * 60);
+    const startTime = new Date(fastingStart).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    
+    el.innerHTML = `
+      <div style="text-align:center;margin-bottom:12px;">
+        <div style="font-family:'Playfair Display',serif;font-size:48px;font-weight:700;color:var(--gold);line-height:1;">${hh}:${mm<10?'0':''}${mm}</div>
+        <div style="font-size:11px;color:var(--muted);">hours fasting · started ${startTime}</div>
+      </div>
+      <div style="height:6px;background:var(--border2);border-radius:3px;margin-bottom:8px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--gold),var(--green));border-radius:3px;transition:width 0.3s;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:12px;">
+        <span>0h</span><span style="color:${pct>=100?'var(--green)':'var(--gold)'};">${pct>=100?'🎯 Goal reached!':Math.round(FASTING_GOAL_HOURS-elapsedH*10)/10+'h remaining'}</span><span>${FASTING_GOAL_HOURS}h</span>
+      </div>`;
+    if(btnEl){ btnEl.textContent='End Fast'; btnEl.style.background='linear-gradient(135deg,var(--red),#dc2626)'; }
+  } else {
+    // Show history
+    const today = new Date().toISOString().split('T')[0];
+    const todayFasts = fastingLog[today]||[];
+    el.innerHTML = todayFasts.length ? 
+      '<div style="font-size:12px;color:var(--muted);">'+todayFasts.map(f=>`✅ ${f.hours}h fast completed`).join('<br>')+'</div>' :
+      '<div style="font-size:12px;color:var(--muted);">No fast logged today. Start a 16:8 fast anytime.</div>';
+    if(btnEl){ btnEl.textContent='Start Fast'; btnEl.style.background='linear-gradient(135deg,var(--gold),#b8860b)'; }
+  }
+}
+
+// ══════════════════════════════════════════
+// SAUNA SOCIALIZATION TRACKER
+// ══════════════════════════════════════════
+let saunaSocialLog = {};
+function loadSaunaSocialLog(){
+  try{ saunaSocialLog=JSON.parse(localStorage.getItem('sauna_social_log')||'{}'); }catch(e){ saunaSocialLog={}; }
+}
+function saveSaunaSocialLog(){
+  localStorage.setItem('sauna_social_log',JSON.stringify(saunaSocialLog));
+  saveCloud('sauna_social_log', saunaSocialLog);
+}
+function logSaunaSocial(type){
+  const today=new Date().toISOString().split('T')[0];
+  if(!saunaSocialLog[today]) saunaSocialLog[today]={sessions:[]};
+  saunaSocialLog[today].sessions.push({type, ts:new Date().toISOString()});
+  saveSaunaSocialLog();
+  renderSaunaSocial();
+  // Also log to social connection
+  logSocial(1);
+  showToast('🧖 '+type+' session logged');
+}
+function renderSaunaSocial(){
+  const el=document.getElementById('sauna-social-today');
+  if(!el) return;
+  const today=new Date().toISOString().split('T')[0];
+  const sessions=(saunaSocialLog[today]?.sessions)||[];
+  el.textContent = sessions.length+' session'+(sessions.length!==1?'s':'')+' today';
+  const histEl=document.getElementById('sauna-social-history');
+  if(!histEl) return;
+  const rows=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const k=d.toISOString().split('T')[0];
+    const count=(saunaSocialLog[k]?.sessions||[]).length;
+    const label=d.toLocaleDateString('en-US',{weekday:'short'});
+    rows.push(`<div style="flex:1;text-align:center;">
+      <div style="font-size:16px;">${count>0?'🧖':'○'}</div>
+      <div style="font-size:9px;color:var(--muted);">${label}</div>
+      ${count?`<div style="font-size:9px;color:var(--gold);">${count}</div>`:''}
+    </div>`);
+  }
+  histEl.innerHTML=`<div style="display:flex;gap:4px;">${rows.join('')}</div>`;
+}
+
+// ══════════════════════════════════════════
+// PER-EXERCISE STOPWATCH
+// ══════════════════════════════════════════
+const _exTimers = {}; // exId → {start, interval, seconds}
+
+function startExTimer(exId){
+  if(_exTimers[exId]?.interval) return; // already running
+  const start = Date.now();
+  _exTimers[exId] = { start, seconds:0 };
+  _exTimers[exId].interval = setInterval(()=>{
+    _exTimers[exId].seconds = Math.floor((Date.now()-start)/1000);
+    const el = document.getElementById('ex-timer-'+exId);
+    if(el){
+      const m=Math.floor(_exTimers[exId].seconds/60), s=_exTimers[exId].seconds%60;
+      el.textContent = m+':'+(s<10?'0':'')+s;
+    }
+  },1000);
+  const btn = document.getElementById('ex-timer-btn-'+exId);
+  if(btn){ btn.textContent='⏹'; btn.style.color='var(--red)'; }
+}
+
+function stopExTimer(exId){
+  if(_exTimers[exId]?.interval){
+    clearInterval(_exTimers[exId].interval);
+    _exTimers[exId].interval = null;
+  }
+  const btn = document.getElementById('ex-timer-btn-'+exId);
+  if(btn){ btn.textContent='▶'; btn.style.color='var(--muted)'; }
+}
+
+function toggleExTimer(exId){
+  if(_exTimers[exId]?.interval) stopExTimer(exId);
+  else startExTimer(exId);
 }
 
 // ── Boot ──
@@ -6336,6 +6725,9 @@ function scheduleAutoLog(taskName, checked){
   await loadJournalLog();
   await loadNatureLog();
   await loadScreenLog();
+  loadBMRProfile();
+  loadFastingLog();
+  loadSaunaSocialLog();
   render();
   switchView('health');
   resumeThermalIfActive();
