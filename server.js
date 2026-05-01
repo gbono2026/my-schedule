@@ -93,14 +93,15 @@ function parseHAEPayload(payload) {
     const data = metric.data || [];
     switch(name) {
       case "weight_body_mass":
-        // Use the most recent entry (last in array after sorting by date)
+        // Use the most recent entry with a valid non-zero weight
         if (data.length > 0) {
           const sorted = [...data].sort((a, b) => {
             const da = a.date || a.startDate || '';
             const db = b.date || b.startDate || '';
-            return da.localeCompare(db);
+            return db.localeCompare(da); // descending — newest first
           });
-          const latest = sorted[sorted.length - 1];
+          // Pick the most recent entry with a real weight value
+          const latest = sorted.find(e => e.qty && e.qty > 0);
           if (latest) result.weight = latest.qty;
         }
         break;
@@ -192,6 +193,24 @@ app.post("/health", async (req, res) => {
   }
   await saveHealthDay(today, merged);
   res.json({ success: true, date: today, parsed: update });
+});
+
+// ── Manual weight update endpoint ──
+app.post("/update-weight", async (req, res) => {
+  try {
+    const { weight, date } = req.body;
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    if (!weight || isNaN(parseFloat(weight))) {
+      return res.status(400).json({ error: 'Invalid weight' });
+    }
+    const healthData = await loadHealthData();
+    const existing = healthData[targetDate] || {};
+    const updated = { ...existing, weight: parseFloat(weight), lastSync: new Date().toISOString() };
+    await saveHealthDay(targetDate, updated);
+    res.json({ success: true, date: targetDate, weight: parseFloat(weight) });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.post("/debug", async (req, res) => {
