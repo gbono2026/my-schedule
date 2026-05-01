@@ -637,7 +637,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260501120000">
+<meta name="app-version" content="20260501130000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -1071,6 +1071,21 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 
 
 
+
+    <!-- ENERGY BALANCE -->
+    <div class="dash-section"><div class="dash-section-label" style="color:var(--gold);">Energy Balance</div><div class="dash-section-line" style="background:rgba(184,150,90,0.3);"></div></div>
+    <div class="health-card" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div>
+          <div style="font-size:14px;font-weight:700;">⚡ Calories In vs Out</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">BMR + Apple Watch vs logged intake</div>
+        </div>
+        <button onclick="openBMRProfile()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:10px;cursor:pointer;font-family:inherit;">Edit Profile</button>
+      </div>
+      <div id="energy-balance-card">
+        <div style="font-size:12px;color:var(--muted);text-align:center;padding:12px;">Loading energy data...</div>
+      </div>
+    </div>
 
     <div class="dash-section"><div class="dash-section-label">Recovery</div><div class="dash-section-line"></div></div>
     <div class="metric-grid">
@@ -2392,6 +2407,7 @@ function renderHealthView(){
   safe(initSections, 'initSections');
   safe(renderSocialTracker, 'socialTracker');
   safe(renderMacroProgress, 'macroProgress');
+  safe(renderEnergyBalance, 'energyBalance');
   safe(renderHeroSparklines, 'heroSparklines');
   safe(renderScheduleCompletion, 'scheduleCompletion');
   safe(renderBreathworkCount, 'breathwork');
@@ -7177,6 +7193,114 @@ function skipOnboarding(){
   if(el) el.style.display='none';
 }
 
+
+// ══════════════════════════════════════════
+// FULL ENERGY BALANCE
+// ══════════════════════════════════════════
+function calcEnergyBalance(){
+  const d = healthToday;
+  if(!d || Object.keys(d).length === 0) return null;
+
+  // Resting calories = BMR (what you burn just existing)
+  loadBMRProfile();
+  const weightKg = (d.weight||bmrProfile.weight||175) * 0.453592;
+  const heightCm = (bmrProfile.height||70) * 2.54;
+  const age = bmrProfile.age || 30;
+  const sex = bmrProfile.sex || 'male';
+  let bmrVal;
+  if(sex === 'male') bmrVal = 10*weightKg + 6.25*heightCm - 5*age + 5;
+  else bmrVal = 10*weightKg + 6.25*heightCm - 5*age - 161;
+
+  // Active calories from Apple Watch
+  const activeCals = d.activeCalories || 0;
+
+  // Total burn = BMR + active calories
+  const totalBurn = Math.round(bmrVal + activeCals);
+
+  // Total intake from nutrition log
+  const today = todayKey();
+  const log = nutritionLog[today] || {};
+  let totalIntake = 0;
+  ['breakfast','lunch','dinner','snacks'].forEach(meal=>{
+    (log[meal]||[]).forEach(f=>{ totalIntake += f.calories||0; });
+  });
+  totalIntake = Math.round(totalIntake);
+
+  const balance = totalIntake - totalBurn;
+
+  return {
+    bmr: Math.round(bmrVal),
+    active: Math.round(activeCals),
+    totalBurn,
+    totalIntake,
+    balance
+  };
+}
+
+function renderEnergyBalance(){
+  const el = document.getElementById('energy-balance-card');
+  if(!el) return;
+  const result = calcEnergyBalance();
+  if(!result){
+    el.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px;">Sync health data to see energy balance</div>';
+    return;
+  }
+  const { bmr, active, totalBurn, totalIntake, balance } = result;
+  const isDeficit = balance < 0;
+  const isSurplus = balance > 0;
+  const balanceColor = Math.abs(balance) < 100 ? 'var(--green)' : isDeficit ? 'var(--teal)' : 'var(--orange)';
+  const balanceLabel = Math.abs(balance) < 100 ? 'Balanced' : isDeficit ? 'Deficit' : 'Surplus';
+  const pct = Math.min(Math.abs(totalIntake/totalBurn*100), 150);
+
+  el.innerHTML = `
+    <!-- Big balance number -->
+    <div style="text-align:center;margin-bottom:14px;">
+      <div style="font-family:'Playfair Display',serif;font-size:42px;font-weight:700;color:${balanceColor};line-height:1;">
+        ${balance > 0 ? '+' : ''}${balance.toLocaleString()}
+      </div>
+      <div style="font-size:11px;color:var(--muted);">kcal ${balanceLabel.toLowerCase()} today</div>
+    </div>
+
+    <!-- In vs Out bars -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:var(--surface3);border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;">🍽️ In</div>
+        <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--gold);">${totalIntake.toLocaleString()}</div>
+        <div style="font-size:9px;color:var(--muted);">kcal consumed</div>
+      </div>
+      <div style="background:var(--surface3);border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;">🔥 Out</div>
+        <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--red);">${totalBurn.toLocaleString()}</div>
+        <div style="font-size:9px;color:var(--muted);">kcal burned</div>
+      </div>
+    </div>
+
+    <!-- Burn breakdown -->
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;">
+        <span style="color:var(--muted);">Resting (BMR)</span>
+        <span style="color:var(--text);">${bmr.toLocaleString()} kcal</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:8px;">
+        <span style="color:var(--muted);">Active (Apple Watch)</span>
+        <span style="color:var(--text);">${active.toLocaleString()} kcal</span>
+      </div>
+      <!-- Progress bar: intake vs burn -->
+      <div style="height:6px;background:var(--border2);border-radius:3px;overflow:hidden;position:relative;">
+        <div style="height:100%;width:${Math.min(pct,100)}%;background:${balanceColor};border-radius:3px;transition:width 0.5s;"></div>
+        ${pct > 100 ? `<div style="position:absolute;right:0;top:0;height:100%;width:${Math.min(pct-100,50)}%;background:var(--orange);border-radius:3px;"></div>` : ''}
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:3px;">
+        <span>0</span><span>${totalBurn.toLocaleString()} (break-even)</span>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);text-align:center;font-style:italic;">
+      ${Math.abs(balance) < 100 ? 'On track for maintenance' :
+        isDeficit ? `${Math.abs(balance)} kcal deficit · ~${(Math.abs(balance)*7/3500).toFixed(2)} lbs/week loss pace` :
+        `${balance} kcal surplus · ~${(balance*7/3500).toFixed(2)} lbs/week gain pace`}
+    </div>
+  `;
+}
 // ── Boot ──
 (async ()=>{ try {
   activeDay=todayIdx();
