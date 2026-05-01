@@ -637,7 +637,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260430170000">
+<meta name="app-version" content="20260501120000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -705,6 +705,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <button class="reset-btn" id="reset-btn">↺ Reset This Day</button>
     <div class="all-done" id="all-done">🎉 All done today!</div>
   </div>
+  <!-- 7-day completion chart -->
+  <div style="margin:4px 16px 8px;padding:10px 12px;background:var(--surface);border-radius:12px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">7-Day Completion</div>
+      <div id="avg-completion-pct" style="font-size:11px;color:var(--gold);font-weight:700;"></div>
+    </div>
+    <div id="schedule-completion-chart"></div>
+  </div>
   <div class="schedule" id="schedule"></div>
 </div>
 
@@ -739,11 +747,13 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
           <div class="hero-stat-icon">⚖️</div>
           <div class="hero-stat-val" id="hero-weight">—</div>
           <div class="hero-stat-label">lbs</div>
+          <canvas id="sparkline-weight" height="20" style="width:100%;display:block;margin-top:4px;opacity:0.7;"></canvas>
         </div>
         <div class="hero-stat">
           <div class="hero-stat-icon">😴</div>
           <div class="hero-stat-val" id="hero-sleep">—</div>
           <div class="hero-stat-label">hrs sleep</div>
+          <canvas id="sparkline-sleep" height="20" style="width:100%;display:block;margin-top:4px;opacity:0.7;"></canvas>
         </div>
         <div class="hero-stat">
           <div class="hero-stat-icon">🌀</div>
@@ -754,11 +764,13 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
           <div class="hero-stat-icon">💓</div>
           <div class="hero-stat-val" id="hero-hrv">—</div>
           <div class="hero-stat-label">HRV ms</div>
+          <canvas id="sparkline-hrv" height="20" style="width:100%;display:block;margin-top:4px;opacity:0.7;"></canvas>
         </div>
         <div class="hero-stat">
           <div class="hero-stat-icon">👟</div>
           <div class="hero-stat-val" id="hero-steps">—</div>
           <div class="hero-stat-label">steps</div>
+          <canvas id="sparkline-steps" height="20" style="width:100%;display:block;margin-top:4px;opacity:0.7;"></canvas>
         </div>
         <div class="hero-stat">
           <div class="hero-stat-icon">🔥</div>
@@ -1060,21 +1072,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 
 
 
-    <!-- BMR & CALORIE TARGETS -->
-    <div class="dash-section"><div class="dash-section-label" style="color:var(--gold);">Nutrition Targets</div><div class="dash-section-line" style="background:rgba(184,150,90,0.3);"></div></div>
-    <div class="health-card" style="margin-bottom:10px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div>
-          <div style="font-size:14px;font-weight:700;">🔥 BMR & Calorie Targets</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Mifflin-St Jeor formula</div>
-        </div>
-        <button onclick="openBMRProfile()" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;">Edit Profile</button>
-      </div>
-      <div id="bmr-card-content">
-        <div style="font-size:12px;color:var(--muted);text-align:center;padding:16px;">Tap Edit Profile to set your age, height &amp; activity level</div>
-      </div>
-    </div>
-
     <div class="dash-section"><div class="dash-section-label">Recovery</div><div class="dash-section-line"></div></div>
     <div class="metric-grid">
       <div class="metric-card" id="card-sleep">
@@ -1221,6 +1218,21 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       </div>
     </div>
 
+    <!-- BMR & CALORIE TARGETS -->
+    <div class="dash-section"><div class="dash-section-label" style="color:var(--gold);">Nutrition Targets</div><div class="dash-section-line" style="background:rgba(184,150,90,0.3);"></div></div>
+    <div class="health-card" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div>
+          <div style="font-size:14px;font-weight:700;">🔥 BMR & Calorie Targets</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Mifflin-St Jeor formula</div>
+        </div>
+        <button onclick="openBMRProfile()" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;">Edit Profile</button>
+      </div>
+      <div id="bmr-card-content">
+        <div style="font-size:12px;color:var(--muted);text-align:center;padding:16px;">Tap Edit Profile to set your age, height &amp; activity level</div>
+      </div>
+    </div>
+
     <div class="dash-section"><div class="dash-section-label">Nutrition</div><div class="dash-section-line"></div></div>
 
     <!-- Daily summary — now above log buttons -->
@@ -1239,6 +1251,15 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <div class="nds-macro"><div class="nds-macro-val" id="nds-carbs" style="color:var(--blue)">0g</div><div class="nds-macro-name">Carbs</div></div>
         <div class="nds-macro"><div class="nds-macro-val" id="nds-fat" style="color:var(--orange)">0g</div><div class="nds-macro-name">Fat</div></div>
       </div>
+    </div>
+
+    <!-- Macro progress bars -->
+    <div style="margin:0 16px 12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-size:12px;font-weight:700;">Daily Macro Progress</div>
+        <button onclick="openMacroGoals()" style="font-size:10px;color:var(--muted);background:none;border:none;cursor:pointer;padding:2px 6px;font-family:inherit;">Set Goals ✎</button>
+      </div>
+      <div id="macro-progress-bars"></div>
     </div>
 
     <!-- Log buttons — below Today's Intake -->
@@ -1312,6 +1333,24 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       </div>
       <button id="fasting-btn" onclick="fastingActive?endFast():startFast()" style="width:100%;padding:13px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--gold),#b8860b);color:#000;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">Start Fast</button>
     </div>
+
+    <!-- Workout stats row -->
+    <div style="display:flex;gap:8px;margin:12px 0 8px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:80px;background:var(--surface2);border-radius:10px;padding:8px 10px;text-align:center;">
+        <div id="workout-streak-val" style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--gold);">0</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;">Day Streak</div>
+      </div>
+      <div style="flex:1;min-width:80px;background:var(--surface2);border-radius:10px;padding:8px 10px;text-align:center;">
+        <div id="workout-volume-val" style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--teal);">0</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;">Weekly lbs</div>
+      </div>
+      <div style="flex:1;min-width:80px;background:var(--surface2);border-radius:10px;padding:8px 10px;text-align:center;">
+        <div id="workout-sessions-7d" style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#a78bfa;">0</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;">Sessions/wk</div>
+      </div>
+    </div>
+    <!-- Muscle group split -->
+    <div id="muscle-split-chart" style="margin-bottom:10px;"></div>
 
     <div class="workout-section-header" style="margin-top:20px;">
       <div style="display:flex;align-items:center;gap:12px;flex:1;">
@@ -1398,6 +1437,16 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 
 
             <div id="section-soul">
+
+    <!-- WEEKLY AI SUMMARY -->
+    <div class="dash-section"><div class="dash-section-label" style="color:var(--gold);">Weekly Summary</div><div class="dash-section-line" style="background:rgba(184,150,90,0.3);"></div></div>
+    <div class="health-card" style="margin-bottom:10px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:8px;">🗓️ Your Week in Review</div>
+      <div id="weekly-summary-text" style="display:none;font-size:13px;color:var(--text);line-height:1.7;margin-bottom:12px;font-style:italic;"></div>
+      <button id="weekly-summary-btn" onclick="generateWeeklySummary()" style="width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--gold),#b8860b);color:#000;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;">Generate Weekly Summary</button>
+    </div>
+
+
 
 
     <!-- SOCIAL CONNECTION -->
@@ -2098,6 +2147,54 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       </div>
     </div>
 
+<!-- ONBOARDING MODAL -->
+<div id="onboarding-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:900;align-items:center;justify-content:center;flex-direction:column;padding:20px;">
+  <div style="background:var(--surface);border-radius:20px;padding:28px 24px;max-width:360px;width:100%;border:1px solid var(--gold-border);">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--gold);">Welcome to Meridian</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:6px;">Let's personalize your experience</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+      <div>
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Age</label>
+        <input id="onboard-age" type="number" placeholder="30" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;box-sizing:border-box;outline:none;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Height (inches, e.g. 70 for 5'10")</label>
+        <input id="onboard-height" type="number" placeholder="70" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;box-sizing:border-box;outline:none;">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Biological Sex</label>
+        <select id="onboard-sex" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;box-sizing:border-box;outline:none;">
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Activity Level</label>
+        <select id="onboard-activity" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;box-sizing:border-box;outline:none;">
+          <option value="1.2">Sedentary (desk job, little exercise)</option>
+          <option value="1.375">Lightly active (1-3 days/week)</option>
+          <option value="1.55" selected>Moderately active (3-5 days/week)</option>
+          <option value="1.725">Very active (6-7 days/week)</option>
+          <option value="1.9">Extremely active (athlete)</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px;">Primary Goal</label>
+        <select id="onboard-goal" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;box-sizing:border-box;outline:none;">
+          <option value="deficit">Lose fat (caloric deficit)</option>
+          <option value="maintenance" selected>Maintain (recomposition)</option>
+          <option value="bulk">Lean bulk (caloric surplus)</option>
+        </select>
+      </div>
+    </div>
+    <button onclick="completeOnboarding()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--gold),#b8860b);color:#000;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:10px;">Set Up My Profile →</button>
+    <button onclick="skipOnboarding()" style="width:100%;padding:10px;border-radius:14px;border:1px solid var(--border);background:none;color:var(--muted);font-size:13px;font-family:inherit;cursor:pointer;">Skip for now</button>
+  </div>
+</div>
+
+
 <!-- BOTTOM NAV -->
 <div class="bottom-nav">
   <div class="nav-item" id="nav-schedule" onclick="switchView('schedule')">
@@ -2294,6 +2391,9 @@ function renderHealthView(){
   safe(renderMeridianScore, 'meridianScore');
   safe(initSections, 'initSections');
   safe(renderSocialTracker, 'socialTracker');
+  safe(renderMacroProgress, 'macroProgress');
+  safe(renderHeroSparklines, 'heroSparklines');
+  safe(renderScheduleCompletion, 'scheduleCompletion');
   safe(renderBreathworkCount, 'breathwork');
   safe(renderBMRCard, 'bmrCard');
   safe(renderFastingCard, 'fastingCard');
@@ -2305,6 +2405,38 @@ function renderHealthView(){
   safe(renderNatureTracker, 'nature');
   safe(renderScreenLog, 'screen');
   safe(renderCustomPresets, 'customPresets');
+  // Workout stats
+  safe(()=>{
+    const streak = calcWorkoutStreak();
+    const volume = calcWeeklyVolume();
+    const s7 = workoutHistory.filter(w=>{
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-7);
+      return (w.date||'') >= cutoff.toISOString().split('T')[0];
+    }).length;
+    const sv = document.getElementById('workout-streak-val');
+    const vv = document.getElementById('workout-volume-val');
+    const s7v = document.getElementById('workout-sessions-7d');
+    if(sv) sv.textContent = streak;
+    if(vv) vv.textContent = volume >= 1000 ? Math.round(volume/1000)+'k' : volume;
+    if(s7v) s7v.textContent = s7;
+    // Muscle split chart
+    const split = calcMuscleGroupSplit();
+    const splitEl = document.getElementById('muscle-split-chart');
+    if(splitEl){
+      const total = Object.values(split).reduce((s,v)=>s+v,0)||1;
+      const colors = {Push:'var(--gold)',Pull:'var(--teal)',Legs:'var(--purple)',Core:'var(--green)',Cardio:'var(--blue)',Other:'var(--muted)'};
+      splitEl.innerHTML = Object.entries(split).filter(([,v])=>v>0).map(([k,v])=>{
+        const pct = Math.round(v/total*100);
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <div style="font-size:10px;color:var(--muted);width:40px;">${k}</div>
+          <div style="flex:1;height:6px;background:var(--border2);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:${colors[k]||'var(--muted)'};border-radius:3px;"></div>
+          </div>
+          <div style="font-size:10px;color:var(--muted);width:28px;text-align:right;">${pct}%</div>
+        </div>`;
+      }).join('');
+    }
+  }, 'workoutStats');
   // Load history then restore draft (history must load first for pre-fill to work)
   loadWorkoutHistory().then(()=>{ restoreActiveDraft(); }).catch(()=>{ restoreActiveDraft(); });
   // Workout history is collapsed — render on demand
@@ -2507,7 +2639,21 @@ function renderDateBadge(){
   document.getElementById("date-badge").textContent=`${DAYS[activeDay]}, ${now.toLocaleDateString("en-US",{month:"short",day:"numeric"})}`;
 }
 
-function render(){renderTabs();renderSchedule();renderProgress();renderDateBadge();}
+function render(){
+  renderTabs();
+  renderSchedule();
+  renderProgress();
+  renderDateBadge();
+  // Update schedule completion chart
+  try{ renderScheduleCompletion(); }catch(e){}
+  try{
+    const data = calcScheduleCompletion();
+    const valid = data.filter(d=>d.pct!==null);
+    const avg = valid.length ? Math.round(valid.reduce((s,d)=>s+(d.pct||0),0)/valid.length) : 0;
+    const el = document.getElementById('avg-completion-pct');
+    if(el) el.textContent = avg+'% avg';
+  }catch(e){}
+}
 
 function toggle(key){
   checks[key]=!checks[key];saveState();
@@ -3137,7 +3283,8 @@ function renderExercises(){
         lastSessionHtml = `<div style="font-size:10px;color:var(--muted);margin-bottom:8px;padding:6px 8px;background:var(--surface2);border-radius:8px;">Last (${lastSession.date}): ${s.duration||'—'} min${s.intensity?' · '+s.intensity+' intensity':''}</div>`;
       } else {
         const s = lastSession.sets[0];
-        lastSessionHtml = `<div style="font-size:10px;color:var(--muted);margin-bottom:8px;padding:6px 8px;background:var(--surface2);border-radius:8px;">Last (${lastSession.date}): ${s.weight||'—'} lbs × ${s.reps||'—'} reps · Recommended: ${ex.target}</div>`;
+        const orm = calc1RM(parseFloat(s.weight)||0, parseInt(s.reps)||0);
+        lastSessionHtml = `<div style="font-size:10px;color:var(--muted);margin-bottom:8px;padding:6px 8px;background:var(--surface2);border-radius:8px;">Last (${lastSession.date}): ${s.weight||'—'} lbs × ${s.reps||'—'} reps${orm?' · <span style="color:var(--gold);">~'+orm+' lb 1RM</span>':''}</div>`;
       }
     }
     // Superset label-based grouping — any two exercises with same ssGroup are paired
@@ -3790,8 +3937,7 @@ function saveFoodEditToFavorites(){
 
 function saveFoodEdit(){
   if(_foodEditMeal === null || _foodEditIdx === null) return;
-  const today = new Date().toISOString().split('T')[0];
-  // Ensure the food item is updated directly in nutritionLog
+  const today = todayKey(); // use local date, not UTC
   if(!nutritionLog[today]) nutritionLog[today] = {breakfast:[],lunch:[],dinner:[],snacks:[]};
   const foods = nutritionLog[today][_foodEditMeal]||[];
   if(_foodEditIdx >= foods.length) return;
@@ -6368,19 +6514,14 @@ function toggleSection(id){
 }
 
 function initSections(){
-  // Start MIND and BODY collapsed, SOUL open
-  // User can expand what they need
-  _sectionState['section-mind'] = false;
-  _sectionState['section-body'] = false;
-  _sectionState['section-soul'] = true;
-  const mindEl = document.getElementById('section-mind');
-  const bodyEl = document.getElementById('section-body');
-  const mindArrow = document.getElementById('arrow-section-mind');
-  const bodyArrow = document.getElementById('arrow-section-body');
-  if(mindEl){ mindEl.classList.add('section-collapsed'); }
-  if(bodyEl){ bodyEl.classList.add('section-collapsed'); }
-  if(mindArrow) mindArrow.style.transform = 'rotate(-90deg)';
-  if(bodyArrow) bodyArrow.style.transform = 'rotate(-90deg)';
+  // All sections start collapsed — tap any header to expand
+  ['section-mind','section-body','section-soul'].forEach(id=>{
+    _sectionState[id] = false;
+    const el = document.getElementById(id);
+    const arrow = document.getElementById('arrow-'+id);
+    if(el) el.classList.add('section-collapsed');
+    if(arrow) arrow.style.transform = 'rotate(-90deg)';
+  });
 }
 
 // ══════════════════════════════════════════
@@ -6484,6 +6625,8 @@ function renderBMRCard(){
   const el = document.getElementById('bmr-card-content');
   if(!el) return;
   loadBMRProfile();
+  loadMacroGoals();
+  checkOnboarding();
   const result = calcBMR();
   const goal = bmrProfile.goal || 'maintenance';
   const target = result[goal] || result.maintenance;
@@ -6704,6 +6847,334 @@ function stopExTimer(exId){
 function toggleExTimer(exId){
   if(_exTimers[exId]?.interval) stopExTimer(exId);
   else startExTimer(exId);
+}
+
+
+// ══════════════════════════════════════════
+// TIER 1: MACRO GOALS
+// ══════════════════════════════════════════
+let macroGoals = { calories: 2000, protein: 180, carbs: 200, fat: 70 };
+
+function loadMacroGoals(){
+  try{ macroGoals = JSON.parse(localStorage.getItem('macro_goals')||JSON.stringify(macroGoals)); }catch(e){}
+}
+function saveMacroGoals(){
+  localStorage.setItem('macro_goals', JSON.stringify(macroGoals));
+  saveCloud('macro_goals', macroGoals);
+}
+function openMacroGoals(){
+  const p = prompt('Daily calorie goal:', macroGoals.calories);
+  if(!p) return;
+  const pr = prompt('Protein goal (g):', macroGoals.protein);
+  if(!pr) return;
+  const ca = prompt('Carb goal (g):', macroGoals.carbs);
+  if(!ca) return;
+  const fa = prompt('Fat goal (g):', macroGoals.fat);
+  if(!fa) return;
+  macroGoals = { calories: parseInt(p)||2000, protein: parseInt(pr)||180, carbs: parseInt(ca)||200, fat: parseInt(fa)||70 };
+  saveMacroGoals();
+  renderNutrition();
+  showToast('✓ Macro goals saved');
+}
+
+function renderMacroProgress(){
+  const el = document.getElementById('macro-progress-bars');
+  if(!el) return;
+  loadMacroGoals();
+  const today = todayKey();
+  const log = nutritionLog[today] || {};
+  let totalCal=0, totalPro=0, totalCarb=0, totalFat=0;
+  ['breakfast','lunch','dinner','snacks'].forEach(meal=>{
+    (log[meal]||[]).forEach(f=>{
+      totalCal  += f.calories||0;
+      totalPro  += f.protein||0;
+      totalCarb += f.carbs||0;
+      totalFat  += f.fat||0;
+    });
+  });
+  const bars = [
+    { label:'Calories', val:Math.round(totalCal), goal:macroGoals.calories, color:'var(--gold)', unit:'kcal' },
+    { label:'Protein',  val:Math.round(totalPro),  goal:macroGoals.protein,  color:'var(--green)', unit:'g' },
+    { label:'Carbs',    val:Math.round(totalCarb), goal:macroGoals.carbs,    color:'var(--blue)', unit:'g' },
+    { label:'Fat',      val:Math.round(totalFat),  goal:macroGoals.fat,      color:'var(--orange)', unit:'g' },
+  ];
+  el.innerHTML = bars.map(b => {
+    const pct = Math.min(Math.round(b.val/b.goal*100), 100);
+    const over = b.val > b.goal;
+    return `<div style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;">
+        <span style="color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;">${b.label}</span>
+        <span style="color:${over?'var(--red)':b.color};font-weight:700;">${b.val}<span style="color:var(--muted);font-weight:400;">/${b.goal}${b.unit}</span></span>
+      </div>
+      <div style="height:5px;background:var(--border2);border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${over?'var(--red)':b.color};border-radius:3px;transition:width 0.4s;"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// TIER 1: SPARKLINES IN HERO CARDS
+// ══════════════════════════════════════════
+function renderHeroSparklines(){
+  renderHeroSparkline('sparkline-weight', 'weight', 'var(--gold)');
+  renderHeroSparkline('sparkline-hrv', 'hrv', '#ec4899');
+  renderHeroSparkline('sparkline-sleep', 'sleep', '#a78bfa');
+  renderHeroSparkline('sparkline-steps', 'steps', 'var(--teal)');
+}
+
+function renderHeroSparkline(canvasId, field, color){
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const w = canvas.offsetWidth || 80;
+  const h = 20;
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,w,h);
+
+  // Gather 7 days of data
+  const vals = [];
+  for(let i=6;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const k=d.toISOString().split('T')[0];
+    const v = healthHistory[k]?.[field] || null;
+    vals.push(v);
+  }
+  const valid = vals.filter(v=>v!==null);
+  if(valid.length < 2) return;
+
+  const min = Math.min(...valid);
+  const max = Math.max(...valid);
+  const range = max - min || 1;
+
+  // Draw line
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  let started = false;
+  vals.forEach((v, i) => {
+    if(v === null) return;
+    const x = (i / 6) * w;
+    const y = h - ((v - min) / range) * (h - 4) - 2;
+    if(!started){ ctx.moveTo(x, y); started = true; }
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+
+// ══════════════════════════════════════════
+// TIER 1: WORKOUT STREAK + WEEKLY VOLUME
+// ══════════════════════════════════════════
+function calcWorkoutStreak(){
+  if(!workoutHistory || !workoutHistory.length) return 0;
+  // Get unique workout dates, sorted descending
+  const dates = [...new Set(workoutHistory.map(w => w.date || w.dateLabel?.split(' ').slice(-3).join(' ')))].sort().reverse();
+  let streak = 0;
+  const today = new Date();
+  for(let i=0; i<30; i++){
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const k = d.toISOString().split('T')[0];
+    const hasWorkout = workoutHistory.some(w => (w.date||'').startsWith(k));
+    if(hasWorkout) streak++;
+    else if(i > 0) break; // allow today to be missing
+  }
+  return streak;
+}
+
+function calcWeeklyVolume(){
+  if(!workoutHistory || !workoutHistory.length) return 0;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 7);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+  let volume = 0;
+  workoutHistory.forEach(w => {
+    if((w.date||'') < cutoffStr) return;
+    (w.exercises||[]).forEach(ex => {
+      (ex.sets||[]).forEach(s => {
+        const wt = parseFloat(s.weight)||0;
+        const reps = parseInt(s.reps)||0;
+        volume += wt * reps;
+      });
+    });
+  });
+  return Math.round(volume);
+}
+
+function calc1RM(weight, reps){
+  if(!weight || !reps || reps < 1) return 0;
+  if(reps === 1) return weight;
+  return Math.round(weight * (1 + reps / 30)); // Epley formula
+}
+
+function calcMuscleGroupSplit(){
+  if(!workoutHistory?.length) return {};
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-7);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+  const groups = { Push:0, Pull:0, Legs:0, Core:0, Cardio:0, Other:0 };
+  const pushEx = ['bench','push','chest','shoulder','tricep','overhead','dip','fly'];
+  const pullEx = ['row','pull','chin','lat','bicep','curl','face','deadlift','shrug'];
+  const legEx = ['squat','leg','lunge','calf','hip','glute','rdl','hamstring','quad'];
+  const coreEx = ['plank','crunch','ab','core','oblique','situp','neck'];
+  workoutHistory.forEach(w => {
+    if((w.date||'') < cutoffStr) return;
+    (w.exercises||[]).forEach(ex => {
+      const n = (ex.name||'').toLowerCase();
+      if(ex.type==='cardio' || ['run','bike','row','swim','walk'].some(k=>n.includes(k))){ groups.Cardio++; }
+      else if(pushEx.some(k=>n.includes(k))){ groups.Push++; }
+      else if(pullEx.some(k=>n.includes(k))){ groups.Pull++; }
+      else if(legEx.some(k=>n.includes(k))){ groups.Legs++; }
+      else if(coreEx.some(k=>n.includes(k))){ groups.Core++; }
+      else { groups.Other++; }
+    });
+  });
+  return groups;
+}
+
+// ══════════════════════════════════════════
+// TIER 1: SCHEDULE COMPLETION ANALYTICS
+// ══════════════════════════════════════════
+function calcScheduleCompletion(){
+  const results = [];
+  const today = new Date();
+  for(let i=6;i>=0;i--){
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
+    const tasks = Object.keys(SCHED[dayName]||{});
+    if(!tasks.length){ results.push({day:dayName.slice(0,3), pct:null}); continue; }
+    // Count checked tasks for this day
+    // checks object keys are "DayName|time"
+    const dayChecks = Object.entries(checks||{})
+      .filter(([k])=>k.startsWith(dayName+'|'))
+      .filter(([,v])=>v).length;
+    const pct = Math.round(dayChecks / tasks.length * 100);
+    results.push({ day: dayName.slice(0,3), pct, total: tasks.length, done: dayChecks });
+  }
+  return results;
+}
+
+function renderScheduleCompletion(){
+  const el = document.getElementById('schedule-completion-chart');
+  if(!el) return;
+  const data = calcScheduleCompletion();
+  const bars = data.map(d => {
+    if(d.pct === null) return `<div style="flex:1;text-align:center;"><div style="font-size:9px;color:var(--muted);">${d.day}</div></div>`;
+    const color = d.pct>=80?'var(--green)':d.pct>=50?'var(--gold)':'var(--red)';
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <div style="font-size:10px;font-weight:700;color:${color};">${d.pct}%</div>
+      <div style="width:100%;background:var(--border2);border-radius:3px;height:40px;display:flex;align-items:flex-end;">
+        <div style="width:100%;background:${color};border-radius:3px;height:${d.pct}%;transition:height 0.4s;"></div>
+      </div>
+      <div style="font-size:9px;color:var(--muted);">${d.day}</div>
+    </div>`;
+  }).join('');
+  el.innerHTML = `<div style="display:flex;gap:4px;align-items:flex-end;height:70px;">${bars}</div>`;
+}
+
+// ══════════════════════════════════════════
+// TIER 2: WEEKLY AI SUMMARY
+// ══════════════════════════════════════════
+let weeklySummaryShown = false;
+
+async function generateWeeklySummary(){
+  const btn = document.getElementById('weekly-summary-btn');
+  if(btn){ btn.textContent = '⟳ Generating...'; btn.disabled = true; }
+  
+  // Gather week data
+  const weekData = [];
+  for(let i=6;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const k=d.toISOString().split('T')[0];
+    const day = d.toLocaleDateString('en-US',{weekday:'short'});
+    const h = healthHistory[k]||{};
+    weekData.push({ day, ...h });
+  }
+  
+  const streak = calcWorkoutStreak();
+  const volume = calcWeeklyVolume();
+  const completion = calcScheduleCompletion();
+  const avgCompletion = Math.round(completion.filter(d=>d.pct!==null).reduce((s,d)=>s+(d.pct||0),0)/Math.max(1,completion.filter(d=>d.pct!==null).length));
+  const meridianScore = document.getElementById('hero-meridian-score')?.textContent || '—';
+  
+  try {
+    const res = await fetch(SERVER+'/ai-log', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        system: 'You are Meridian — an elite wellness coach. Write a concise weekly review (4-5 sentences) that feels like a real coach talking. Be specific with the numbers. End with one sharp recommendation for next week. No bullet points, no headers.',
+        input: `Week summary: ${JSON.stringify(weekData)}. Workout streak: ${streak} days. Weekly volume: ${volume.toLocaleString()} lbs. Schedule completion: ${avgCompletion}%. Meridian Score today: ${meridianScore}/100.`
+      })
+    });
+    const data = await res.json();
+    const text = data.text || 'Unable to generate summary.';
+    const el = document.getElementById('weekly-summary-text');
+    if(el){ el.textContent = text; el.style.display='block'; }
+    if(btn){ btn.textContent = '↺ Regenerate'; btn.disabled = false; }
+  } catch(e) {
+    if(btn){ btn.textContent = 'Generate Weekly Summary'; btn.disabled = false; }
+    showToast('Failed to generate summary');
+  }
+}
+
+// ══════════════════════════════════════════
+// TIER 3: ONBOARDING / FIRST RUN
+// ══════════════════════════════════════════
+function checkOnboarding(){
+  const done = localStorage.getItem('onboarding_complete');
+  if(done) return;
+  // Only show on first open
+  setTimeout(()=>{ showOnboarding(); }, 1500);
+}
+
+function showOnboarding(){
+  const el = document.getElementById('onboarding-modal');
+  if(el) el.style.display='flex';
+}
+
+function completeOnboarding(){
+  const age = document.getElementById('onboard-age')?.value;
+  const height = document.getElementById('onboard-height')?.value;
+  const weight_val = document.getElementById('onboard-weight')?.value;
+  const goal = document.getElementById('onboard-goal')?.value;
+  const activity = document.getElementById('onboard-activity')?.value;
+  
+  if(!age || !height){ showToast('Please fill in all fields'); return; }
+  
+  // Save to BMR profile
+  loadBMRProfile();
+  bmrProfile = {
+    age: parseInt(age)||30,
+    height: parseFloat(height)||70,
+    sex: document.getElementById('onboard-sex')?.value||'male',
+    activityLevel: parseFloat(activity)||1.55,
+    goal: goal||'maintenance'
+  };
+  saveBMRProfile();
+  
+  // Set macro goals based on BMR
+  const calc = calcBMR();
+  const targetCals = calc[goal]||calc.maintenance;
+  macroGoals = {
+    calories: targetCals,
+    protein: Math.round((targetCals * 0.30) / 4), // 30% protein
+    carbs: Math.round((targetCals * 0.40) / 4),   // 40% carbs
+    fat: Math.round((targetCals * 0.30) / 9),      // 30% fat
+  };
+  saveMacroGoals();
+  
+  localStorage.setItem('onboarding_complete', '1');
+  const el = document.getElementById('onboarding-modal');
+  if(el) el.style.display='none';
+  renderBMRCard();
+  showToast('✓ Profile set up! Welcome to Meridian.');
+}
+
+function skipOnboarding(){
+  localStorage.setItem('onboarding_complete', '1');
+  const el = document.getElementById('onboarding-modal');
+  if(el) el.style.display='none';
 }
 
 // ── Boot ──
