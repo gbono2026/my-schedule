@@ -637,7 +637,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260501140000">
+<meta name="app-version" content="20260501150000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -1477,6 +1477,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <div class="health-card" style="margin-bottom:10px;">
       <div style="font-size:14px;font-weight:700;margin-bottom:8px;">🗓️ Your Week in Review</div>
       <div id="weekly-summary-text" style="display:none;font-size:13px;color:var(--text);line-height:1.7;margin-bottom:12px;font-style:italic;"></div>
+      <div id="weekly-summary-error" style="display:none;font-size:11px;color:var(--red);margin-bottom:10px;padding:8px;background:rgba(248,113,113,0.1);border-radius:8px;"></div>
       <button id="weekly-summary-btn" onclick="generateWeeklySummary()" style="width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--gold),#b8860b);color:#000;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;">Generate Weekly Summary</button>
     </div>
 
@@ -7177,33 +7178,71 @@ let weeklySummaryShown = false;
 
 async function generateWeeklySummary(){
   const btn = document.getElementById('weekly-summary-btn');
+  const errEl = document.getElementById('weekly-summary-error');
   if(btn){ btn.textContent = '⟳ Generating...'; btn.disabled = true; }
-  
-  // Gather week data
+  if(errEl) errEl.style.display = 'none';
+
+  // Build a compact week summary (not full health objects - too large)
   const weekData = [];
   for(let i=6;i>=0;i--){
     const d=new Date(); d.setDate(d.getDate()-i);
     const k=d.toISOString().split('T')[0];
-    const day = d.toLocaleDateString('en-US',{weekday:'short'});
     const h = healthHistory[k]||{};
-    weekData.push({ day, ...h });
+    const day = d.toLocaleDateString('en-US',{weekday:'short'});
+    weekData.push({
+      day,
+      sleep: h.sleep ? parseFloat(h.sleep).toFixed(1) : null,
+      hrv: h.hrv ? Math.round(h.hrv) : null,
+      steps: h.steps ? Math.round(h.steps) : null,
+      weight: h.weight ? parseFloat(h.weight).toFixed(1) : null,
+      restHR: h.restingHR ? Math.round(h.restingHR) : null,
+    });
   }
-  
+
   const streak = calcWorkoutStreak();
-  const volume = calcWeeklyVolume();
   const completion = calcScheduleCompletion();
-  const avgCompletion = Math.round(completion.filter(d=>d.pct!==null).reduce((s,d)=>s+(d.pct||0),0)/Math.max(1,completion.filter(d=>d.pct!==null).length));
+  const avgCompletion = Math.round(
+    completion.filter(d=>d.pct!==null).reduce((s,d)=>s+(d.pct||0),0) /
+    Math.max(1, completion.filter(d=>d.pct!==null).length)
+  );
   const meridianScore = document.getElementById('hero-meridian-score')?.textContent || '—';
-  
+  const todayWeight = healthToday?.weight ? healthToday.weight + ' lbs' : 'not logged';
+
+  // Nutrition this week
+  let weekCals = 0, weekDays = 0;
+  for(let i=0;i<7;i++){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const k=d.toISOString().split('T')[0].replace(/-/g,'-');
+    const log = nutritionLog[k];
+    if(!log) continue;
+    let dayCals = 0;
+    ['breakfast','lunch','dinner','snacks'].forEach(m=>{ (log[m]||[]).forEach(f=>{ dayCals+=f.calories||0; }); });
+    if(dayCals > 0){ weekCals += dayCals; weekDays++; }
+  }
+  const avgCals = weekDays ? Math.round(weekCals/weekDays) : null;
+
+  const summary = {
+    weekDays: weekData,
+    workoutStreak: streak + ' days',
+    scheduleCompletion: avgCompletion + '%',
+    meridianScore: meridianScore + '/100',
+    currentWeight: todayWeight,
+    avgDailyCals: avgCals ? avgCals + ' kcal' : 'not tracked',
+  };
+
   try {
     const res = await fetch(SERVER+'/ai-log', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        system: 'You are Meridian — an elite wellness coach. Write a concise weekly review (4-5 sentences) that feels like a real coach talking. Be specific with the numbers. End with one sharp recommendation for next week. No bullet points, no headers.',
-        input: `Week summary: ${JSON.stringify(weekData)}. Workout streak: ${streak} days. Weekly volume: ${volume.toLocaleString()} lbs. Schedule completion: ${avgCompletion}%. Meridian Score today: ${meridianScore}/100.`
+        system: 'You are Meridian — an elite wellness coach. Write a 3-4 sentence weekly review that feels like a real coach talking. Be specific with numbers. End with one sharp, actionable recommendation for next week. No bullet points, no headers, no markdown.',
+        input: 'My week: ' + JSON.stringify(summary)
       })
     });
+    if(!res.ok){
+      const err = await res.json();
+      throw new Error(err.error || 'Server error ' + res.status);
+    }
     const data = await res.json();
     const text = data.text || 'Unable to generate summary.';
     const el = document.getElementById('weekly-summary-text');
@@ -7211,7 +7250,8 @@ async function generateWeeklySummary(){
     if(btn){ btn.textContent = '↺ Regenerate'; btn.disabled = false; }
   } catch(e) {
     if(btn){ btn.textContent = 'Generate Weekly Summary'; btn.disabled = false; }
-    showToast('Failed to generate summary');
+    if(errEl){ errEl.textContent = 'Error: ' + e.message; errEl.style.display='block'; }
+    else showToast('Error: ' + e.message);
   }
 }
 
