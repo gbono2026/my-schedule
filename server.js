@@ -351,7 +351,25 @@ async function getFile() {
   const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/index.html`,
     { headers: { Authorization: `token ${GITHUB_TOKEN}`, Accept: "application/vnd.github.v3+json" }});
   const data = await res.json();
-  return { content: Buffer.from(data.content, "base64").toString("utf8"), sha: data.sha };
+  
+  // GitHub returns download_url if file > 1MB, or message if auth fails
+  if (data.message) {
+    throw new Error("GitHub API error: " + data.message);
+  }
+  
+  let rawContent;
+  if (data.content) {
+    // File content returned inline (files < 1MB)
+    rawContent = Buffer.from(data.content.replace(/\n/g, ""), "base64").toString("utf8");
+  } else if (data.download_url) {
+    // File too large for inline — fetch via download_url
+    const dlRes = await fetch(data.download_url);
+    rawContent = await dlRes.text();
+  } else {
+    throw new Error("GitHub returned no content and no download_url");
+  }
+  
+  return { content: rawContent, sha: data.sha };
 }
 
 async function updateFile(content, sha, message) {
@@ -367,9 +385,16 @@ app.post("/update", async (req, res) => {
   if (password !== ADMIN_PASSWORD) return res.status(401).json({ error: "Wrong password" });
   try {
     const { content, sha } = await getFile();
-    const schedMatch = content.match(/const SCHED=(\{[^\n]*\n(?:  \w+:\{[^\n]*\},?\n)*\});/);
-    if (!schedMatch) return res.status(500).json({ error: "Could not find schedule data" });
-    const currentSched = schedMatch[1];
+    // Flexible SCHED extraction using brace counting
+  const schedStart = content.indexOf("const SCHED=");
+  if (schedStart === -1) return res.status(500).json({ error: "Could not find SCHED in file" });
+  let depth = 0, schedEnd = -1;
+  for (let i = schedStart + 12; i < content.length; i++) {
+    if (content[i] === "{") depth++;
+    else if (content[i] === "}") { depth--; if (depth === 0) { schedEnd = i + 1; break; } }
+  }
+  if (schedEnd === -1) return res.status(500).json({ error: "Could not parse SCHED object" });
+  const currentSched = content.slice(schedStart + 12, schedEnd);
 
     const message = await client.messages.create({
       model: "claude-sonnet-4-20250514", max_tokens: 8000,
@@ -384,10 +409,7 @@ app.post("/update", async (req, res) => {
       return res.status(500).json({ error: "AI returned invalid schedule — please try again" });
     }
 
-    const updatedContent = content.replace(
-      /const SCHED=\{[^\n]*\n(?:  \w+:\{[^\n]*\},?\n)*\};/,
-      `const SCHED=${newSched};`
-    );
+    const updatedContent = content.slice(0, schedStart + 12) + newSched + ";" + content.slice(schedEnd + 1);
 
     if (updatedContent === content) {
       return res.status(500).json({ error: "Schedule update failed — please try again" });
