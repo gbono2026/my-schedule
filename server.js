@@ -182,13 +182,16 @@ app.post("/health", async (req, res) => {
   const existing = healthData[today] || {};
   const merged = { ...existing };
   for (const [k, v] of Object.entries(update)) {
-    // Always update timestamp fields; for data fields only update if new value is meaningful
     if (k === 'date' || k === 'lastSync') {
       merged[k] = v;
+    } else if (k === 'weight' || k === 'bodyFat' || k === 'bmi') {
+      // Point-in-time measurements: always take latest non-zero value from today's sync
+      if (v !== null && v !== undefined && v !== 0 && v !== '') merged[k] = v;
     } else if (v !== null && v !== undefined && v !== 0 && v !== '') {
+      // Cumulative/averaged fields: take new value if meaningful
       merged[k] = v;
     } else if (!merged[k]) {
-      merged[k] = v; // accept zero only if no existing value
+      merged[k] = v;
     }
   }
   await saveHealthDay(today, merged);
@@ -220,7 +223,11 @@ app.post("/debug", async (req, res) => {
 });
 
 app.get("/debug", (req, res) => {
-  try { res.json(JSON.parse(fs.readFileSync(DEBUG_FILE, "utf8"))); }
+  try {
+    const payload = JSON.parse(fs.readFileSync(DEBUG_FILE, "utf8"));
+    const parsed = parseHAEPayload(payload);
+    res.json({ parsed, rawMetricNames: (payload?.data?.metrics||[]).map(m=>m.name) });
+  }
   catch(e) { res.json({ message: "No debug data yet" }); }
 });
 
