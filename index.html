@@ -637,7 +637,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260501130000">
+<meta name="app-version" content="20260501140000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -1350,22 +1350,41 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     </div>
 
     <!-- Workout stats row -->
-    <div style="display:flex;gap:8px;margin:12px 0 8px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:80px;background:var(--surface2);border-radius:10px;padding:8px 10px;text-align:center;">
-        <div id="workout-streak-val" style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--gold);">0</div>
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;">Day Streak</div>
+    <div style="background:linear-gradient(135deg,rgba(184,150,90,0.08),rgba(184,150,90,0.03));border:1px solid var(--gold-border);border-radius:14px;padding:12px;margin:12px 0 10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-size:12px;font-weight:700;color:var(--gold);">This Week</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="font-size:11px;color:var(--muted);">Streak:</div>
+          <div id="workout-streak-val" style="font-size:14px;font-weight:700;color:var(--gold);">0</div>
+          <div style="font-size:11px;color:var(--muted);">days 🔥</div>
+        </div>
       </div>
-      <div style="flex:1;min-width:80px;background:var(--surface2);border-radius:10px;padding:8px 10px;text-align:center;">
-        <div id="workout-volume-val" style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:var(--teal);">0</div>
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;">Weekly lbs</div>
+      <!-- Workout type counts -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;" id="workout-type-counts">
+        <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:6px 4px;">
+          <div style="font-size:16px;font-weight:700;color:var(--gold);" id="wk-push">0</div>
+          <div style="font-size:8px;color:var(--muted);">PUSH</div>
+        </div>
+        <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:6px 4px;">
+          <div style="font-size:16px;font-weight:700;color:var(--teal);" id="wk-pull">0</div>
+          <div style="font-size:8px;color:var(--muted);">PULL</div>
+        </div>
+        <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:6px 4px;">
+          <div style="font-size:16px;font-weight:700;color:#a78bfa;" id="wk-legs1">0</div>
+          <div style="font-size:8px;color:var(--muted);">LEGS 1</div>
+        </div>
+        <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:6px 4px;">
+          <div style="font-size:16px;font-weight:700;color:#a78bfa;" id="wk-legs2">0</div>
+          <div style="font-size:8px;color:var(--muted);">LEGS 2</div>
+        </div>
+        <div style="text-align:center;background:var(--surface2);border-radius:8px;padding:6px 4px;">
+          <div style="font-size:16px;font-weight:700;color:var(--green);" id="wk-upper">0</div>
+          <div style="font-size:8px;color:var(--muted);">UPPER</div>
+        </div>
       </div>
-      <div style="flex:1;min-width:80px;background:var(--surface2);border-radius:10px;padding:8px 10px;text-align:center;">
-        <div id="workout-sessions-7d" style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#a78bfa;">0</div>
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;">Sessions/wk</div>
-      </div>
+      <!-- Muscle split bar -->
+      <div id="muscle-split-chart" style="margin-top:10px;"></div>
     </div>
-    <!-- Muscle group split -->
-    <div id="muscle-split-chart" style="margin-bottom:10px;"></div>
 
     <div class="workout-section-header" style="margin-top:20px;">
       <div style="display:flex;align-items:center;gap:12px;flex:1;">
@@ -2424,17 +2443,27 @@ function renderHealthView(){
   // Workout stats
   safe(()=>{
     const streak = calcWorkoutStreak();
-    const volume = calcWeeklyVolume();
-    const s7 = workoutHistory.filter(w=>{
-      const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-7);
-      return (w.date||'') >= cutoff.toISOString().split('T')[0];
-    }).length;
     const sv = document.getElementById('workout-streak-val');
-    const vv = document.getElementById('workout-volume-val');
-    const s7v = document.getElementById('workout-sessions-7d');
     if(sv) sv.textContent = streak;
-    if(vv) vv.textContent = volume >= 1000 ? Math.round(volume/1000)+'k' : volume;
-    if(s7v) s7v.textContent = s7;
+    // Count push/pull/leg1/leg2/upper this week
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-7);
+    const cutoffStr = cutoff.toISOString().split('T')[0];
+    const weekWorkouts = workoutHistory.filter(w=>(w.date||'') >= cutoffStr);
+    const counts = { push:0, pull:0, legs1:0, legs2:0, upper:0 };
+    weekWorkouts.forEach(w=>{
+      const name = (w.presetName||w.name||'').toLowerCase();
+      if(name.includes('push')) counts.push++;
+      else if(name.includes('pull')) counts.pull++;
+      else if(name.includes('legs 1') || name.includes('leg 1')) counts.legs1++;
+      else if(name.includes('legs 2') || name.includes('leg 2')) counts.legs2++;
+      else if(name.includes('upper')) counts.upper++;
+    });
+    const setEl = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
+    setEl('wk-push', counts.push);
+    setEl('wk-pull', counts.pull);
+    setEl('wk-legs1', counts.legs1);
+    setEl('wk-legs2', counts.legs2);
+    setEl('wk-upper', counts.upper);
     // Muscle split chart
     const split = calcMuscleGroupSplit();
     const splitEl = document.getElementById('muscle-split-chart');
@@ -3239,9 +3268,17 @@ document.addEventListener('visibilitychange', ()=>{
       else { localStorage.removeItem('rest_timer_end'); hideRestTimer(); }
     }
   } else {
-    // App going to background — store rest timer end time
+    // App going to background — store end time and CLEAR interval
+    // (interval won't run in background anyway, clearing prevents double-interval on resume)
     if(restInterval && restSeconds > 0){
       localStorage.setItem('rest_timer_end', Date.now() + restSeconds * 1000);
+      clearInterval(restInterval);
+      restInterval = null;
+    }
+    // Same for workout timer
+    if(workoutTimer){
+      clearInterval(workoutTimer);
+      workoutTimer = null;
     }
   }
 });
@@ -6559,6 +6596,22 @@ const SCHEDULE_MIND_MAPPINGS = {
 function scheduleAutoLog(taskName, checked){
   if(!checked) return;
   const lower = taskName.toLowerCase().trim();
+
+  // Gym/workout task → switch to health tab and expand + scroll to workout
+  if(lower.includes('gym') || lower.includes('workout') || lower.includes('training') || lower.includes('weights')){
+    switchView('health');
+    // Expand BODY section if collapsed
+    const bodyEl = document.getElementById('section-body');
+    if(bodyEl && bodyEl.classList.contains('section-collapsed')){
+      toggleSection('section-body');
+    }
+    // Scroll to workout section after a brief delay
+    setTimeout(()=>{
+      const workoutEl = document.querySelector('.workout-section-header');
+      if(workoutEl) workoutEl.scrollIntoView({behavior:'smooth', block:'start'});
+    }, 400);
+    return;
+  }
   
   // Nature / sunlight
   if(lower.includes('sunlight') || lower.includes('nature walk') || lower.includes('outdoor')){
@@ -6642,6 +6695,8 @@ function renderBMRCard(){
   if(!el) return;
   loadBMRProfile();
   loadMacroGoals();
+  // If macros are at default 2000 and BMR profile exists, sync them
+  if(macroGoals.calories === 2000 && bmrProfile.age) syncMacrosFromBMR();
   checkOnboarding();
   const result = calcBMR();
   const goal = bmrProfile.goal || 'maintenance';
@@ -6694,8 +6749,10 @@ function openBMRProfile(){
   if(!activity) return;
   bmrProfile = { ...bmrProfile, age:parseInt(age), height:parseFloat(height), sex:sex.toLowerCase().trim(), activityLevel:parseFloat(activity) };
   saveBMRProfile();
+  syncMacrosFromBMR();
   renderBMRCard();
-  showToast('Profile updated');
+  renderMacroProgress();
+  showToast('Profile updated — macros recalculated');
 }
 
 // ══════════════════════════════════════════
@@ -6879,18 +6936,42 @@ function saveMacroGoals(){
   saveCloud('macro_goals', macroGoals);
 }
 function openMacroGoals(){
-  const p = prompt('Daily calorie goal:', macroGoals.calories);
+  // Auto-calculate from BMR if profile exists
+  const bmrCalc = calcBMR ? calcBMR() : null;
+  const suggestedCals = bmrCalc ? bmrCalc[bmrProfile.goal||'maintenance'] : macroGoals.calories;
+  // Macro split: 35% protein, 35% carbs, 30% fat (optimized for body recomposition)
+  const suggestedProtein = Math.round((suggestedCals * 0.35) / 4);
+  const suggestedCarbs   = Math.round((suggestedCals * 0.35) / 4);
+  const suggestedFat     = Math.round((suggestedCals * 0.30) / 9);
+
+  const p = prompt(`Daily calorie goal:\n(BMR suggests ${suggestedCals} for your ${bmrProfile.goal||'maintenance'} goal):`, suggestedCals);
   if(!p) return;
-  const pr = prompt('Protein goal (g):', macroGoals.protein);
-  if(!pr) return;
-  const ca = prompt('Carb goal (g):', macroGoals.carbs);
-  if(!ca) return;
-  const fa = prompt('Fat goal (g):', macroGoals.fat);
-  if(!fa) return;
-  macroGoals = { calories: parseInt(p)||2000, protein: parseInt(pr)||180, carbs: parseInt(ca)||200, fat: parseInt(fa)||70 };
+  const cals = parseInt(p)||suggestedCals;
+  // Auto-recalculate macros from calories (35/35/30 split)
+  macroGoals = {
+    calories: cals,
+    protein:  Math.round((cals * 0.35) / 4),
+    carbs:    Math.round((cals * 0.35) / 4),
+    fat:      Math.round((cals * 0.30) / 9),
+  };
   saveMacroGoals();
   renderNutrition();
-  showToast('✓ Macro goals saved');
+  renderMacroProgress();
+  showToast('Macros updated: ' + cals + ' kcal');
+}
+
+function syncMacrosFromBMR(){
+  // Called whenever BMR profile changes — keeps macros in sync
+  if(!calcBMR) return;
+  const bmrCalc = calcBMR();
+  const cals = bmrCalc[bmrProfile.goal||'maintenance'] || bmrCalc.maintenance;
+  macroGoals = {
+    calories: cals,
+    protein:  Math.round((cals * 0.35) / 4),
+    carbs:    Math.round((cals * 0.35) / 4),
+    fat:      Math.round((cals * 0.30) / 9),
+  };
+  saveMacroGoals();
 }
 
 function renderMacroProgress(){
@@ -7174,8 +7255,8 @@ function completeOnboarding(){
   const targetCals = calc[goal]||calc.maintenance;
   macroGoals = {
     calories: targetCals,
-    protein: Math.round((targetCals * 0.30) / 4), // 30% protein
-    carbs: Math.round((targetCals * 0.40) / 4),   // 40% carbs
+    protein: Math.round((targetCals * 0.35) / 4), // 35% protein
+    carbs: Math.round((targetCals * 0.35) / 4),   // 35% carbs
     fat: Math.round((targetCals * 0.30) / 9),      // 30% fat
   };
   saveMacroGoals();
