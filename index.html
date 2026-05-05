@@ -637,7 +637,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260501150000">
+<meta name="app-version" content="20260505130000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -728,14 +728,28 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 
 
     <!-- AI MORNING BRIEFING -->
-    <div id="morning-briefing" style="display:none;background:linear-gradient(135deg,rgba(184,150,90,0.08),rgba(184,150,90,0.04));border:1px solid var(--gold-border);border-radius:14px;padding:14px 16px;margin-bottom:12px;">
-      <div style="display:flex;align-items:flex-start;gap:10px;">
+    <div id="morning-briefing" style="display:none;background:linear-gradient(135deg,rgba(184,150,90,0.1),rgba(184,150,90,0.04));border:1px solid var(--gold-border);border-radius:16px;padding:16px;margin-bottom:12px;">
+      <!-- Header -->
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
         <div style="font-size:20px;">✦</div>
         <div style="flex:1;">
-          <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;">AI Briefing</div>
+          <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;">Your Morning Briefing</div>
           <div id="morning-briefing-text" style="font-size:13px;color:var(--text);line-height:1.7;"></div>
         </div>
         <button onclick="document.getElementById('morning-briefing').style.display='none'" style="background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0;line-height:1;">×</button>
+      </div>
+      <!-- Unified morning log -->
+      <div style="border-top:1px solid var(--gold-border);padding-top:12px;">
+        <div style="font-size:11px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📋 Log your morning in one go</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-style:italic;">Example: "Had oatmeal and coffee, 10 min outside, 2 cups of water, feeling great, socialized with a friend"</div>
+        <div style="display:flex;gap:8px;align-items:flex-end;">
+          <textarea id="morning-log-input" placeholder="Tell me what you did this morning..." rows="2" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:10px 12px;font-family:inherit;resize:none;outline:none;line-height:1.5;"></textarea>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <button onclick="toggleMorningVoice()" id="morning-voice-btn" style="width:40px;height:40px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:18px;cursor:pointer;">🎤</button>
+            <button onclick="processMorningLog()" id="morning-log-btn" style="width:40px;height:40px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--gold),#b8860b);color:#000;font-size:18px;cursor:pointer;font-weight:700;">→</button>
+          </div>
+        </div>
+        <div id="morning-log-result" style="display:none;margin-top:10px;padding:10px;background:var(--surface2);border-radius:10px;font-size:12px;color:var(--text);line-height:1.6;"></div>
       </div>
     </div>
     <!-- HERO CARD -->
@@ -1277,6 +1291,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <div id="macro-progress-bars"></div>
     </div>
 
+    <!-- Quick meal chips -->
+    <div style="margin:0 16px 10px;">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Quick Log</div>
+      <div id="quick-meal-chips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+    </div>
+
     <!-- Log buttons — below Today's Intake -->
     <div style="display:flex;gap:8px;margin:0 16px 8px;align-items:stretch;">
       <button class="ai-log-btn" style="flex:1;margin:0;" onclick="openAIModal('meal')">✦ Log meal with AI</button>
@@ -1386,9 +1406,9 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <div id="muscle-split-chart" style="margin-top:10px;"></div>
     </div>
 
-    <div class="workout-section-header" style="margin-top:20px;">
+    <div class="workout-section-header" style="margin-top:16px;padding:14px 16px 10px;background:linear-gradient(135deg,rgba(184,150,90,0.08),rgba(184,150,90,0.02));border-radius:14px 14px 0 0;border-top:1px solid var(--gold-border);border-left:1px solid var(--gold-border);border-right:1px solid var(--gold-border);">
       <div style="display:flex;align-items:center;gap:12px;flex:1;">
-        <div class="dash-section-label" style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--text);letter-spacing:0.5px;white-space:nowrap;">Workout</div>
+        <div class="dash-section-label" style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--gold);letter-spacing:0.5px;white-space:nowrap;">Workout</div>
         <div style="flex:1;height:1px;background:var(--border);"></div>
       </div>
       <div style="display:flex;gap:6px;margin-left:12px;">
@@ -2427,6 +2447,7 @@ function renderHealthView(){
   safe(initSections, 'initSections');
   safe(renderSocialTracker, 'socialTracker');
   safe(renderMacroProgress, 'macroProgress');
+  safe(renderQuickMeals, 'quickMeals');
   safe(renderEnergyBalance, 'energyBalance');
   safe(renderHeroSparklines, 'heroSparklines');
   safe(renderScheduleCompletion, 'scheduleCompletion');
@@ -2514,8 +2535,13 @@ function renderDailyMetrics(history={}){
   setHero('hero-steps', d.steps?Math.round(d.steps).toLocaleString():null);
   setHero('hero-cals', d.activeCalories?Math.round(d.activeCalories):null);
   setHero('hero-rhr', d.restingHR?Math.round(d.restingHR)+' bpm':null);
-  // Update Meridian Score in hero after health data loads
-  setTimeout(()=>{ try{ renderMeridianScore(); }catch(e){} }, 100);
+  // Update Meridian Score + morning briefing after health data loads
+  setTimeout(()=>{
+    try{ renderMeridianScore(); }catch(e){}
+    try{ generateMorningBriefing(); }catch(e){}
+    try{ renderHeroSparklines(); }catch(e){}
+    try{ renderEnergyBalance(); }catch(e){}
+  }, 200);
   // Biological age from Function Health labs
   const bioAge = bioData['bioage']||null;
   const bioCard = document.getElementById('bio-age-card');
@@ -3505,9 +3531,24 @@ function showSSPicker(exIdx){
 function assignSSGroup(exIdx, group){
   if(!activeWorkout) return;
   activeWorkout.exercises[exIdx].ssGroup = group;
+  
+  // Auto-reorder: move this exercise adjacent to others in the same group
+  const exs = activeWorkout.exercises;
+  const groupIdxs = exs.reduce((acc, ex, i) => { if(ex.ssGroup===group) acc.push(i); return acc; }, []);
+  if(groupIdxs.length >= 2){
+    // Find lowest index in group, ensure all group members are consecutive
+    const minIdx = Math.min(...groupIdxs);
+    const movedEx = exs.splice(exIdx, 1)[0];
+    // Insert right after minIdx (adjusted for splice)
+    const insertAt = exIdx > minIdx ? minIdx + 1 : minIdx;
+    exs.splice(insertAt, 0, movedEx);
+    activeWorkout.exercises = exs;
+  }
+  
   document.getElementById('ss-picker-inline')?.remove();
   renderExercises();
-  showToast(`Added to Superset ${group.toUpperCase()}`);
+  showToast('✓ SS-'+group.toUpperCase()+' paired — exercises grouped together');
+  saveActiveDraft();
 }
 
 function completeSet(exIdx, si){
@@ -6999,14 +7040,20 @@ function renderMacroProgress(){
   el.innerHTML = bars.map(b => {
     const pct = Math.min(Math.round(b.val/b.goal*100), 100);
     const over = b.val > b.goal;
-    return `<div style="margin-bottom:8px;">
-      <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;">
+    const remaining = b.goal - b.val;
+    const remainColor = over ? 'var(--red)' : remaining < b.goal*0.1 ? 'var(--green)' : b.color;
+    return `<div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:10px;margin-bottom:3px;">
         <span style="color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;">${b.label}</span>
-        <span style="color:${over?'var(--red)':b.color};font-weight:700;">${b.val}<span style="color:var(--muted);font-weight:400;">/${b.goal}${b.unit}</span></span>
+        <div style="display:flex;gap:8px;align-items:baseline;">
+          <span style="color:var(--muted);">${b.val}${b.unit} eaten</span>
+          <span style="color:${remainColor};font-weight:700;font-size:11px;">${over?'+'+Math.abs(remaining)+'over':Math.abs(remaining)+'${b.unit} left'}</span>
+        </div>
       </div>
-      <div style="height:5px;background:var(--border2);border-radius:3px;overflow:hidden;">
+      <div style="height:6px;background:var(--border2);border-radius:3px;overflow:hidden;">
         <div style="height:100%;width:${pct}%;background:${over?'var(--red)':b.color};border-radius:3px;transition:width 0.4s;"></div>
       </div>
+      <div style="font-size:9px;color:var(--muted);margin-top:2px;">Goal: ${b.goal}${b.unit}</div>
     </div>`;
   }).join('');
 }
@@ -7422,6 +7469,248 @@ function renderEnergyBalance(){
     </div>
   `;
 }
+
+// ══════════════════════════════════════════
+// ANTI-FATIGUE: SMART DEFAULTS + QUICK ACTIONS
+// ══════════════════════════════════════════
+
+// Auto-log water when sauna session ends
+function onThermalSessionEnd(type, minutes){
+  if(type === 'sauna'){
+    // Suggest hydration after sauna
+    const cups = Math.ceil(minutes / 15); // ~1 cup per 15 min
+    setTimeout(()=>{
+      if(confirm('Sauna complete! Log '+cups+' cups of water?')){
+        for(let i=0;i<cups;i++) logHydration(1);
+      }
+    }, 500);
+  }
+}
+
+// Quick log common meals with one tap
+const QUICK_MEALS = {
+  'Morning coffee': { calories:5, protein:0, carbs:0, fat:0, qty:1, unit:'serving' },
+  'Protein shake': { calories:150, protein:30, carbs:8, fat:3, qty:1, unit:'serving' },
+  'Eggs (3)':      { calories:210, protein:18, carbs:0, fat:15, qty:3, unit:'large eggs' },
+  'Greek yogurt':  { calories:100, protein:17, carbs:6, fat:0, qty:1, unit:'cup' },
+  'Banana':        { calories:105, protein:1, carbs:27, fat:0, qty:1, unit:'medium' },
+  'Chicken breast': { calories:165, protein:31, carbs:0, fat:3.6, qty:6, unit:'oz' },
+  'White rice':    { calories:200, protein:4, carbs:44, fat:0, qty:1, unit:'cup' },
+  'Mixed salad':   { calories:80, protein:3, carbs:10, fat:3, qty:1, unit:'serving' },
+};
+
+function renderQuickMeals(){
+  const el = document.getElementById('quick-meal-chips');
+  if(!el) return;
+  el.innerHTML = Object.entries(QUICK_MEALS).map(([name, macros],i)=>
+    '<button onclick="quickLogMeal('+i+')" style="padding:6px 10px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;white-space:nowrap;">'+name+'</button>'
+  ).join('');
+}
+
+function quickLogMeal(idx, meal){
+  const entries = Object.entries(QUICK_MEALS);
+  if(idx >= entries.length) return;
+  const [name, macros] = entries[idx];
+  if(!macros) return;
+  const today = todayKey();
+  if(!nutritionLog[today]) nutritionLog[today]={breakfast:[],lunch:[],dinner:[],snacks:[]};
+  // Figure out which meal to add to based on time of day
+  const hour = new Date().getHours();
+  const targetMeal = meal || (hour < 11 ? 'breakfast' : hour < 15 ? 'lunch' : hour < 19 ? 'dinner' : 'snacks');
+  nutritionLog[today][targetMeal].push({ name, ...macros });
+  saveNutrition();
+  renderNutrition();
+  renderMacroProgress();
+  renderEnergyBalance();
+  showToast('✓ '+name+' logged to '+targetMeal);
+}
+
+
+// ══════════════════════════════════════════
+// UNIFIED MORNING LOG
+// ══════════════════════════════════════════
+let morningVoiceRec = null;
+let morningVoiceActive = false;
+
+function toggleMorningVoice(){
+  const btn = document.getElementById('morning-voice-btn');
+  const input = document.getElementById('morning-log-input');
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+    showToast('Voice not supported on this browser'); return;
+  }
+  if(morningVoiceActive){
+    if(morningVoiceRec) morningVoiceRec.stop();
+    morningVoiceActive = false;
+    if(btn) btn.textContent = '🎤';
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  morningVoiceRec = new SR();
+  morningVoiceRec.lang = 'en-US';
+  morningVoiceRec.continuous = false;
+  morningVoiceRec.interimResults = false;
+  morningVoiceRec.onresult = e => {
+    const text = e.results[0][0].transcript;
+    if(input) input.value = (input.value ? input.value + ' ' : '') + text;
+  };
+  morningVoiceRec.onerror = () => { morningVoiceActive = false; if(btn) btn.textContent = '🎤'; };
+  morningVoiceRec.onend = () => { morningVoiceActive = false; if(btn) btn.textContent = '🎤'; };
+  morningVoiceRec.start();
+  morningVoiceActive = true;
+  if(btn) btn.textContent = '⏹';
+}
+
+async function processMorningLog(){
+  const input = document.getElementById('morning-log-input');
+  const btn = document.getElementById('morning-log-btn');
+  const resultEl = document.getElementById('morning-log-result');
+  const text = input?.value?.trim();
+  if(!text){ showToast('Tell me about your morning first'); return; }
+
+  if(btn){ btn.textContent = '⟳'; btn.disabled = true; }
+
+  // Build context for AI to parse
+  const today = todayKey();
+  const currentMacros = {
+    calories: Math.round(['breakfast','lunch','dinner','snacks'].reduce((s,m)=>(nutritionLog[today]?.[m]||[]).reduce((a,f)=>a+(f.calories||0),s),0)),
+    water: hydrationLog[today]||0,
+    mood: (scores[today]||{}).mood||0,
+    energy: (scores[today]||{}).energy||0,
+  };
+
+  try {
+    const res = await fetch(SERVER+'/ai-log', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        system: `You are a health logging AI for the Meridian wellness app. Parse the user's morning message and extract loggable data. Return ONLY valid JSON with this exact structure (omit any field you cannot extract):
+{
+  "food": [{"name":"string","calories":number,"protein":number,"carbs":number,"fat":number,"qty":number,"unit":"string"}],
+  "water_cups": number,
+  "sunlight_minutes": number,
+  "mood": number,
+  "energy": number,
+  "focus": number,
+  "social_count": number,
+  "breathwork_minutes": number,
+  "stress_level": number,
+  "gratitude": "string",
+  "summary": "string"
+}
+For mood/energy/focus use 1-10 scale based on descriptive words (great/motivated=8-9, good=7, okay=5-6, tired=3-4, bad=1-2).
+For food, estimate reasonable macros if not specified (e.g. overnight oats = 350 cal, 12g protein, 55g carbs, 8g fat).
+Only return JSON. No other text.`,
+        input: text
+      })
+    });
+    const data = await res.json();
+    let parsed;
+    try {
+      const raw = (data.text||'').replace(/```json|```/g,'').trim();
+      parsed = JSON.parse(raw);
+    } catch(e) {
+      if(btn){ btn.textContent = '→'; btn.disabled = false; }
+      showToast('Could not parse response — try again');
+      return;
+    }
+
+    // Execute all the logging actions
+    const actions = [];
+
+    // Food
+    if(parsed.food?.length){
+      if(!nutritionLog[today]) nutritionLog[today]={breakfast:[],lunch:[],dinner:[],snacks:[]};
+      const meal = 'breakfast';
+      parsed.food.forEach(f => nutritionLog[today][meal].push(f));
+      saveNutrition();
+      renderNutrition();
+      renderMacroProgress();
+      renderEnergyBalance();
+      actions.push(parsed.food.map(f=>f.name).join(', ')+' logged to breakfast');
+    }
+
+    // Water (1 cup = 8oz)
+    if(parsed.water_cups > 0){
+      logWater(parsed.water_cups * 8);
+      actions.push(parsed.water_cups+' cup'+(parsed.water_cups>1?'s':'')+' of water ('+parsed.water_cups*8+'oz) logged');
+    }
+
+    // Sunlight/nature
+    if(parsed.sunlight_minutes > 0){
+      const k = todayKey();
+      if(!natureLog[k]) natureLog[k]={minutes:0};
+      natureLog[k].minutes = (natureLog[k].minutes||0) + parsed.sunlight_minutes;
+      saveNatureLog(); renderNatureTracker();
+      actions.push(parsed.sunlight_minutes+' min sunlight logged');
+    }
+
+    // Mood/energy/focus
+    if(parsed.mood||parsed.energy||parsed.focus){
+      if(!scores[today]) scores[today]={};
+      if(parsed.mood) scores[today].mood = parsed.mood;
+      if(parsed.energy) scores[today].energy = parsed.energy;
+      if(parsed.focus) scores[today].focus = parsed.focus;
+      saveCloud('scores', scores);
+      try{ localStorage.setItem('scores', JSON.stringify(scores)); }catch(e){}
+      loadScores();
+      const scoreNames = [];
+      if(parsed.mood) scoreNames.push('mood '+parsed.mood+'/10');
+      if(parsed.energy) scoreNames.push('energy '+parsed.energy+'/10');
+      if(parsed.focus) scoreNames.push('focus '+parsed.focus+'/10');
+      actions.push(scoreNames.join(', ')+' logged');
+    }
+
+    // Social connections
+    if(parsed.social_count > 0){
+      logSocial(parsed.social_count);
+      actions.push(parsed.social_count+' social interaction'+(parsed.social_count>1?'s':'')+' logged');
+    }
+
+    // Stress
+    if(parsed.stress_level > 0){
+      const k = todayKey();
+      stressLog[k] = {level: parsed.stress_level, ts: new Date().toISOString()};
+      saveStressLog(); renderStressPips(); renderStressWeekChart();
+      actions.push('stress level '+parsed.stress_level+'/10 logged');
+    }
+
+    // Breathwork
+    if(parsed.breathwork_minutes > 0){
+      const k = todayKey();
+      if(!mindfulLog[k]) mindfulLog[k]={minutes:0,entries:[]};
+      mindfulLog[k].minutes = (mindfulLog[k].minutes||0) + parsed.breathwork_minutes;
+      saveMindfulLog(); renderMindfulness();
+      actions.push(parsed.breathwork_minutes+' min mindfulness logged');
+    }
+
+    // Gratitude
+    if(parsed.gratitude){
+      // Log as journal entry
+      const k = todayKey();
+      if(!journalLog[k]) journalLog[k]=[];
+      journalLog[k].push({prompt:'Morning log', entry:parsed.gratitude, ts:new Date().toISOString()});
+      saveJournalLog(); renderJournalStreak();
+      actions.push('gratitude noted');
+    }
+
+    // Show what was logged
+    if(resultEl){
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = '<div style="font-size:11px;color:var(--gold);font-weight:700;margin-bottom:6px;">✓ Logged successfully</div>' +
+        actions.map(a=>'<div style="color:var(--text);">• '+a+'</div>').join('') +
+        (parsed.summary ? '<div style="color:var(--muted);margin-top:6px;font-style:italic;">'+parsed.summary+'</div>' : '');
+    }
+
+    input.value = '';
+    renderMeridianScore();
+    if(btn){ btn.textContent = '✓'; setTimeout(()=>{ btn.textContent='→'; btn.disabled=false; },2000); }
+
+  } catch(e) {
+    if(btn){ btn.textContent = '→'; btn.disabled = false; }
+    showToast('Error: '+e.message);
+  }
+}
+
 // ── Boot ──
 (async ()=>{ try {
   activeDay=todayIdx();
