@@ -226,7 +226,22 @@ app.get("/debug", (req, res) => {
   try {
     const payload = JSON.parse(fs.readFileSync(DEBUG_FILE, "utf8"));
     const parsed = parseHAEPayload(payload);
-    res.json({ parsed, rawMetricNames: (payload?.data?.metrics||[]).map(m=>m.name) });
+    
+    // Extract weight entries specifically so we can see their dates
+    const weightMetric = (payload?.data?.metrics||[]).find(m => m.name === 'weight_body_mass');
+    const weightEntries = (weightMetric?.data||[]).map(e => ({
+      date: e.date || e.startDate || 'no date',
+      qty: e.qty,
+      unit: e.units
+    })).sort((a,b) => b.date.localeCompare(a.date));
+    
+    res.json({
+      parsed_weight: parsed.weight,
+      weight_entries: weightEntries,
+      weight_entry_count: weightEntries.length,
+      payload_received_at: payload?.data?.workoutRoute?.startDate || 'unknown',
+      all_metrics: (payload?.data?.metrics||[]).map(m => m.name)
+    });
   }
   catch(e) { res.json({ message: "No debug data yet" }); }
 });
