@@ -194,12 +194,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .capture-btn{width:100%;padding:16px;border-radius:16px;border:none;background:var(--green);color:#000;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity 0.2s;}
 .capture-btn:active{opacity:0.8;}
 .sessions-title{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;}
-.session-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;}
-.session-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-.session-date{font-size:13px;font-weight:700;}
+.session-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:14px;}
+.session-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);;margin-bottom:12px;}
+.session-date{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;}
 .session-weight{font-size:12px;color:var(--muted);background:var(--surface2);padding:3px 8px;border-radius:8px;}
-.session-photos{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
-.session-photo{aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:var(--surface2);border:1px solid var(--border);position:relative;cursor:pointer;}
+.session-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;}
+.session-photo{position:relative;overflow:hidden;aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:var(--surface2);border:1px solid var(--border);position:relative;cursor:pointer;}
 .session-photo img{width:100%;height:100%;object-fit:cover;}
 .session-photo-label{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.7));padding:6px 6px 4px;font-size:9px;font-weight:700;color:white;text-align:center;letter-spacing:1px;text-transform:uppercase;}
 .session-photo-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:4px;}
@@ -441,6 +441,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .yt-btn:active{background:rgba(255,0,0,0.2);}
 
 /* ── BODY FAT ESTIMATOR ── */
+.sessions-list{padding-bottom:8px;}
 .bf-section{padding:0 16px 20px;}
 .bf-tabs{display:flex;gap:8px;margin-bottom:16px;}
 .bf-tab{flex:1;padding:9px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s;}
@@ -637,7 +638,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260506120000">
+<meta name="app-version" content="20260506160000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -1633,23 +1634,46 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <div class="meridian-wordmark">Meridian</div>
     <div class="meridian-sub">Spa &amp; Wellness</div>
   </div>
-  <div class="photo-header" style="padding-top:4px;">
-    <div class="page-eyebrow">Visual Journey</div>
-    <div class="page-title">Progress Photos</div>
-    <div class="page-subtitle" id="photo-next-due">Monthly — taken on the 1st</div>
+  <!-- Progress header -->
+  <div style="padding:16px 16px 0;">
+    <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">Visual Journey</div>
+    <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:2px;">Progress</div>
+    <div style="font-size:12px;color:var(--muted);" id="photo-next-due">Monthly — taken on the 1st</div>
   </div>
-  <div class="photo-wrap">
-    <div class="photo-month-banner" id="photo-banner">
+
+  <!-- Stats strip -->
+  <div style="display:flex;gap:8px;padding:12px 16px;">
+    <div style="flex:1;background:var(--surface);border-radius:12px;padding:10px;text-align:center;border:1px solid var(--border);">
+      <div id="progress-session-count" style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--gold);">0</div>
+      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;">Sessions</div>
+    </div>
+    <div style="flex:1;background:var(--surface);border-radius:12px;padding:10px;text-align:center;border:1px solid var(--border);">
+      <div id="progress-first-date" style="font-family:'Playfair Display',serif;font-size:14px;font-weight:700;color:var(--text);">—</div>
+      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;">Started</div>
+    </div>
+    <div style="flex:1;background:var(--surface);border-radius:12px;padding:10px;text-align:center;border:1px solid var(--border);">
+      <div id="progress-weight-change" style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:var(--text);">—</div>
+      <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;">lbs change</div>
+    </div>
+  </div>
+
+  <!-- Take photos CTA -->
+  <div style="padding:0 16px 12px;">
+    <div id="photo-banner" class="photo-month-banner" style="margin-bottom:10px;">
       <div class="photo-month-icon">📸</div>
       <div class="photo-month-text">
         <div class="photo-month-title">Time for your monthly photos!</div>
         <div class="photo-month-sub">Front, side, and back — takes about 2 minutes</div>
       </div>
     </div>
-    <button class="capture-btn" onclick="startCapture()">
+    <button class="capture-btn" onclick="startCapture()" style="background:linear-gradient(135deg,var(--gold),#b8860b);color:#000;border:none;font-weight:700;">
       <span>📷</span> Take This Month's Photos
     </button>
-    <div class="sessions-title">Photo History</div>
+  </div>
+
+  <!-- Photo history -->
+  <div style="padding:0 16px 12px;">
+    <div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;">Photo History <div style="flex:1;height:1px;background:var(--border);"></div></div>
     <div id="sessions-list"></div>
   </div>
 
@@ -2841,24 +2865,53 @@ function checkMonthlyReminder(){
 }
 
 async function renderSessions(){
+  // Update stats strip
+  try{
+    const countEl = document.getElementById('progress-session-count');
+    const firstEl = document.getElementById('progress-first-date');
+    const changeEl = document.getElementById('progress-weight-change');
+    if(countEl) countEl.textContent = photoSessions.length;
+    if(firstEl && photoSessions.length){
+      const first = photoSessions[photoSessions.length-1];
+      const d = new Date(first.date);
+      firstEl.textContent = d.toLocaleDateString('en-US',{month:'short',year:'2-digit'});
+    }
+    if(changeEl && healthToday.weight){
+      // Compare current weight to earliest weigh-in in history
+      const earliest = (window._healthHistory && Object.keys(window._healthHistory).length) ?
+        Object.entries(window._healthHistory).sort((a,b)=>a[0].localeCompare(b[0]))[0]?.[1]?.weight : null;
+      if(earliest && healthToday.weight){
+        const diff = (healthToday.weight - earliest).toFixed(1);
+        changeEl.textContent = (diff > 0 ? '+' : '') + diff;
+        changeEl.style.color = diff < 0 ? 'var(--green)' : diff > 0 ? 'var(--red)' : 'var(--muted)';
+      }
+    }
+  }catch(e){}
   await loadPhotoSessions();
   checkMonthlyReminder();
   const list=document.getElementById("sessions-list");
   if(photoSessions.length===0){
-    list.innerHTML=`<div class="no-sessions"><span class="no-sessions-icon">📷</span>No photos yet.<br>Take your first session to start<br>tracking your transformation.</div>`;
+    list.innerHTML=`<div style="text-align:center;padding:40px 20px;background:var(--surface);border-radius:16px;border:1px dashed var(--border);">
+      <div style="font-size:48px;margin-bottom:12px;">📷</div>
+      <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;margin-bottom:6px;">No photos yet</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6;">Take your first session to start<br>tracking your transformation.</div>
+    </div>`;
     return;
   }
   list.innerHTML=[...photoSessions].reverse().map(session=>`
     <div class="session-card">
       <div class="session-header">
-        <div class="session-date">${session.dateLabel}</div>
-        ${session.weight?`<div class="session-weight">⚖️ ${session.weight} lbs</div>`:""}
+        <div>
+          <div class="session-date">${session.dateLabel}</div>
+          ${session.weight?`<div style="font-size:11px;color:var(--muted);margin-top:2px;">⚖️ ${session.weight} lbs</div>`:""}
+        </div>
+        <div style="font-size:10px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:1px;">View ›</div>
       </div>
       <div class="session-photos">
         ${ANGLES.map((a,i)=>session.photos[i]?`
           <div class="session-photo" onclick="openLightbox('${session.photos[i]}','${a.label} — ${session.dateLabel}')">
             <img src="${session.photos[i]}" loading="lazy"/>
-            <div class="session-photo-label">${a.label}</div>
+            <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.7));color:#fff;font-size:9px;text-align:center;padding:4px 2px;text-transform:uppercase;letter-spacing:0.8px;">${a.label}</div>
           </div>`:`
           <div class="session-photo">
             <div class="session-photo-empty">
