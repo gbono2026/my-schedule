@@ -637,7 +637,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260505130000">
+<meta name="app-version" content="20260506090000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -759,8 +759,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <div class="hero-stats">
         <div class="hero-stat">
           <div class="hero-stat-icon">⚖️</div>
-          <div class="hero-stat-val" id="hero-weight">—</div>
-          <div class="hero-stat-label">lbs</div>
+          <div class="hero-stat-val" id="hero-weight" onclick="promptWeightCorrection()" style="cursor:pointer;">—</div>
+          <div class="hero-stat-label">lbs · tap to fix</div>
           <canvas id="sparkline-weight" height="20" style="width:100%;display:block;margin-top:4px;opacity:0.7;"></canvas>
         </div>
         <div class="hero-stat">
@@ -793,7 +793,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         </div>
       </div>
       <!-- Meridian Score row -->
-      <div style="margin:8px 0 4px;padding:10px 12px;background:rgba(184,150,90,0.08);border-radius:12px;border:1px solid rgba(184,150,90,0.2);display:flex;align-items:center;justify-content:space-between;" onclick="document.getElementById('meridian-score-val')?.scrollIntoView({behavior:'smooth'})" style="cursor:pointer;">
+      <div style="margin:8px 0 4px;padding:10px 12px;background:rgba(184,150,90,0.08);border-radius:12px;border:1px solid rgba(184,150,90,0.2);display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="goToSection('section-soul','meridian-score-val')">
         <div style="display:flex;align-items:center;gap:10px;">
           <div style="font-size:20px;">⚡</div>
           <div>
@@ -807,11 +807,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         </div>
       </div>
       <div class="hero-bottom">
-        <div class="hero-wide">
+        <div class="hero-wide" onclick="goToNutrition()" style="cursor:pointer;" title="Tap to log food">
           <div class="hero-wide-icon">🍽️</div>
           <div>
             <div class="hero-wide-val" id="hero-nutrition">— kcal</div>
-            <div class="hero-wide-label">logged today</div>
+            <div class="hero-wide-label">logged today ›</div>
           </div>
         </div>
         <div class="hero-wide" style="justify-content:space-between;">
@@ -2515,6 +2515,8 @@ function renderHealthView(){
 }
 
 function renderDailyMetrics(history={}){
+  // Store globally for weekly summary and sparklines
+  if(history && Object.keys(history).length > 0) window._healthHistory = history;
   const d=healthToday;
   renderSparkline(history);
   renderSleepBreakdown(d);
@@ -7047,7 +7049,7 @@ function renderMacroProgress(){
         <span style="color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;">${b.label}</span>
         <div style="display:flex;gap:8px;align-items:baseline;">
           <span style="color:var(--muted);">${b.val}${b.unit} eaten</span>
-          <span style="color:${remainColor};font-weight:700;font-size:11px;">${over?'+'+Math.abs(remaining)+'over':Math.abs(remaining)+'${b.unit} left'}</span>
+          <span style="color:${remainColor};font-weight:700;font-size:11px;">${over?'+'+Math.abs(remaining)+b.unit+' over':Math.abs(remaining)+b.unit+' left'}</span>
         </div>
       </div>
       <div style="height:6px;background:var(--border2);border-radius:3px;overflow:hidden;">
@@ -7082,7 +7084,7 @@ function renderHeroSparkline(canvasId, field, color){
   for(let i=6;i>=0;i--){
     const d=new Date(); d.setDate(d.getDate()-i);
     const k=d.toISOString().split('T')[0];
-    const v = healthHistory[k]?.[field] || null;
+    const v = (window._healthHistory||{})[k]?.[field] || null;
     vals.push(v);
   }
   const valid = vals.filter(v=>v!==null);
@@ -7234,7 +7236,7 @@ async function generateWeeklySummary(){
   for(let i=6;i>=0;i--){
     const d=new Date(); d.setDate(d.getDate()-i);
     const k=d.toISOString().split('T')[0];
-    const h = healthHistory[k]||{};
+    const h = (window._healthHistory||{})[k]||{};
     const day = d.toLocaleDateString('en-US',{weekday:'short'});
     weekData.push({
       day,
@@ -7709,6 +7711,126 @@ Only return JSON. No other text.`,
     if(btn){ btn.textContent = '→'; btn.disabled = false; }
     showToast('Error: '+e.message);
   }
+}
+
+
+// ══════════════════════════════════════════
+// HERO CARD NAVIGATION HELPERS
+// ══════════════════════════════════════════
+function goToNutrition(){
+  switchView('health');
+  const bodyEl = document.getElementById('section-body');
+  if(bodyEl && bodyEl.classList.contains('section-collapsed')) toggleSection('section-body');
+  setTimeout(()=>{
+    const el = document.getElementById('meal-breakfast');
+    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 350);
+}
+
+function goToWorkout(){
+  switchView('health');
+  const bodyEl = document.getElementById('section-body');
+  if(bodyEl && bodyEl.classList.contains('section-collapsed')) toggleSection('section-body');
+  setTimeout(()=>{
+    const el = document.querySelector('.workout-section-header');
+    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 350);
+}
+
+function goToSection(sectionId, scrollToId){
+  switchView('health');
+  const sectionEl = document.getElementById(sectionId);
+  if(sectionEl && sectionEl.classList.contains('section-collapsed')) toggleSection(sectionId);
+  setTimeout(()=>{
+    const el = scrollToId ? document.getElementById(scrollToId) : sectionEl;
+    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 350);
+}
+
+
+// ══════════════════════════════════════════
+// EXERCISE HISTORY MODAL
+// ══════════════════════════════════════════
+function openExHistory(exIdx){
+  if(!activeWorkout || !workoutHistory) return;
+  const ex = activeWorkout.exercises[exIdx];
+  if(!ex) return;
+  const name = ex.name;
+
+  // Find all past sessions with this exercise
+  const sessions = [];
+  workoutHistory.forEach(w => {
+    const match = (w.exercises||[]).find(e => e.name === name);
+    if(match && match.sets?.length){
+      sessions.push({
+        date: w.date || w.dateLabel || 'Unknown date',
+        sets: match.sets
+      });
+    }
+  });
+
+  // Populate modal
+  const titleEl = document.getElementById('ex-history-title');
+  const contentEl = document.getElementById('ex-history-content');
+  if(titleEl) titleEl.textContent = name;
+  if(contentEl){
+    if(!sessions.length){
+      contentEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);">No history yet — this is your first time logging this exercise.</div>';
+    } else {
+      // Show most recent first, max 10 sessions
+      const recent = sessions.slice(-10).reverse();
+      contentEl.innerHTML = recent.map(s => {
+        const bestSet = s.sets.reduce((best, set) => {
+          const vol = (parseFloat(set.weight)||0) * (parseInt(set.reps)||0);
+          return vol > ((parseFloat(best.weight)||0) * (parseInt(best.reps)||0)) ? set : best;
+        }, s.sets[0]);
+        const orm = calc1RM(parseFloat(bestSet.weight)||0, parseInt(bestSet.reps)||0);
+
+        return `<div style="background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div style="font-size:12px;font-weight:700;color:var(--text);">${s.date}</div>
+            ${orm ? '<div style="font-size:11px;color:var(--gold);">~'+orm+' lb 1RM</div>' : ''}
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            ${s.sets.map((set,i) => `
+              <div style="background:var(--surface3);border-radius:8px;padding:5px 8px;font-size:11px;text-align:center;">
+                <div style="color:var(--muted);font-size:9px;margin-bottom:2px;">SET ${i+1}</div>
+                <div style="font-weight:700;color:var(--text);">${set.weight||'—'} lbs</div>
+                <div style="color:var(--muted);">${set.reps||'—'} reps</div>
+                ${set.effort ? '<div style="color:var(--gold);font-size:9px;">RPE '+set.effort+'</div>' : ''}
+              </div>`).join('')}
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  document.getElementById('ex-history-modal').classList.add('open');
+}
+
+
+function promptWeightCorrection(){
+  const current = document.getElementById('hero-weight')?.textContent || '';
+  const val = prompt('Enter correct weight (lbs):', current === '—' ? '' : current);
+  if(!val || isNaN(parseFloat(val))) return;
+  const weight = parseFloat(val);
+  // Update server
+  fetch(SERVER+'/update-weight', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({weight})
+  }).then(r=>r.json()).then(data=>{
+    if(data.success){
+      healthToday.weight = weight;
+      try{ localStorage.setItem('health_today_cache', JSON.stringify(healthToday)); }catch(e){}
+      setHero('hero-weight', weight.toFixed(1));
+      renderMeridianScore();
+      renderEnergyBalance();
+      showToast('✓ Weight updated to '+weight+' lbs');
+    } else {
+      showToast('Failed to update weight');
+    }
+  }).catch(()=>showToast('Could not reach server'));
 }
 
 // ── Boot ──
