@@ -637,7 +637,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260506090000">
+<meta name="app-version" content="20260506120000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -807,19 +807,25 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         </div>
       </div>
       <div class="hero-bottom">
-        <div class="hero-wide" onclick="goToNutrition()" style="cursor:pointer;" title="Tap to log food">
+        <div class="hero-wide" onclick="goToNutrition()" style="cursor:pointer;background:rgba(184,150,90,0.06);border-radius:12px;padding:8px;margin:-4px;" title="Tap to log food">
           <div class="hero-wide-icon">🍽️</div>
-          <div>
-            <div class="hero-wide-val" id="hero-nutrition">— kcal</div>
-            <div class="hero-wide-label">logged today ›</div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:baseline;gap:6px;">
+              <div class="hero-wide-val" id="hero-nutrition">— kcal</div>
+              <div style="font-size:10px;color:var(--muted);">eaten</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <div id="hero-calories-left" style="font-size:11px;color:var(--gold);font-weight:700;"></div>
+              <div style="font-size:10px;color:var(--muted);" id="hero-calories-left-label">→ log food</div>
+            </div>
           </div>
         </div>
-        <div class="hero-wide" style="justify-content:space-between;">
+        <div class="hero-wide" onclick="goToWorkout()" style="justify-content:space-between;cursor:pointer;background:rgba(94,234,212,0.05);border-radius:12px;padding:8px;margin:-4px;" title="Tap to log workout">
           <div style="display:flex;align-items:center;gap:8px;">
             <div class="hero-wide-icon">❤️</div>
             <div>
               <div class="hero-wide-val" id="hero-rhr">—</div>
-              <div class="hero-wide-label">resting HR</div>
+              <div class="hero-wide-label">resting HR · log workout ›</div>
             </div>
           </div>
           <button onclick="loadHealthData()" style="background:transparent;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;">↻</button>
@@ -1262,7 +1268,16 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       </div>
     </div>
 
-    <div class="dash-section"><div class="dash-section-label">Nutrition</div><div class="dash-section-line"></div></div>
+    <div onclick="goToNutrition()" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:linear-gradient(135deg,rgba(184,150,90,0.1),rgba(184,150,90,0.03));border-radius:12px;border:1px solid var(--gold-border);margin-bottom:8px;cursor:pointer;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:18px;">🍽️</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--gold);">Nutrition</div>
+          <div style="font-size:10px;color:var(--muted);">Tap to log food</div>
+        </div>
+      </div>
+      <div style="font-size:18px;color:var(--gold);">›</div>
+    </div>
 
     <!-- Daily summary — now above log buttons -->
     <div class="nutrition-day-summary">
@@ -1356,17 +1371,18 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <!-- INTERMITTENT FASTING -->
     <div class="dash-section"><div class="dash-section-label" style="color:var(--teal);">Fasting</div><div class="dash-section-line" style="background:rgba(94,234,212,0.3);"></div></div>
     <div class="health-card" style="margin-bottom:10px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <div>
-          <div style="font-size:14px;font-weight:700;">⏱️ Intermittent Fasting</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;">16:8 protocol · Track your eating window</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div>
+            <div style="font-size:13px;font-weight:700;">⏱️ Intermittent Fasting</div>
+            <div id="fasting-today-label" style="font-size:10px;color:var(--muted);">16:8 protocol</div>
+          </div>
         </div>
-        <div id="fasting-today-label" style="font-size:11px;color:var(--muted);"></div>
+        <button id="fasting-btn" onclick="fastingActive?endFast():startFast()" style="padding:8px 16px;border-radius:20px;border:none;background:linear-gradient(135deg,var(--gold),#b8860b);color:#000;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;">Start Fast</button>
       </div>
-      <div id="fasting-display" style="margin-bottom:12px;">
-        <div style="font-size:12px;color:var(--muted);">No fast logged today.</div>
+      <div id="fasting-display" style="margin-top:8px;">
+        <div style="font-size:11px;color:var(--muted);">No fast logged today.</div>
       </div>
-      <button id="fasting-btn" onclick="fastingActive?endFast():startFast()" style="width:100%;padding:13px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--gold),#b8860b);color:#000;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">Start Fast</button>
     </div>
 
     <!-- Workout stats row -->
@@ -3902,6 +3918,9 @@ function getTodayLog(){
 
 function renderNutrition(){
   renderQuickLogRow();
+  // Always update macros and energy balance when nutrition renders
+  try{ renderMacroProgress(); }catch(e){}
+  try{ renderEnergyBalance(); }catch(e){}
   const log = getTodayLog();
   // Totals
   let totalCals=0,totalP=0,totalC=0,totalF=0;
@@ -3925,6 +3944,23 @@ function renderNutrition(){
   if(calsEl) calsEl.textContent = Math.round(totalCals);
   const heroNut = document.getElementById('hero-nutrition');
   if(heroNut) heroNut.textContent = Math.round(totalCals)+' kcal';
+  // Update calories remaining in hero
+  try{
+    const remaining = (macroGoals?.calories||0) - Math.round(totalCals);
+    const leftEl = document.getElementById('hero-calories-left');
+    const lblEl = document.getElementById('hero-calories-left-label');
+    if(leftEl && macroGoals?.calories){
+      if(remaining > 0){
+        leftEl.textContent = remaining+' left';
+        leftEl.style.color = 'var(--gold)';
+        if(lblEl) lblEl.textContent = '→ log food';
+      } else {
+        leftEl.textContent = Math.abs(remaining)+' over';
+        leftEl.style.color = 'var(--red)';
+        if(lblEl) lblEl.textContent = '';
+      }
+    }
+  }catch(e){}
   const subEl = document.getElementById('nds-sub');
   if(subEl) subEl.textContent = 'kcal consumed today';
   ['protein','carbs','fat'].forEach((m,i)=>{
@@ -4057,6 +4093,8 @@ function saveFoodEdit(){
   saveNutrition();
   renderNutrition();
   document.getElementById('food-edit-modal').style.display='none';
+  try{ renderMacroProgress(); }catch(e){}
+  try{ renderEnergyBalance(); }catch(e){}
   showToast('✓ Food updated');
 }
 
@@ -6875,7 +6913,7 @@ function renderFastingCard(){
       <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:12px;">
         <span>0h</span><span style="color:${pct>=100?'var(--green)':'var(--gold)'};">${pct>=100?'🎯 Goal reached!':Math.round(FASTING_GOAL_HOURS-elapsedH*10)/10+'h remaining'}</span><span>${FASTING_GOAL_HOURS}h</span>
       </div>`;
-    if(btnEl){ btnEl.textContent='End Fast'; btnEl.style.background='linear-gradient(135deg,var(--red),#dc2626)'; }
+    if(btnEl){ btnEl.textContent='End Fast'; btnEl.style.background='linear-gradient(135deg,var(--red),#dc2626)'; btnEl.style.padding='8px 16px'; }
   } else {
     // Show history
     const today = new Date().toISOString().split('T')[0];
@@ -6883,7 +6921,7 @@ function renderFastingCard(){
     el.innerHTML = todayFasts.length ? 
       '<div style="font-size:12px;color:var(--muted);">'+todayFasts.map(f=>`✅ ${f.hours}h fast completed`).join('<br>')+'</div>' :
       '<div style="font-size:12px;color:var(--muted);">No fast logged today. Start a 16:8 fast anytime.</div>';
-    if(btnEl){ btnEl.textContent='Start Fast'; btnEl.style.background='linear-gradient(135deg,var(--gold),#b8860b)'; }
+    if(btnEl){ btnEl.textContent='Start Fast'; btnEl.style.background='linear-gradient(135deg,var(--gold),#b8860b)'; btnEl.style.padding='8px 16px'; }
   }
 }
 
