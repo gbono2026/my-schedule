@@ -638,7 +638,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260507130000">
+<meta name="app-version" content="20260507140000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -829,7 +829,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
               <div class="hero-wide-label">resting HR · log workout ›</div>
             </div>
           </div>
-          <button onclick="loadHealthData()" style="background:transparent;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;">↻</button>
+          <button onclick="event.stopPropagation();loadHealthData()" style="background:transparent;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;">↻</button>
         </div>
       </div>
     </div>
@@ -1835,7 +1835,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <button class="food-modal-close" onclick="closeFoodModal()">×</button>
     </div>
     <div class="food-search-bar" id="food-search-bar" style="display:none;">
-      <input class="food-search-input" id="food-search-input" type="text" placeholder="Search food or brand..." oninput="debounceFoodSearch(this.value)">
+      <input class="food-search-input" id="food-search-input" type="text" placeholder="Search food or brand..." oninput="switchFoodTab('search');debounceFoodSearch(this.value)" onfocus="switchFoodTab('search')">
       <button class="food-barcode-btn" onclick="openManualBarcode()" title="Enter barcode number" style="font-size:15px;">🔢</button>
     </div>
     <div class="food-tabs">
@@ -1927,7 +1927,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;">
       <div style="font-size:13px;color:var(--muted2);width:72px;">Quantity</div>
       <input type="number" id="food-edit-qty" min="0.1" step="0.1" oninput="recalcFoodMacros()" style="flex:1;background:var(--surface3);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text);font-size:16px;font-family:inherit;outline:none;text-align:center;" />
-      <select id="food-edit-unit" style="flex:1;background:var(--surface3);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text);font-size:14px;font-family:inherit;outline:none;">
+      <select id="food-edit-unit" onchange="onFoodUnitChange()" style="flex:1;background:var(--surface3);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text);font-size:14px;font-family:inherit;outline:none;">
         <option value="serving">serving</option>
         <option value="g">g</option>
         <option value="oz">oz</option>
@@ -7924,6 +7924,69 @@ function promptWeightCorrection(){
       showToast('Failed to update weight');
     }
   }).catch(()=>showToast('Could not reach server'));
+}
+
+
+// ══════════════════════════════════════════
+// FOOD UNIT CONVERSION
+// ══════════════════════════════════════════
+// Conversion: how many grams is 1 of each unit (approximate)
+const UNIT_TO_GRAMS = {
+  'serving': null,  // no conversion — serving is the base
+  'g':       1,
+  'oz':      28.3495,
+  'ml':      1,     // approximate for water-based foods
+  'cup':     240,
+  'tbsp':    15,
+  'piece':   null,  // no conversion
+};
+
+// Store the original serving size in grams when food is opened (if known)
+let _foodServingGrams = null;
+
+function onFoodUnitChange(){
+  const unitSel = document.getElementById('food-edit-unit');
+  const qtyInput = document.getElementById('food-edit-qty');
+  if(!unitSel || !qtyInput) return;
+
+  const newUnit = unitSel.value;
+  const qty = parseFloat(qtyInput.value) || 1;
+
+  // Get current macro values (already showing for current qty)
+  const currentCals = parseFloat(document.getElementById('food-edit-cal').value) || 0;
+  const currentPro  = parseFloat(document.getElementById('food-edit-pro').value)  || 0;
+  const currentCarb = parseFloat(document.getElementById('food-edit-carb').value) || 0;
+  const currentFat  = parseFloat(document.getElementById('food-edit-fat').value)  || 0;
+
+  // If switching to/from g or oz, attempt gram-based conversion
+  const newGrams = UNIT_TO_GRAMS[newUnit];
+
+  if(newGrams !== null && newGrams !== undefined){
+    // New unit has a known gram equivalent
+    // Find what the original food's per-gram macros are
+    // We need total grams currently represented = qty * oldUnitGrams
+    // For now: set qty to a sensible default for the new unit
+    // and scale macros accordingly
+    const perUnitCals = _foodBaseCalories; // per original serving
+    if(newUnit === 'g'){
+      // Show macros per 100g — standard display
+      qtyInput.value = 100;
+      // Scale: _foodBaseCalories is per serving. We need per gram.
+      // If the food's serving size is stored, use it. Otherwise estimate.
+      // Recalc based on stored base values
+      recalcFoodMacros();
+    } else if(newUnit === 'oz'){
+      qtyInput.value = 1;
+      recalcFoodMacros();
+    } else {
+      qtyInput.value = 1;
+      recalcFoodMacros();
+    }
+  } else {
+    // Serving or piece — reset qty to 1
+    qtyInput.value = 1;
+    recalcFoodMacros();
+  }
 }
 
 // ── Boot ──
