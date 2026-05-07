@@ -638,7 +638,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260507140000">
+<meta name="app-version" content="20260507150000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -4357,11 +4357,21 @@ async function searchFood(query){
 
 function selectFood(idx){
   const f = window._foodResults[idx];
+  if(!f) return;
   selectedFood = f;
-  document.getElementById('fac-name').textContent = f.name;
-  document.getElementById('fac-macros').textContent = `${Math.round(f.calories)} kcal · P:${Math.round(f.protein)}g C:${Math.round(f.carbs)}g F:${Math.round(f.fat)}g per serving`;
-  document.getElementById('fac-unit').textContent = f.serving||'serving';
-  document.getElementById('fac-qty').value = '1';
+  const nameEl  = document.getElementById('fac-name');
+  const macroEl = document.getElementById('fac-macros');
+  const unitSel = document.getElementById('fac-unit-select');
+  const qtyEl   = document.getElementById('fac-qty');
+  if(nameEl)  nameEl.textContent  = f.name;
+  if(macroEl) macroEl.textContent = Math.round(f.calories)+' kcal · P:'+Math.round(f.protein)+'g C:'+Math.round(f.carbs)+'g F:'+Math.round(f.fat)+'g per serving';
+  if(unitSel){
+    // Clear existing options and add serving + standard units
+    unitSel.innerHTML = '<option value="serving">'+(f.serving||'serving')+'</option><option value="g">g</option><option value="oz">oz</option>';
+    unitSel.value = 'serving';
+  }
+  if(qtyEl) qtyEl.value = '1';
+  updateConfirmMacros();
   switchFoodTab('confirm');
 }
 
