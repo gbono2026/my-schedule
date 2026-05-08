@@ -638,7 +638,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260507150000">
+<meta name="app-version" content="20260508090000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -728,8 +728,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     </div>
 
 
-    <!-- AI MORNING BRIEFING -->
-    <div id="morning-briefing" style="display:none;background:linear-gradient(135deg,rgba(184,150,90,0.1),rgba(184,150,90,0.04));border:1px solid var(--gold-border);border-radius:16px;padding:16px;margin-bottom:12px;">
+    <!-- AI MORNING BRIEFING - always visible -->
+    <div id="morning-briefing" style="display:block;background:linear-gradient(135deg,rgba(184,150,90,0.1),rgba(184,150,90,0.04));border:1px solid var(--gold-border);border-radius:16px;padding:16px;margin-bottom:12px;">
       <!-- Header -->
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
         <div style="font-size:20px;">✦</div>
@@ -737,7 +737,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
           <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;">Your Morning Briefing</div>
           <div id="morning-briefing-text" style="font-size:13px;color:var(--text);line-height:1.7;"></div>
         </div>
-        <button onclick="document.getElementById('morning-briefing').style.display='none'" style="background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0;line-height:1;">×</button>
+        <button onclick="document.getElementById('morning-briefing-text').style.display='none';this.style.display='none'" style="background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0;line-height:1;">×</button>
       </div>
       <!-- Unified morning log -->
       <div style="border-top:1px solid var(--gold-border);padding-top:12px;">
@@ -2290,6 +2290,76 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 </div>
 
 
+<!-- LOG VIEW -->
+<div class="view" id="view-log">
+  <div class="dash-wrap">
+    <div style="padding:8px 0 4px;">
+      <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:2px;">Log</div>
+      <div style="font-size:12px;color:var(--muted);">Quick add food, water, workout</div>
+    </div>
+
+    <!-- AI food log -->
+    <div style="margin-bottom:12px;">
+      <div class="dash-section"><div class="dash-section-label">Log Food with AI</div><div class="dash-section-line"></div></div>
+      <div class="health-card">
+        <textarea id="log-food-input" placeholder='What did you eat? E.g. "Greek yogurt and a banana for breakfast"' rows="2" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:13px;padding:10px 12px;font-family:inherit;resize:none;outline:none;line-height:1.5;margin-bottom:8px;"></textarea>
+        <div style="display:flex;gap:8px;">
+          <select id="log-meal-select" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:8px;font-family:inherit;outline:none;">
+            <option value="breakfast">Breakfast</option>
+            <option value="lunch">Lunch</option>
+            <option value="dinner">Dinner</option>
+            <option value="snacks">Snacks</option>
+          </select>
+          <button onclick="logViewAIFood()" id="log-food-btn" style="flex:2;background:linear-gradient(135deg,var(--gold),#b8860b);border:none;border-radius:10px;color:#000;font-size:13px;font-weight:700;padding:8px;cursor:pointer;font-family:inherit;">Log with AI</button>
+        </div>
+        <div id="log-food-result" style="display:none;margin-top:8px;font-size:12px;color:var(--green);"></div>
+      </div>
+    </div>
+
+    <!-- Macro progress -->
+    <div style="margin-bottom:12px;">
+      <div class="dash-section"><div class="dash-section-label">Macros today</div><div class="dash-section-line"></div></div>
+      <div class="health-card" id="log-view-macros">
+        <div style="font-size:12px;color:var(--muted);text-align:center;padding:8px;">No food logged today</div>
+      </div>
+    </div>
+
+    <!-- Quick actions -->
+    <div style="margin-bottom:12px;">
+      <div class="dash-section"><div class="dash-section-label">Quick log</div><div class="dash-section-line"></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <button onclick="switchView('health');setTimeout(()=>{const b=document.getElementById('section-body');if(b&&b.classList.contains('section-collapsed'))toggleSection('section-body');setTimeout(()=>{document.querySelector('.workout-section-header')?.scrollIntoView({behavior:'smooth'})},300)},200)" style="background:var(--surface);border:1px solid var(--gold-border);border-radius:14px;padding:14px;cursor:pointer;font-family:inherit;text-align:center;">
+          <div style="font-size:22px;margin-bottom:4px;">🏋️</div>
+          <div style="font-size:12px;font-weight:600;color:var(--gold);">Start Workout</div>
+        </button>
+        <button onclick="logViewWater()" style="background:var(--surface);border:1px solid rgba(94,234,212,0.3);border-radius:14px;padding:14px;cursor:pointer;font-family:inherit;text-align:center;">
+          <div style="font-size:22px;margin-bottom:4px;">💧</div>
+          <div style="font-size:12px;font-weight:600;color:var(--teal);">Add Water</div>
+        </button>
+        <button onclick="logViewSunlight()" style="background:var(--surface);border:1px solid rgba(251,146,60,0.3);border-radius:14px;padding:14px;cursor:pointer;font-family:inherit;text-align:center;">
+          <div style="font-size:22px;margin-bottom:4px;">☀️</div>
+          <div style="font-size:12px;font-weight:600;color:var(--orange,#fb923c);">Log Sunlight</div>
+        </button>
+        <button onclick="switchView('health');setTimeout(()=>{const s=document.getElementById('section-soul');if(s&&s.classList.contains('section-collapsed'))toggleSection('section-soul');},200)" style="background:var(--surface);border:1px solid rgba(244,114,182,0.3);border-radius:14px;padding:14px;cursor:pointer;font-family:inherit;text-align:center;">
+          <div style="font-size:22px;margin-bottom:4px;">😊</div>
+          <div style="font-size:12px;font-weight:600;color:var(--pink,#f472b6);">Check-In</div>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TRENDS VIEW -->
+<div class="view" id="view-trends">
+  <div class="dash-wrap">
+    <div style="padding:8px 0 4px;">
+      <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:2px;">Trends</div>
+      <div style="font-size:12px;color:var(--muted);">7-day health history</div>
+    </div>
+    <div id="trends-view-content"></div>
+  </div>
+</div>
+
 <!-- BOTTOM NAV -->
 <div class="bottom-nav">
   <div class="nav-item" id="nav-schedule" onclick="switchView('schedule')">
@@ -2299,6 +2369,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
   <div class="nav-item active" id="nav-health" onclick="switchView('health')">
     <span class="nav-icon">❤️</span>
     <span class="nav-label">HEALTH</span>
+  </div>
+  <div class="nav-item" id="nav-log" onclick="switchView('log')">
+    <span class="nav-icon">✏️</span>
+    <span class="nav-label">LOG</span>
+  </div>
+  <div class="nav-item" id="nav-trends" onclick="switchView('trends')">
+    <span class="nav-icon">📈</span>
+    <span class="nav-label">TRENDS</span>
   </div>
   <div class="nav-item" id="nav-progress" onclick="switchView('progress')">
     <span class="nav-icon">📸</span>
@@ -2418,6 +2496,8 @@ function switchView(v){
   // Close ALL overlays/modals when switching tabs
   document.querySelectorAll(".view").forEach(el=>el.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach(el=>el.classList.remove("active"));
+  if(v==='log') setTimeout(renderLogView,100);
+  if(v==='trends') setTimeout(renderTrendsView,100);
   document.getElementById("view-"+v).classList.add("active");
   document.getElementById("nav-"+v).classList.add("active");
   // Close CSS-class-based modals (classList only — never inline style, which breaks reopening)
@@ -7997,6 +8077,138 @@ function onFoodUnitChange(){
     qtyInput.value = 1;
     recalcFoodMacros();
   }
+}
+
+
+// ══════════════════════════════════════════
+// LOG VIEW
+// ══════════════════════════════════════════
+function renderLogView(){
+  renderLogViewMacros();
+}
+
+function renderLogViewMacros(){
+  const el = document.getElementById('log-view-macros');
+  if(!el) return;
+  const today = todayKey();
+  const log = nutritionLog[today]||{};
+  let cal=0,pro=0,carb=0,fat=0;
+  ['breakfast','lunch','dinner','snacks'].forEach(m=>(log[m]||[]).forEach(f=>{cal+=f.calories||0;pro+=f.protein||0;carb+=f.carbs||0;fat+=f.fat||0;}));
+  cal=Math.round(cal); pro=Math.round(pro); carb=Math.round(carb); fat=Math.round(fat);
+  if(!cal){ el.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px;">No food logged today</div>'; return; }
+  const g=macroGoals;
+  el.innerHTML=`
+    <div style="text-align:center;margin-bottom:14px;">
+      <div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:var(--gold);">${cal}</div>
+      <div style="font-size:11px;color:var(--muted);">of ${g.calories} kcal · ${Math.max(0,g.calories-cal)} left</div>
+    </div>
+    ${[{l:'Protein',v:pro,g:g.protein,c:'var(--green)'},{l:'Carbs',v:carb,g:g.carbs,c:'var(--blue,#60a5fa)'},{l:'Fat',v:fat,g:g.fat,c:'var(--orange,#fb923c)'}].map(m=>`
+    <div style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">
+        <span style="color:var(--muted);">${m.l}</span>
+        <span style="color:${m.c};font-weight:700;">${m.v}g <span style="color:var(--muted);font-weight:400;">/ ${m.g}g · ${Math.max(0,m.g-m.v)}g left</span></span>
+      </div>
+      <div style="height:5px;background:var(--border2);border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:${Math.min(m.v/(m.g||1)*100,100)}%;background:${m.c};border-radius:3px;"></div>
+      </div>
+    </div>`).join('')}`;
+}
+
+async function logViewAIFood(){
+  const inp = document.getElementById('log-food-input');
+  const btn = document.getElementById('log-food-btn');
+  const res = document.getElementById('log-food-result');
+  const meal = document.getElementById('log-meal-select')?.value||'breakfast';
+  const text = (inp?.value||'').trim();
+  if(!text){ showToast('Describe what you ate'); return; }
+  btn.textContent='Logging...'; btn.disabled=true;
+  try{
+    const r = await fetch(SERVER+'/ai-log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      system:'Parse food items and return ONLY a JSON array: [{"name":"","calories":0,"protein":0,"carbs":0,"fat":0,"qty":1,"unit":"serving"}]. Return only the JSON array, nothing else.',
+      input:text
+    })});
+    const data = await r.json();
+    const items = JSON.parse((data.text||'[]').replace(/```json|```/g,'').trim());
+    const today = todayKey();
+    if(!nutritionLog[today]) nutritionLog[today]={breakfast:[],lunch:[],dinner:[],snacks:[]};
+    items.forEach(f=>nutritionLog[today][meal].push(f));
+    saveNutrition();
+    renderNutrition();
+    renderMacroProgress();
+    renderEnergyBalance();
+    renderLogViewMacros();
+    inp.value='';
+    if(res){ res.style.display='block'; res.textContent='✓ '+items.map(f=>f.name).join(', ')+' logged to '+meal; setTimeout(()=>res.style.display='none',3000); }
+    showToast('✓ Food logged');
+  }catch(e){ showToast('Failed: '+e.message); }
+  btn.textContent='Log with AI'; btn.disabled=false;
+}
+
+function logViewWater(){
+  const cups = parseInt(prompt('How many cups?','2'));
+  if(cups>0){ logWater(cups*8); }
+}
+function logViewSunlight(){
+  const mins = parseInt(prompt('Minutes of sunlight?','15'));
+  if(mins>0){
+    const k=todayKey();
+    if(!natureLog[k]) natureLog[k]={minutes:0};
+    natureLog[k].minutes=(natureLog[k].minutes||0)+mins;
+    saveNatureLog(); renderNatureTracker();
+    showToast('☀️ +'+mins+' min sunlight logged');
+  }
+}
+
+// ══════════════════════════════════════════
+// TRENDS VIEW
+// ══════════════════════════════════════════
+function renderTrendsView(){
+  const el = document.getElementById('trends-view-content');
+  if(!el) return;
+  const hist = window._healthHistory||{};
+  const metrics = [
+    {label:'Weight',field:'weight',color:'var(--gold)',unit:'lbs',fmt:v=>parseFloat(v).toFixed(1)},
+    {label:'HRV',field:'hrv',color:'var(--pink,#f472b6)',unit:'ms',fmt:v=>Math.round(v)},
+    {label:'Sleep',field:'sleep',color:'var(--purple,#a78bfa)',unit:'hrs',fmt:v=>parseFloat(v).toFixed(1)},
+    {label:'Steps',field:'steps',color:'var(--teal)',unit:'',fmt:v=>Math.round(v).toLocaleString()},
+    {label:'Active Cals',field:'activeCalories',color:'var(--orange,#fb923c)',unit:'kcal',fmt:v=>Math.round(v).toLocaleString()},
+    {label:'Resting HR',field:'restingHR',color:'var(--red,#f87171)',unit:'bpm',fmt:v=>Math.round(v)},
+  ];
+  el.innerHTML = metrics.map(m=>{
+    const vals=[];
+    for(let i=6;i>=0;i--){
+      const d=new Date(); d.setDate(d.getDate()-i);
+      const k=d.toISOString().split('T')[0];
+      const dayName=['Su','Mo','Tu','We','Th','Fr','Sa'][d.getDay()];
+      const v=hist[k]?.[m.field];
+      vals.push({v:v?parseFloat(v):null,label:dayName,isToday:i===0});
+    }
+    const valid=vals.filter(x=>x.v!==null).map(x=>x.v);
+    if(!valid.length) return '';
+    const min=Math.min(...valid),max=Math.max(...valid),range=max-min||1;
+    const latest=valid[valid.length-1], prev=valid.length>1?valid[valid.length-2]:null;
+    const changePct=prev?((latest-prev)/prev*100):null;
+    return `<div class="health-card" style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:700;color:${m.color};">${m.label}</div>
+        <div style="display:flex;align-items:baseline;gap:6px;">
+          <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;">${m.fmt(latest)}</div>
+          <div style="font-size:10px;color:var(--muted);">${m.unit}</div>
+          ${changePct!==null?`<div style="font-size:10px;color:${changePct>0?'var(--green)':'var(--red,#f87171)'};">${changePct>0?'+':''}${changePct.toFixed(1)}%</div>`:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:3px;align-items:flex-end;height:44px;">
+        ${vals.map(x=>{
+          const h=x.v?Math.max((x.v-min)/range*100,5):5;
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
+            <div style="width:100%;background:${x.isToday?m.color:m.color+'60'};border-radius:3px 3px 0 0;transition:height .4s;" style="height:${h}%"></div>
+            <div style="font-size:8px;color:${x.isToday?'var(--text)':'var(--muted)'};">${x.label}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).filter(Boolean).join('');
+  if(!el.innerHTML) el.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);">Health data loads after your morning automation fires.</div>';
 }
 
 // ── Boot ──
