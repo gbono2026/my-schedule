@@ -638,7 +638,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260508090000">
+<meta name="app-version" content="20260508100000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -7739,7 +7739,13 @@ function toggleMorningVoice(){
     if(input) input.value = (input.value ? input.value + ' ' : '') + text;
   };
   morningVoiceRec.onerror = () => { morningVoiceActive = false; if(btn) btn.textContent = '🎤'; };
-  morningVoiceRec.onend = () => { morningVoiceActive = false; if(btn) btn.textContent = '🎤'; };
+  morningVoiceRec.onend = () => {
+    morningVoiceActive = false;
+    if(btn) btn.textContent = '🎤';
+    // Auto-submit after voice completes if there's text
+    const inp = document.getElementById('morning-log-input');
+    if(inp?.value?.trim()) setTimeout(processMorningLog, 400);
+  };
   morningVoiceRec.start();
   morningVoiceActive = true;
   if(btn) btn.textContent = '⏹';
@@ -7846,53 +7852,67 @@ Only return JSON. No other text.`,
     }
 
     // Social connections
-    if(parsed.social_count > 0){
+    if(parsed.social_count > 0){ try{
       logSocial(parsed.social_count);
       actions.push(parsed.social_count+' social interaction'+(parsed.social_count>1?'s':'')+' logged');
-    }
+    }catch(e){ console.warn('social log failed',e); } }
 
     // Stress
-    if(parsed.stress_level > 0){
+    if(parsed.stress_level > 0){ try{
       const k = todayKey();
       stressLog[k] = {level: parsed.stress_level, ts: new Date().toISOString()};
-      saveStressLog(); renderStressPips(); renderStressWeekChart();
+      saveStressLog();
+      try{ renderStressPips(); }catch(e){}
+      try{ renderStressWeekChart(); }catch(e){}
       actions.push('stress level '+parsed.stress_level+'/10 logged');
-    }
+    }catch(e){ console.warn('stress log failed',e); } }
 
     // Breathwork
-    if(parsed.breathwork_minutes > 0){
+    if(parsed.breathwork_minutes > 0){ try{
       const k = todayKey();
       if(!mindfulLog[k]) mindfulLog[k]={minutes:0,entries:[]};
       mindfulLog[k].minutes = (mindfulLog[k].minutes||0) + parsed.breathwork_minutes;
-      saveMindfulLog(); renderMindfulness();
+      saveMindfulLog();
+      try{ renderMindfulness(); }catch(e){}
       actions.push(parsed.breathwork_minutes+' min mindfulness logged');
-    }
+    }catch(e){ console.warn('breathwork log failed',e); } }
 
     // Gratitude
-    if(parsed.gratitude){
-      // Log as journal entry
+    if(parsed.gratitude){ try{
       const k = todayKey();
       if(!journalLog[k]) journalLog[k]=[];
       journalLog[k].push({prompt:'Morning log', entry:parsed.gratitude, ts:new Date().toISOString()});
-      saveJournalLog(); renderJournalStreak();
+      saveJournalLog();
+      try{ renderJournalStreak(); }catch(e){}
       actions.push('gratitude noted');
-    }
+    }catch(e){ console.warn('gratitude log failed',e); } }
 
-    // Show what was logged
+    // Show what was logged (always show result, even if nothing was parsed)
     if(resultEl){
       resultEl.style.display = 'block';
-      resultEl.innerHTML = '<div style="font-size:11px;color:var(--gold);font-weight:700;margin-bottom:6px;">✓ Logged successfully</div>' +
-        actions.map(a=>'<div style="color:var(--text);">• '+a+'</div>').join('') +
-        (parsed.summary ? '<div style="color:var(--muted);margin-top:6px;font-style:italic;">'+parsed.summary+'</div>' : '');
+      if(actions.length){
+        resultEl.innerHTML = '<div style="font-size:11px;color:var(--gold);font-weight:700;margin-bottom:6px;">✓ Logged successfully</div>' +
+          actions.map(a=>'<div style="color:var(--text);">• '+a+'</div>').join('') +
+          (parsed.summary ? '<div style="color:var(--muted);margin-top:6px;font-style:italic;">'+parsed.summary+'</div>' : '');
+      } else {
+        resultEl.innerHTML = '<div style="font-size:11px;color:var(--muted);">Nothing specific was logged — try being more specific. E.g. "2 cups of water, eggs for breakfast, feeling good 7/10"</div>';
+      }
     }
+    if(actions.length) showToast('✓ Morning logged');
 
     input.value = '';
     renderMeridianScore();
     if(btn){ btn.textContent = '✓'; setTimeout(()=>{ btn.textContent='→'; btn.disabled=false; },2000); }
 
   } catch(e) {
+    console.error('Morning log error:', e);
     if(btn){ btn.textContent = '→'; btn.disabled = false; }
-    showToast('Error: '+e.message);
+    // Show what we could parse even if some actions failed
+    if(resultEl && resultEl.innerHTML){
+      resultEl.style.display = 'block';
+    } else {
+      showToast('Error: '+e.message+' — check console');
+    }
   }
 }
 
