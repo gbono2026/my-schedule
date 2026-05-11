@@ -638,7 +638,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260508100000">
+<meta name="app-version" content="20260511100000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -1452,6 +1452,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <div id="exercise-list"></div>
       </div>
       <!-- Rest Timer -->
+      <div id="rest-done-alert" style="display:none;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.4);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:600;color:var(--green);margin-bottom:8px;text-align:center;"></div>
       <div class="rest-timer" id="rest-timer" style="display:none;">
         <div>
           <div class="rest-timer-time" id="rest-time">2:00</div>
@@ -1467,6 +1468,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <button style="flex:1;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="openExercisePicker()">+ Exercise</button>
         <button style="flex:1;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;" onclick="openPresetModal()">+ Preset</button>
       </div>
+      <!-- Workout session notes -->
+      <textarea id="workout-notes-input" placeholder="Session notes — how you felt, any PRs, injuries..." rows="2"
+        style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-size:12px;padding:8px 10px;font-family:inherit;resize:none;outline:none;line-height:1.5;margin-top:6px;margin-bottom:4px;"
+        oninput="saveWorkoutNotes(this.value)"></textarea>
       <div style="display:flex;gap:8px;margin-top:6px;">
       <button class="finish-workout-btn" onclick="finishWorkout()" style="flex:1;">✓ Finish Exercise</button>
       <button onclick="saveAsPreset()" style="padding:14px 16px;border-radius:12px;border:1px solid var(--gold-border);background:var(--gold-dim);color:var(--gold);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">💾 Save Preset</button>
@@ -1639,6 +1644,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <div style="font-size:10px;font-weight:700;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">Visual Journey</div>
     <div style="font-family:'Playfair Display',serif;font-size:26px;font-weight:700;margin-bottom:2px;">Progress</div>
     <div style="font-size:12px;color:var(--muted);" id="photo-next-due">Monthly — taken on the 1st</div>
+    <div id="photo-countdown" style="font-size:12px;margin-top:2px;"></div>
   </div>
 
   <!-- Stats strip -->
@@ -2360,6 +2366,121 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
   </div>
 </div>
 
+<!-- PER-EXERCISE TIMER MODAL -->
+<div id="ex-timer-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:600;align-items:flex-end;justify-content:center;">
+  <div style="background:var(--surface);border-radius:24px 24px 0 0;padding:24px;width:100%;max-width:500px;">
+    <div style="font-size:18px;font-weight:700;font-family:'Playfair Display',serif;margin-bottom:4px;" id="ex-timer-title">Timed Set</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Set a countdown for this exercise</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+      <button onclick="setExTimer(20)" style="flex:1;min-width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:10px;cursor:pointer;font-family:inherit;">20s</button>
+      <button onclick="setExTimer(30)" style="flex:1;min-width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:10px;cursor:pointer;font-family:inherit;">30s</button>
+      <button onclick="setExTimer(45)" style="flex:1;min-width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:10px;cursor:pointer;font-family:inherit;">45s</button>
+      <button onclick="setExTimer(60)" style="flex:1;min-width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:10px;cursor:pointer;font-family:inherit;">60s</button>
+      <button onclick="setExTimer(90)" style="flex:1;min-width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:10px;cursor:pointer;font-family:inherit;">90s</button>
+      <button onclick="setExTimer(120)" style="flex:1;min-width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:10px;cursor:pointer;font-family:inherit;">2 min</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+      <input id="ex-timer-custom" type="number" placeholder="Custom (sec)" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;padding:10px;font-family:inherit;outline:none;">
+      <button onclick="setExTimer(parseInt(document.getElementById('ex-timer-custom').value))" style="background:var(--gold);border:none;border-radius:10px;color:#000;font-size:13px;font-weight:700;padding:10px 16px;cursor:pointer;font-family:inherit;">Set</button>
+    </div>
+    <!-- Active countdown display -->
+    <div id="ex-timer-display" style="display:none;text-align:center;margin-bottom:14px;">
+      <div id="ex-timer-count" style="font-family:'Playfair Display',serif;font-size:56px;font-weight:700;color:var(--gold);line-height:1;">0</div>
+      <div style="font-size:12px;color:var(--muted);">seconds remaining</div>
+      <button onclick="cancelExTimer()" style="margin-top:8px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;padding:6px 14px;cursor:pointer;font-family:inherit;">Cancel</button>
+    </div>
+    <button onclick="closeExTimer()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:14px;padding:12px;cursor:pointer;font-family:inherit;">Close</button>
+  </div>
+</div>
+
+<!-- MACRO GOALS MODAL -->
+<div id="macro-goals-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:600;align-items:flex-end;justify-content:center;overflow-y:auto;">
+  <div style="background:var(--surface);border-radius:24px 24px 0 0;padding:24px;width:100%;max-width:500px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <div style="font-size:18px;font-weight:700;font-family:'Playfair Display',serif;">Macro Goals</div>
+      <button onclick="syncMacrosFromBMRAndFill()" style="background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:8px;color:var(--gold);font-size:11px;padding:5px 10px;cursor:pointer;font-family:inherit;">Auto from BMR</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;" id="mg-split-label">Current split: 35% protein · 35% carbs · 30% fat</div>
+
+    <!-- Preset ratio chips -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">Preset ratios</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;" id="mg-presets"></div>
+    </div>
+
+    <!-- Visual ratio bar -->
+    <div style="margin-bottom:14px;">
+      <div style="height:10px;border-radius:5px;overflow:hidden;display:flex;" id="mg-ratio-bar">
+        <div id="mg-bar-protein" style="background:var(--green);transition:width .3s;"></div>
+        <div id="mg-bar-carbs" style="background:var(--blue,#60a5fa);transition:width .3s;"></div>
+        <div id="mg-bar-fat" style="background:var(--orange,#fb923c);transition:width .3s;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;margin-top:4px;">
+        <span style="color:var(--green);" id="mg-pct-protein">35% protein</span>
+        <span style="color:var(--blue,#60a5fa);" id="mg-pct-carbs">35% carbs</span>
+        <span style="color:var(--orange,#fb923c);" id="mg-pct-fat">30% fat</span>
+      </div>
+    </div>
+
+    <!-- Ratio sliders -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;">Adjust ratio</div>
+      <div style="margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+          <span style="color:var(--green);">Protein</span>
+          <span style="color:var(--green);font-weight:700;" id="mg-slider-protein-val">35%</span>
+        </div>
+        <input type="range" id="mg-slider-protein" min="15" max="60" value="35" oninput="onMacroSlider()" style="width:100%;accent-color:var(--green);">
+      </div>
+      <div style="margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+          <span style="color:var(--blue,#60a5fa);">Carbs</span>
+          <span style="color:var(--blue,#60a5fa);font-weight:700;" id="mg-slider-carbs-val">35%</span>
+        </div>
+        <input type="range" id="mg-slider-carbs" min="10" max="65" value="35" oninput="onMacroSlider()" style="width:100%;accent-color:#60a5fa;">
+      </div>
+      <div style="margin-bottom:4px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+          <span style="color:var(--orange,#fb923c);">Fat</span>
+          <span style="color:var(--orange,#fb923c);font-weight:700;" id="mg-slider-fat-val">30%</span>
+        </div>
+        <input type="range" id="mg-slider-fat" min="10" max="50" value="30" oninput="onMacroSlider()" style="width:100%;accent-color:#fb923c;">
+      </div>
+      <div id="mg-split-warning" style="font-size:11px;color:var(--red);display:none;margin-top:4px;">⚠ Total must equal 100% — adjust sliders</div>
+    </div>
+
+    <!-- Calorie goal -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">Daily Calories</div>
+      <input id="mg-calories" type="number" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:16px;padding:10px 12px;font-family:inherit;outline:none;" oninput="updateMacroGramsFromSliders()">
+    </div>
+
+    <!-- Gram targets (auto-calculated) -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+      <div style="background:var(--surface2);border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Protein</div>
+        <div style="font-size:20px;font-weight:700;font-family:'Playfair Display',serif;" id="mg-g-protein">—</div>
+        <div style="font-size:10px;color:var(--muted);">grams</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:11px;color:var(--blue,#60a5fa);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Carbs</div>
+        <div style="font-size:20px;font-weight:700;font-family:'Playfair Display',serif;" id="mg-g-carbs">—</div>
+        <div style="font-size:10px;color:var(--muted);">grams</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:11px;color:var(--orange,#fb923c);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Fat</div>
+        <div style="font-size:20px;font-weight:700;font-family:'Playfair Display',serif;" id="mg-g-fat">—</div>
+        <div style="font-size:10px;color:var(--muted);">grams</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;">
+      <button onclick="saveMacroGoalsModal()" style="flex:2;background:linear-gradient(135deg,var(--gold),#b8860b);border:none;border-radius:12px;color:#000;font-size:14px;font-weight:700;padding:13px;cursor:pointer;font-family:inherit;">Save Goals</button>
+      <button onclick="document.getElementById('macro-goals-modal').style.display='none'" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:14px;padding:13px;cursor:pointer;font-family:inherit;">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- BOTTOM NAV -->
 <div class="bottom-nav">
   <div class="nav-item" id="nav-schedule" onclick="switchView('schedule')">
@@ -2413,13 +2534,13 @@ function genTimes(){const s=[];let h=8,m=0;while(true){const p=h<12?"AM":"PM",dh
 const TIMES=genTimes();
 
 const SCHED={
-  Monday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","9:40 AM":"Neck Exercises","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Monday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
   Tuesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
   Wednesday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","4:00 PM":"Neck Exercises","4:10 PM":"Scalp Stretch","4:30 PM":"FaceTime Family","5:00 PM":"Relaxation (Reading / Video Games / Walk)","6:00 PM":"Shampoo","6:10 PM":"Deep Conditioner","6:20 PM":"Fascial Head Massage","7:00 PM":"Peloton","7:30 PM":"Ketamine Assisted Therapy","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
   Thursday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","5:00 PM":"Take Out Trash","7:00 PM":"Gym (7–8 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
   Friday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","4:00 PM":"Shampoo","7:00 PM":"Gym (7–8 PM)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Saturday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Neck Exercises","9:30 AM":"Scalp Stretch","10:00 AM":"Gym (10-11 AM)","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
-  Sunday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Gym (10-11 AM)","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Biking","11:00 AM":"FaceTime Family","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","1:00 PM":"Laundry","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","5:00 PM":"Take Out Trash","7:00 PM":"Meal Prep","8:00 PM":"Shampoo","8:10 PM":"Coconut Oil / Castor Oil","8:20 PM":"Rice Water Mix","8:30 PM":"Hair Mask","8:40 PM":"Fascial Head Massage","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"}
+  Saturday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Neck Exercises","9:30 AM":"Scalp Stretch","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Nasal Breathing Practice","11:00 AM":"Mewing Posture Check","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","3:30 PM":"Fascial Head Massage","5:00 PM":"Gym (5–6 PM)","8:00 PM":"Sauna (20 min)","9:00 PM":"Brush Teeth","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
+  Sunday:{"8:00 AM":"Weigh In","8:10 AM":"Sunlight","8:20 AM":"Thumb Pulling","8:30 AM":"Cup of Water","8:40 AM":"Skin Care Routine","8:50 AM":"Electric Toothbrush","9:00 AM":"Floss","9:10 AM":"Meds + Vitamin D","9:20 AM":"Lymphatic Drainage Face Massage","9:30 AM":"Chin Tuck Posture Check","10:00 AM":"Deep Breathing","10:10 AM":"Hydration Check","10:20 AM":"Creatine Scoop","10:30 AM":"Biking","11:00 AM":"FaceTime Family","12:00 PM":"Go for a Walk","12:10 PM":"Sunlight","1:00 PM":"Laundry","2:00 PM":"Deep Breathing","2:10 PM":"Hydration Check","3:00 PM":"Mewing Posture Check","5:00 PM":"Take Out Trash","7:00 PM":"Meal Prep","8:00 PM":"Shampoo","8:10 PM":"Coconut Oil / Castor Oil","8:20 PM":"Rice Water Mix","8:30 PM":"Hair Mask","8:40 PM":"Fascial Head Massage","9:00 PM":"Brush Teeth","9:10 PM":"Red Light Therapy (20 min)","9:30 PM":"Scalp Massage (20 min)","9:40 PM":"Scalp Perimeter Massage","9:50 PM":"Evening Wind-Down Stretch","10:00 PM":"Journaling & Gratitude"},
 };
 
 // ── Biomarker definitions ──
@@ -2945,6 +3066,7 @@ function checkMonthlyReminder(){
 }
 
 async function renderSessions(){
+  try{ renderPhotoCountdown(); }catch(e){}
   // Update stats strip
   try{
     const countEl = document.getElementById('progress-session-count');
@@ -3444,8 +3566,15 @@ document.addEventListener('visibilitychange', ()=>{
     const restEnd = localStorage.getItem('rest_timer_end');
     if(restEnd){
       const remaining = Math.ceil((parseInt(restEnd) - Date.now()) / 1000);
-      if(remaining > 0) resumeRestTimer(remaining);
-      else { localStorage.removeItem('rest_timer_end'); hideRestTimer(); }
+      if(remaining > 0){
+        resumeRestTimer(remaining);
+      } else {
+        localStorage.removeItem('rest_timer_end');
+        hideRestTimer();
+        // Timer already finished while you were away — alert you
+        const secsPast = Math.round((Date.now() - parseInt(restEnd)) / 1000);
+        showRestDoneAlert(secsPast);
+      }
     }
   } else {
     // App going to background — store end time and CLEAR interval
@@ -3828,7 +3957,8 @@ function saveAsPreset(){
     exercises: activeWorkout.exercises.map(ex=>({
       name: ex.name,
       target: ex.target,
-      type: ex.type||'strength'
+      type: ex.type||'strength',
+      ssGroup: ex.ssGroup||null  // preserve superset groupings
     }))
   };
   try{ localStorage.setItem('custom_presets', JSON.stringify(customPresets)); }catch(e){}
@@ -3899,6 +4029,8 @@ function finishWorkout(){
     exercises: activeWorkout.exercises,
     duration,
     totalSets,
+    notes: activeWorkout.notes||'',
+    presetName: activeWorkout.presetName||activeWorkout.name||'',
   };
   workoutHistory.push(record);
   saveWorkoutHistory();
@@ -7163,6 +7295,22 @@ function saveMacroGoals(){
   saveCloud('macro_goals', macroGoals);
 }
 function openMacroGoals(){
+  const cals = macroGoals.calories||2000;
+  const calEl = document.getElementById('mg-calories');
+  if(calEl) calEl.value = cals;
+  // Restore saved split or calculate from current macros
+  const curP = macroGoals.splitP || Math.round((macroGoals.protein||175)*4/cals*100);
+  const curC = macroGoals.splitC || Math.round((macroGoals.carbs||175)*4/cals*100);
+  const curF = macroGoals.splitF || (100-curP-curC);
+  const sp=document.getElementById('mg-slider-protein');
+  const sc=document.getElementById('mg-slider-carbs');
+  const sf=document.getElementById('mg-slider-fat');
+  if(sp) sp.value=curP; if(sc) sc.value=curC; if(sf) sf.value=curF;
+  onMacroSlider();
+  openMacroGoalsPresets();
+  document.getElementById('macro-goals-modal').style.display='flex';
+}
+function _openMacroGoals_old(){
   // Auto-calculate from BMR if profile exists
   const bmrCalc = calcBMR ? calcBMR() : null;
   const suggestedCals = bmrCalc ? bmrCalc[bmrProfile.goal||'maintenance'] : macroGoals.calories;
@@ -8229,6 +8377,246 @@ function renderTrendsView(){
     </div>`;
   }).filter(Boolean).join('');
   if(!el.innerHTML) el.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);">Health data loads after your morning automation fires.</div>';
+}
+
+
+// ── Workout notes ──
+function saveWorkoutNotes(text){
+  if(!activeWorkout) return;
+  activeWorkout.notes = text;
+  saveActiveDraft();
+}
+function restoreWorkoutNotes(){
+  const el = document.getElementById('workout-notes-input');
+  if(!el || !activeWorkout) return;
+  el.value = activeWorkout.notes || '';
+  // Show prior session notes as placeholder hint
+  const prevNotes = getPrevSessionNotes();
+  if(prevNotes && !el.value){
+    el.placeholder = 'Last session: "'+prevNotes+'"';
+  }
+}
+
+
+// ── Rest done alert (shows when returning to app after timer expired) ──
+function showRestDoneAlert(secondsAgo){
+  const el = document.getElementById('rest-done-alert');
+  if(!el) return;
+  const msg = secondsAgo < 60
+    ? 'Rest finished ' + secondsAgo + 's ago — ready for your next set!'
+    : 'Rest finished ' + Math.round(secondsAgo/60) + ' min ago — time to go!';
+  el.textContent = '⏱ ' + msg;
+  el.style.display = 'block';
+  // Request notification permission and fire one
+  if('Notification' in window && Notification.permission === 'granted'){
+    new Notification('Meridian — Rest complete!', { body: msg, icon: '/favicon.png' });
+  }
+  setTimeout(()=>{ if(el) el.style.display='none'; }, 6000);
+}
+
+
+// ── Progress photo countdown ──
+function renderPhotoCountdown(){
+  const el = document.getElementById('photo-countdown');
+  if(!el) return;
+  const today = new Date();
+  const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const nextMonth = new Date(today.getFullYear(), today.getMonth()+1, 1);
+  // Check if photos taken this month
+  const thisMonthKey = today.toISOString().slice(0,7); // YYYY-MM
+  const takenThisMonth = (photoSessions||[]).some(s=>(s.date||'').startsWith(thisMonthKey));
+  if(takenThisMonth){
+    const daysUntilNext = Math.ceil((nextMonth - today) / (1000*60*60*24));
+    el.innerHTML = '✓ <span style="color:var(--green);">Done this month</span> · next in ' + daysUntilNext + ' days';
+  } else {
+    const dayOfMonth = today.getDate();
+    if(dayOfMonth <= 7){
+      el.innerHTML = '📸 <span style="color:var(--gold);font-weight:600;">Time for your monthly photos!</span>';
+    } else {
+      const daysOverdue = dayOfMonth - 1;
+      el.innerHTML = '⚠️ <span style="color:var(--orange,#fb923c);">'+daysOverdue+' days overdue</span> — take this month photos';
+    }
+  }
+}
+
+
+// ══════════════════════════════════════════
+// PER-EXERCISE TIMER
+// ══════════════════════════════════════════
+let _exTimerIdx = null, _exTimerInterval = null;
+
+function openExTimer(exIdx){
+  _exTimerIdx = exIdx;
+  const ex = activeWorkout?.exercises[exIdx];
+  if(ex){
+    const titleEl = document.getElementById('ex-timer-title');
+    if(titleEl) titleEl.textContent = ex.name + ' — Timed Set';
+  }
+  document.getElementById('ex-timer-display').style.display='none';
+  document.getElementById('ex-timer-modal').style.display='flex';
+}
+
+function closeExTimer(){
+  document.getElementById('ex-timer-modal').style.display='none';
+}
+
+function setExTimer(secs){
+  if(!secs || secs <= 0){ showToast('Enter a valid time'); return; }
+  const display = document.getElementById('ex-timer-display');
+  const countEl = document.getElementById('ex-timer-count');
+  if(display) display.style.display='block';
+  let remaining = secs;
+  if(countEl) countEl.textContent = remaining;
+  clearInterval(_exTimerInterval);
+  _exTimerInterval = setInterval(()=>{
+    remaining--;
+    if(countEl) countEl.textContent = remaining;
+    // Color warning when under 5s
+    if(countEl) countEl.style.color = remaining <= 5 ? 'var(--red)' : remaining <= 10 ? 'var(--orange,#fb923c)' : 'var(--gold)';
+    if(remaining <= 0){
+      clearInterval(_exTimerInterval);
+      _exTimerInterval = null;
+      if(countEl){ countEl.textContent = '✓'; countEl.style.color = 'var(--green)'; }
+      showToast('⏱ Time up! Log your reps.');
+      // Vibrate if supported
+      try{ navigator.vibrate && navigator.vibrate([200,100,200]); }catch(e){}
+      // Fire notification if permission granted
+      try{
+        if('Notification' in window && Notification.permission==='granted'){
+          new Notification('Meridian — Set complete!', {body:'Log your reps for ' + (activeWorkout?.exercises[_exTimerIdx]?.name||'exercise')});
+        }
+      }catch(e){}
+    }
+  }, 1000);
+}
+
+function cancelExTimer(){
+  clearInterval(_exTimerInterval);
+  _exTimerInterval = null;
+  document.getElementById('ex-timer-display').style.display='none';
+  document.getElementById('ex-timer-count').style.color = 'var(--gold)';
+}
+
+
+// ── Macro goals modal ──
+const MACRO_PRESETS = [
+  { label:'Athlete',       desc:'High performance',   p:40, c:30, f:30 },
+  { label:'Recomposition', desc:'Build & cut',         p:35, c:35, f:30 },
+  { label:'Fat Loss',      desc:'Preserve muscle',     p:40, c:25, f:35 },
+  { label:'Endurance',     desc:'Cardio focus',        p:25, c:50, f:25 },
+  { label:'Keto',          desc:'Low carb',            p:30, c:10, f:60 },
+  { label:'Balanced',      desc:'General wellness',    p:30, c:40, f:30 },
+];
+
+function openMacroGoalsPresets(){
+  const wrap = document.getElementById('mg-presets');
+  if(!wrap) return;
+  // Get current split from macroGoals
+  const cals = macroGoals.calories||2000;
+  const curP = Math.round(macroGoals.protein*4/cals*100);
+  const curC = Math.round(macroGoals.carbs*4/cals*100);
+  const curF = Math.round(macroGoals.fat*9/cals*100);
+  wrap.innerHTML = MACRO_PRESETS.map((p,i)=>{
+    const active = Math.abs(p.p-curP)<=2 && Math.abs(p.c-curC)<=2;
+    return `<button onclick="applyMacroPreset(${i})"
+      style="background:${active?'var(--gold-dim)':'var(--surface2)'};border:1px solid ${active?'var(--gold-border)':'var(--border)'};border-radius:20px;padding:6px 12px;cursor:pointer;font-family:inherit;text-align:center;">
+      <div style="font-size:12px;font-weight:700;color:${active?'var(--gold)':'var(--text)'};">${p.label}</div>
+      <div style="font-size:10px;color:var(--muted);">${p.p}/${p.c}/${p.f}</div>
+    </button>`;
+  }).join('');
+}
+
+function applyMacroPreset(idx){
+  const p = MACRO_PRESETS[idx];
+  if(!p) return;
+  const s = document.getElementById('mg-slider-protein');
+  const sc = document.getElementById('mg-slider-carbs');
+  const sf = document.getElementById('mg-slider-fat');
+  if(s) s.value = p.p;
+  if(sc) sc.value = p.c;
+  if(sf) sf.value = p.f;
+  onMacroSlider();
+  openMacroGoalsPresets(); // re-render to show active state
+  showToast(p.label+' · '+p.p+'/'+p.c+'/'+p.f);
+}
+
+function onMacroSlider(){
+  const ps = parseInt(document.getElementById('mg-slider-protein')?.value)||35;
+  const cs = parseInt(document.getElementById('mg-slider-carbs')?.value)||35;
+  const fs = parseInt(document.getElementById('mg-slider-fat')?.value)||30;
+  const total = ps+cs+fs;
+  // Update labels
+  const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  setEl('mg-slider-protein-val', ps+'%');
+  setEl('mg-slider-carbs-val', cs+'%');
+  setEl('mg-slider-fat-val', fs+'%');
+  // Update ratio bar
+  const pb=document.getElementById('mg-bar-protein');
+  const cb=document.getElementById('mg-bar-carbs');
+  const fb=document.getElementById('mg-bar-fat');
+  if(pb) pb.style.width=(ps/total*100)+'%';
+  if(cb) cb.style.width=(cs/total*100)+'%';
+  if(fb) fb.style.width=(fs/total*100)+'%';
+  // Update pct labels
+  setEl('mg-pct-protein', ps+'% protein');
+  setEl('mg-pct-carbs', cs+'% carbs');
+  setEl('mg-pct-fat', fs+'% fat');
+  // Warn if > 100 + update split label
+  const warn = document.getElementById('mg-split-warning');
+  if(warn) warn.style.display = total>105||total<95 ? 'block' : 'none';
+  const splitLabel = document.getElementById('mg-split-label');
+  if(splitLabel) splitLabel.textContent = 'Split: '+ps+'% protein · '+cs+'% carbs · '+fs+'% fat = '+total+'%';
+  updateMacroGramsFromSliders();
+}
+
+function updateMacroGramsFromSliders(){
+  const cals = parseInt(document.getElementById('mg-calories')?.value)||macroGoals.calories||2000;
+  const ps = parseInt(document.getElementById('mg-slider-protein')?.value)||35;
+  const cs = parseInt(document.getElementById('mg-slider-carbs')?.value)||35;
+  const fs = parseInt(document.getElementById('mg-slider-fat')?.value)||30;
+  const gP = Math.round(cals*(ps/100)/4);
+  const gC = Math.round(cals*(cs/100)/4);
+  const gF = Math.round(cals*(fs/100)/9);
+  const setEl=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  setEl('mg-g-protein', gP);
+  setEl('mg-g-carbs', gC);
+  setEl('mg-g-fat', gF);
+}
+
+function syncMacrosFromBMRAndFill(){
+  try{ syncMacrosFromBMR(); }catch(e){}
+  const calEl = document.getElementById('mg-calories');
+  if(calEl) calEl.value = macroGoals.calories;
+  // Find which preset matches and set sliders
+  const cals = macroGoals.calories||2000;
+  const curP = Math.round(macroGoals.protein*4/cals*100);
+  const curC = Math.round(macroGoals.carbs*4/cals*100);
+  const curF = 100-curP-curC;
+  const sp=document.getElementById('mg-slider-protein');
+  const sc=document.getElementById('mg-slider-carbs');
+  const sf=document.getElementById('mg-slider-fat');
+  if(sp) sp.value=curP; if(sc) sc.value=curC; if(sf) sf.value=curF;
+  onMacroSlider();
+  showToast('Macros calculated from your BMR profile');
+}
+
+function saveMacroGoalsModal(){
+  const cals = parseInt(document.getElementById('mg-calories')?.value)||macroGoals.calories||2000;
+  const ps = parseInt(document.getElementById('mg-slider-protein')?.value)||35;
+  const cs = parseInt(document.getElementById('mg-slider-carbs')?.value)||35;
+  const fs = parseInt(document.getElementById('mg-slider-fat')?.value)||30;
+  macroGoals = {
+    calories: cals,
+    protein:  Math.round(cals*(ps/100)/4),
+    carbs:    Math.round(cals*(cs/100)/4),
+    fat:      Math.round(cals*(fs/100)/9),
+    splitP: ps, splitC: cs, splitF: fs  // save the split for next open
+  };
+  saveMacroGoals();
+  renderMacroProgress();
+  renderEnergyBalance();
+  document.getElementById('macro-goals-modal').style.display='none';
+  showToast('✓ Goals saved · '+cals+' kcal · '+ps+'/'+cs+'/'+fs+' split');
 }
 
 // ── Boot ──
