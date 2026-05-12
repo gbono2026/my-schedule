@@ -638,7 +638,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260511100000">
+<meta name="app-version" content="20260512090000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -706,14 +706,9 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <button class="reset-btn" id="reset-btn">↺ Reset This Day</button>
     <div class="all-done" id="all-done">🎉 All done today!</div>
   </div>
-  <!-- 7-day completion chart -->
-  <div style="margin:4px 16px 8px;padding:10px 12px;background:var(--surface);border-radius:12px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">7-Day Completion</div>
-      <div id="avg-completion-pct" style="font-size:11px;color:var(--gold);font-weight:700;"></div>
-    </div>
-    <div id="schedule-completion-chart"></div>
-  </div>
+
+  <!-- Partner schedule -->
+  <div style="margin:0 16px 10px;" id="partner-schedule-wrap"></div>
   <div class="schedule" id="schedule"></div>
 </div>
 
@@ -2483,9 +2478,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 
 <!-- BOTTOM NAV -->
 <div class="bottom-nav">
-  <div class="nav-item" id="nav-schedule" onclick="switchView('schedule')">
+  <div class="nav-item" id="nav-schedule" onclick="switchView('schedule');dismissPartnerBadge()" style="position:relative;">
     <span class="nav-icon">📅</span>
     <span class="nav-label">SCHEDULE</span>
+    <span id="sched-nav-badge" style="display:none;position:absolute;top:4px;right:20px;width:8px;height:8px;border-radius:50%;background:#a78bfa;"></span>
   </div>
   <div class="nav-item active" id="nav-health" onclick="switchView('health')">
     <span class="nav-icon">❤️</span>
@@ -2959,6 +2955,7 @@ function render(){
   renderSchedule();
   renderProgress();
   renderDateBadge();
+  try{ renderPartnerEvents(); }catch(e){}
   // Update schedule completion chart
   try{ renderScheduleCompletion(); }catch(e){}
   try{
@@ -6006,34 +6003,56 @@ function quickLogFood(idx){
 // ── AI Morning Briefing ──
 let briefingShown = false;
 async function generateMorningBriefing(){
-  // Only show once per day and only if health data exists
   const todayKey2 = todayKey();
-  const shown = localStorage.getItem('briefing_date');
-  if(shown === todayKey2) return;
-  if(!healthToday || !healthToday.sleep) return; // no data yet
-  briefingShown = true;
-  localStorage.setItem('briefing_date', todayKey2);
+  // Check if already generated today (only skip if we have cached text)
+  const cachedDate = localStorage.getItem('briefing_date');
+  const cachedText = localStorage.getItem('briefing_text');
   const card = document.getElementById('morning-briefing');
   const textEl = document.getElementById('morning-briefing-text');
   if(!card || !textEl) return;
-  card.style.display='block';
-  textEl.textContent='Analyzing your overnight data...';
+  card.style.display = 'block';
+  // Show cached briefing immediately if available
+  if(cachedDate === todayKey2 && cachedText){
+    textEl.textContent = cachedText;
+    textEl.style.display = 'block';
+    return;
+  }
+  // Need any health data — don't gate on sleep specifically
+  const hasData = healthToday && Object.keys(healthToday).some(k=>healthToday[k] && k !== 'date' && k !== 'lastSync');
+  if(!hasData){ textEl.textContent = ''; return; }
+  textEl.style.display = 'block';
+  textEl.textContent = 'Analyzing your data...';
   try{
     const d = healthToday;
-    const summary = `Sleep: ${d.sleep?.toFixed(1)||'—'}hrs (REM: ${d.sleepREM?.toFixed(1)||'—'}hrs), HRV: ${d.hrv?Math.round(d.hrv):'—'}ms, Resting HR: ${d.restingHR?Math.round(d.restingHR):'—'}bpm, Weight: ${d.weight||'—'}lbs`;
+    let saunaWeek=0, coldWeek=0;
+    for(let i=0;i<7;i++){
+      const dt=new Date(); dt.setDate(dt.getDate()-i);
+      const k=dt.toISOString().split('T')[0];
+      (thermalLog[k]||[]).forEach(s=>{ if(s.type==='sauna') saunaWeek+=s.minutes||0; else coldWeek+=s.minutes||0; });
+    }
+    const score = calcMeridianScore()?.score || '—';
+    const summary = 'Sleep: '+(d.sleep?.toFixed(1)||'—')+'hrs, HRV: '+(d.hrv?Math.round(d.hrv):'—')+'ms, Resting HR: '+(d.restingHR?Math.round(d.restingHR):'—')+'bpm, Weight: '+(d.weight||'—')+'lbs, Steps: '+(d.steps?Math.round(d.steps):'—')+', Active cal: '+(d.activeCalories?Math.round(d.activeCalories):'—');
     const res = await fetch(SERVER+'/ai-log', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        mode:'briefing',
-        system: `You are Meridian — an elite wellness coach for a Nordic spa. Give a 2-3 sentence morning briefing. Be specific with numbers, warm but direct. End with ONE clear action recommendation based on the data (sauna, cold plunge, workout, rest, walk, etc). Never be generic.`,
-        input: `Health data: ${summary}. Meridian score: ${meridianScore}. Thermal this week: sauna ${saunaWeek}min, cold ${coldWeek}min. Give a smart morning briefing and tell me exactly what to prioritize today and why.`
+        system: 'You are Meridian — a premium wellness coach. Write a personal 2-3 sentence morning briefing using the health data provided. Be specific with the numbers. End with exactly one action recommendation for today (workout, rest, sauna, walk, etc). Be direct and warm. Never be generic.',
+        input: 'Health data: '+summary+'. Meridian score: '+score+'/100. Sauna this week: '+saunaWeek+'min, cold plunge: '+coldWeek+'min. Write the morning briefing.'
       })
     });
     const data = await res.json();
-    textEl.textContent = data.text || 'Good morning. Your data looks good — have a great day.';
+    const text = data.text || '';
+    if(text){
+      textEl.textContent = text;
+      // Save so we can show immediately on next open today
+      localStorage.setItem('briefing_date', todayKey2);
+      localStorage.setItem('briefing_text', text);
+    } else {
+      textEl.textContent = '';
+    }
   }catch(e){
-    card.style.display='none';
+    console.warn('Briefing error:', e.message);
+    textEl.textContent = '';
   }
 }
 
@@ -7945,11 +7964,18 @@ Only return JSON. No other text.`,
     const data = await res.json();
     let parsed;
     try {
-      const raw = (data.text||'').replace(/```json|```/g,'').trim();
+      let raw = (data.text||'').replace(/```json|```/g,'').trim();
+      // Extract JSON object if there's text around it
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if(jsonMatch) raw = jsonMatch[0];
       parsed = JSON.parse(raw);
     } catch(e) {
       if(btn){ btn.textContent = '→'; btn.disabled = false; }
-      showToast('Could not parse response — try again');
+      // Show persistent error instead of disappearing toast
+      if(resultEl){
+        resultEl.style.display='block';
+        resultEl.innerHTML = '<div style="color:var(--red);font-size:12px;">Could not parse response. Try being more specific, e.g. "2 eggs and coffee, feeling good today, 2 cups water"</div>';
+      }
       return;
     }
 
@@ -8617,6 +8643,167 @@ function saveMacroGoalsModal(){
   renderEnergyBalance();
   document.getElementById('macro-goals-modal').style.display='none';
   showToast('✓ Goals saved · '+cals+' kcal · '+ps+'/'+cs+'/'+fs+' split');
+}
+
+
+// ══════════════════════════════════════════
+// PARTNER SCHEDULE + NOTIFICATIONS
+// ══════════════════════════════════════════
+let partnerCalUrl = localStorage.getItem('partner_cal_url') || '';
+let partnerName = localStorage.getItem('partner_name') || 'Partner';
+let partnerEvents = [];
+let _lastPartnerHash = localStorage.getItem('partner_events_hash') || '';
+
+function hashEvents(evts){
+  return JSON.stringify(evts||[]);
+}
+
+function openPartnerSettings(){
+  const name = prompt('Partner name (e.g. Sarah):', partnerName);
+  if(name === null) return;
+  partnerName = name.trim() || 'Partner';
+  localStorage.setItem('partner_name', partnerName);
+  requestNotifPermission();
+  renderPartnerEvents();
+  showToast('Partner name saved — use the + Add button to add their events');
+}
+
+function requestNotifPermission(){
+  if('Notification' in window && Notification.permission === 'default'){
+    Notification.requestPermission().then(p=>{
+      if(p==='granted') showToast('Notifications enabled for partner updates');
+    });
+  }
+}
+
+function checkPartnerUpdates(){
+  const currentHash = hashEvents(partnerEvents);
+  if(_lastPartnerHash && _lastPartnerHash !== currentHash){
+    // Partner events changed since last session
+    const today = todayKey();
+    const todayEvts = (partnerEvents||[]).find(e=>e.date===today)?.events||[];
+    showPartnerUpdateBanner(partnerName+' updated their schedule');
+    // Fire browser notification
+    if('Notification' in window && Notification.permission === 'granted'){
+      new Notification('Meridian — '+partnerName+' updated their schedule', {
+        body: todayEvts.length
+          ? todayEvts.map(e=>e.time?(e.time+' · '+e.title):e.title).join(', ')
+          : 'Check the schedule tab for updates',
+        icon: '/favicon.png'
+      });
+    }
+    // Badge the schedule nav
+    const navBadge = document.getElementById('sched-nav-badge');
+    if(navBadge) navBadge.style.display = 'block';
+  }
+  _lastPartnerHash = currentHash;
+  localStorage.setItem('partner_events_hash', currentHash);
+}
+
+function showPartnerUpdateBanner(msg){
+  const existing = document.getElementById('partner-update-banner');
+  if(existing) existing.remove();
+  const banner = document.createElement('div');
+  banner.id = 'partner-update-banner';
+  banner.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">'
+    +'<div style="font-size:16px;">🔔</div>'
+    +'<div style="flex:1;">'
+    +'<div style="font-size:12px;font-weight:700;color:#a78bfa;">Schedule update</div>'
+    +'<div style="font-size:11px;color:var(--muted);">'+msg+'</div>'
+    +'</div>'
+    +'<button onclick="this.parentElement.parentElement.remove();dismissPartnerBadge()" '
+    +'style="background:transparent;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0;">×</button>'
+    +'</div>';
+  banner.style.cssText = 'background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.35);border-radius:14px;padding:12px 14px;margin:0 16px 10px;';
+  // Insert at top of schedule view
+  const schedView = document.getElementById('view-schedule');
+  if(schedView) schedView.insertBefore(banner, schedView.firstChild);
+}
+
+function dismissPartnerBadge(){
+  const navBadge = document.getElementById('sched-nav-badge');
+  if(navBadge) navBadge.style.display = 'none';
+}
+
+function addPartnerEventManual(){
+  const title = prompt('Event title (e.g. Dentist appointment):');
+  if(!title) return;
+  const time = prompt('Time (e.g. 2:00 PM) — optional:', '');
+  const today = todayKey();
+  if(!partnerEvents) partnerEvents = [];
+  const existing = partnerEvents.find(e=>e.date===today);
+  if(existing) existing.events.push({title:title.trim(), time:(time||'').trim(), added:Date.now()});
+  else partnerEvents.push({date:today, events:[{title:title.trim(), time:(time||'').trim(), added:Date.now()}]});
+  localStorage.setItem('partner_events', JSON.stringify(partnerEvents));
+  // Save cloud so partner can see (uses shared key for now)
+  saveCloud('partner_events_shared', partnerEvents);
+  _lastPartnerHash = hashEvents(partnerEvents);
+  localStorage.setItem('partner_events_hash', _lastPartnerHash);
+  renderPartnerEvents();
+  showToast('✓ Added to '+partnerName+'s schedule');
+}
+
+function removePartnerEvent(dateStr, idx){
+  const day = (partnerEvents||[]).find(e=>e.date===dateStr);
+  if(!day) return;
+  day.events.splice(idx, 1);
+  localStorage.setItem('partner_events', JSON.stringify(partnerEvents));
+  saveCloud('partner_events_shared', partnerEvents);
+  renderPartnerEvents();
+}
+
+function renderPartnerEvents(){
+  const el = document.getElementById('partner-schedule-wrap');
+  if(!el) return;
+  const today = todayKey();
+  const todayEvts = (partnerEvents||[]).find(e=>e.date===today)?.events||[];
+
+  if(!localStorage.getItem('partner_name') && !(partnerEvents||[]).some(e=>e.events?.length)){
+    // Empty state — prominent dashed card
+    el.innerHTML = '<div style="border:2px dashed rgba(167,139,250,0.3);border-radius:14px;padding:16px;text-align:center;margin-bottom:4px;">'
+      +'<div style="font-size:22px;margin-bottom:6px;">👤</div>'
+      +'<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px;">Add partner schedule</div>'
+      +'<div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:10px;">See their events for the day alongside yours</div>'
+      +'<button onclick="openPartnerSettings()" style="background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.35);border-radius:20px;color:#a78bfa;font-size:12px;font-weight:600;padding:7px 16px;cursor:pointer;font-family:inherit;">+ Link partner schedule</button>'
+      +'</div>';
+    return;
+  }
+
+  // Get first letter for avatar
+  const initial = (partnerName||'P')[0].toUpperCase();
+
+  el.innerHTML = '<div style="background:var(--surface);border:1px solid rgba(167,139,250,0.35);border-radius:14px;overflow:hidden;margin-bottom:4px;">'
+    // Header
+    +'<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid rgba(167,139,250,0.2);">'
+    +'<div style="width:28px;height:28px;border-radius:50%;background:rgba(167,139,250,0.15);color:#a78bfa;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">'+initial+'</div>'
+    +'<div style="flex:1;">'
+    +'<div style="font-size:12px;font-weight:700;color:var(--text);">'+partnerName+'</div>'
+    +'<div style="font-size:10px;color:var(--muted);">partner schedule</div>'
+    +'</div>'
+    +'<div style="display:flex;gap:5px;">'
+    +'<button onclick="addPartnerEventManual()" style="padding:4px 9px;border-radius:12px;border:1px solid rgba(167,139,250,0.3);background:transparent;color:#a78bfa;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;">+ Add</button>'
+    +'<button onclick="openPartnerSettings()" style="padding:4px 7px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;">⚙</button>'
+    +'</div>'
+    +'</div>'
+    // Events
+    +'<div style="padding:8px 12px;">'
+    +(todayEvts.length
+      ? todayEvts.map((e,i)=>{
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(167,139,250,0.1);';
+          row.innerHTML = '<div style="width:7px;height:7px;border-radius:50%;background:#a78bfa;flex-shrink:0;"></div>'
+            +'<div style="flex:1;font-size:12px;color:var(--text);">'+e.title+'</div>'
+            +(e.time?'<div style="font-size:10px;color:#a78bfa;font-weight:600;">'+e.time+'</div>':'');
+          const xBtn = document.createElement('button');
+          xBtn.textContent = '×';
+          xBtn.style.cssText = 'background:transparent;border:none;color:var(--muted2);font-size:13px;cursor:pointer;padding:0 2px;line-height:1;';
+          xBtn.onclick = (()=>{const idx=i;return()=>removePartnerEvent(today,idx);})();
+          row.appendChild(xBtn);
+          return row.outerHTML;
+        }).join('')
+      : '<div style="text-align:center;padding:8px 0;font-size:11px;color:var(--muted);">No events today — tap + Add</div>')
+    +'</div>'
+    +'</div>';
 }
 
 // ── Boot ──
