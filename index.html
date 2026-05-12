@@ -638,7 +638,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260512090000">
+<meta name="app-version" content="20260512100000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -2472,6 +2472,41 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <div style="display:flex;gap:8px;">
       <button onclick="saveMacroGoalsModal()" style="flex:2;background:linear-gradient(135deg,var(--gold),#b8860b);border:none;border-radius:12px;color:#000;font-size:14px;font-weight:700;padding:13px;cursor:pointer;font-family:inherit;">Save Goals</button>
       <button onclick="document.getElementById('macro-goals-modal').style.display='none'" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:14px;padding:13px;cursor:pointer;font-family:inherit;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- PARTNER SETTINGS MODAL -->
+<div id="partner-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:700;align-items:flex-end;justify-content:center;">
+  <div style="background:var(--surface);border-radius:24px 24px 0 0;padding:24px;width:100%;max-width:500px;">
+    <div style="font-size:18px;font-weight:700;font-family:'Playfair Display',serif;margin-bottom:4px;">Partner Schedule</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:20px;">Link schedules so you can see each other's events</div>
+
+    <!-- Partner name -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">Partner name</div>
+      <input id="pm-name" type="text" placeholder="e.g. Sarah" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;padding:10px 12px;font-family:inherit;outline:none;">
+    </div>
+
+    <!-- Their code to enter -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">Enter partner's code</div>
+      <input id="pm-link-code" type="text" placeholder="e.g. MRD-X4K2" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;padding:10px 12px;font-family:inherit;outline:none;text-transform:uppercase;letter-spacing:2px;">
+      <div style="font-size:11px;color:var(--muted);margin-top:5px;">Ask your partner to share their code with you</div>
+    </div>
+
+    <!-- Your code to share -->
+    <div style="margin-bottom:20px;padding:12px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.25);border-radius:12px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Your code — share this with your partner</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div id="pm-my-code" style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:#a78bfa;letter-spacing:3px;"></div>
+        <button onclick="copyPartnerCode()" style="background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.3);border-radius:10px;color:#a78bfa;font-size:12px;font-weight:600;padding:7px 14px;cursor:pointer;font-family:inherit;">Copy</button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;">
+      <button onclick="savePartnerSettings()" style="flex:2;background:rgba(167,139,250,0.9);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;padding:13px;cursor:pointer;font-family:inherit;">Save & Link</button>
+      <button onclick="document.getElementById('partner-modal').style.display='none'" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:14px;padding:13px;cursor:pointer;font-family:inherit;">Cancel</button>
     </div>
   </div>
 </div>
@@ -6032,7 +6067,7 @@ async function generateMorningBriefing(){
     }
     const score = calcMeridianScore()?.score || '—';
     const summary = 'Sleep: '+(d.sleep?.toFixed(1)||'—')+'hrs, HRV: '+(d.hrv?Math.round(d.hrv):'—')+'ms, Resting HR: '+(d.restingHR?Math.round(d.restingHR):'—')+'bpm, Weight: '+(d.weight||'—')+'lbs, Steps: '+(d.steps?Math.round(d.steps):'—')+', Active cal: '+(d.activeCalories?Math.round(d.activeCalories):'—');
-    const res = await fetch(SERVER+'/ai-log', {
+    const res = await fetchWithTimeout(SERVER+'/ai-log', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
@@ -7926,6 +7961,8 @@ async function processMorningLog(){
   if(!text){ showToast('Tell me about your morning first'); return; }
 
   if(btn){ btn.textContent = '⟳'; btn.disabled = true; }
+  // Safety reset — never leave button stuck loading
+  const _safetyReset = setTimeout(()=>{ if(btn){ btn.textContent='→'; btn.disabled=false; } }, 15000);
 
   // Build context for AI to parse
   const today = todayKey();
@@ -7937,7 +7974,7 @@ async function processMorningLog(){
   };
 
   try {
-    const res = await fetch(SERVER+'/ai-log', {
+    const res = await fetchWithTimeout(SERVER+'/ai-log', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
@@ -8074,11 +8111,13 @@ Only return JSON. No other text.`,
     }
     if(actions.length) showToast('✓ Morning logged');
 
+    clearTimeout(_safetyReset);
     input.value = '';
     renderMeridianScore();
     if(btn){ btn.textContent = '✓'; setTimeout(()=>{ btn.textContent='→'; btn.disabled=false; },2000); }
 
   } catch(e) {
+    clearTimeout(_safetyReset);
     console.error('Morning log error:', e);
     if(btn){ btn.textContent = '→'; btn.disabled = false; }
     // Show what we could parse even if some actions failed
@@ -8659,13 +8698,56 @@ function hashEvents(evts){
 }
 
 function openPartnerSettings(){
-  const name = prompt('Partner name (e.g. Sarah):', partnerName);
-  if(name === null) return;
-  partnerName = name.trim() || 'Partner';
-  localStorage.setItem('partner_name', partnerName);
+  // Show modal instead of prompt
+  document.getElementById('partner-modal').style.display='flex';
+  // Populate fields
+  document.getElementById('pm-name').value = partnerName !== 'Partner' ? partnerName : '';
+  const myCode = getMyPartnerCode();
+  document.getElementById('pm-my-code').textContent = myCode;
+  document.getElementById('pm-link-code').value = localStorage.getItem('partner_link_code')||'';
+}
+
+function getMyPartnerCode(){
+  let code = localStorage.getItem('my_partner_code');
+  if(!code){
+    // Generate a short unique code from username + random
+    code = 'MRD-' + Math.random().toString(36).substr(2,4).toUpperCase();
+    localStorage.setItem('my_partner_code', code);
+  }
+  return code;
+}
+
+async function savePartnerSettings(){
+  const name = document.getElementById('pm-name').value.trim() || 'Partner';
+  const linkCode = document.getElementById('pm-link-code').value.trim().toUpperCase();
+  partnerName = name;
+  localStorage.setItem('partner_name', name);
+  if(linkCode && linkCode !== getMyPartnerCode()){
+    localStorage.setItem('partner_link_code', linkCode);
+    // Try to load their events from cloud
+    showToast('Linking to partner...');
+    try{
+      const data = await loadCloud('partner_events_'+linkCode);
+      if(data && data.length){
+        partnerEvents = data;
+        localStorage.setItem('partner_events', JSON.stringify(partnerEvents));
+        checkPartnerUpdates();
+        renderPartnerEvents();
+        showToast('✓ Linked to '+name+'! '+data.length+' event day(s) loaded');
+      } else {
+        showToast('Code saved — events will sync when '+name+' adds them');
+      }
+    }catch(e){ showToast('Could not reach server — try again'); }
+  }
+  document.getElementById('partner-modal').style.display='none';
   requestNotifPermission();
   renderPartnerEvents();
-  showToast('Partner name saved — use the + Add button to add their events');
+}
+
+function copyPartnerCode(){
+  const code = getMyPartnerCode();
+  navigator.clipboard?.writeText(code).then(()=>showToast('Code copied: '+code))
+    .catch(()=>showToast('Your code: '+code));
 }
 
 function requestNotifPermission(){
@@ -8736,7 +8818,8 @@ function addPartnerEventManual(){
   else partnerEvents.push({date:today, events:[{title:title.trim(), time:(time||'').trim(), added:Date.now()}]});
   localStorage.setItem('partner_events', JSON.stringify(partnerEvents));
   // Save cloud so partner can see (uses shared key for now)
-  saveCloud('partner_events_shared', partnerEvents);
+  const myCode = getMyPartnerCode();
+  saveCloud('partner_events_'+myCode, partnerEvents);
   _lastPartnerHash = hashEvents(partnerEvents);
   localStorage.setItem('partner_events_hash', _lastPartnerHash);
   renderPartnerEvents();
@@ -8748,7 +8831,8 @@ function removePartnerEvent(dateStr, idx){
   if(!day) return;
   day.events.splice(idx, 1);
   localStorage.setItem('partner_events', JSON.stringify(partnerEvents));
-  saveCloud('partner_events_shared', partnerEvents);
+  const myCode = getMyPartnerCode();
+  saveCloud('partner_events_'+myCode, partnerEvents);
   renderPartnerEvents();
 }
 
@@ -8804,6 +8888,22 @@ function renderPartnerEvents(){
       : '<div style="text-align:center;padding:8px 0;font-size:11px;color:var(--muted);">No events today — tap + Add</div>')
     +'</div>'
     +'</div>';
+}
+
+
+// ── Fetch with timeout ──
+async function fetchWithTimeout(url, options, timeoutMs=12000){
+  const controller = new AbortController();
+  const timer = setTimeout(()=>controller.abort(), timeoutMs);
+  try{
+    const res = await fetch(url, {...options, signal:controller.signal});
+    clearTimeout(timer);
+    return res;
+  }catch(e){
+    clearTimeout(timer);
+    if(e.name==='AbortError') throw new Error('Request timed out — Railway may be starting up. Try again in 10 seconds.');
+    throw e;
+  }
 }
 
 // ── Boot ──
