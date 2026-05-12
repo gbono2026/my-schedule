@@ -638,7 +638,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260512100000">
+<meta name="app-version" content="20260512110000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -7957,395 +7957,174 @@ async function processMorningLog(){
   const input = document.getElementById('morning-log-input');
   const btn = document.getElementById('morning-log-btn');
   const resultEl = document.getElementById('morning-log-result');
-  const text = input?.value?.trim();
+  const text = (input?.value||'').trim();
   if(!text){ showToast('Tell me about your morning first'); return; }
 
-  if(btn){ btn.textContent = '⟳'; btn.disabled = true; }
-  // Safety reset — never leave button stuck loading
-  const _safetyReset = setTimeout(()=>{ if(btn){ btn.textContent='→'; btn.disabled=false; } }, 15000);
+  // Show result area immediately with progress steps
+  if(resultEl){
+    resultEl.style.display='block';
+    resultEl.innerHTML='<div style="font-size:12px;color:var(--muted);">Sending to AI...</div>';
+  }
+  if(btn){ btn.textContent='⟳'; btn.disabled=true; }
+  const safetyReset=setTimeout(()=>{
+    if(btn){btn.textContent='→';btn.disabled=false;}
+    if(resultEl) resultEl.innerHTML='<div style="color:var(--red);font-size:12px;">Timed out — Railway may be sleeping. Wait 10 seconds and try again.</div>';
+  },15000);
 
-  // Build context for AI to parse
-  const today = todayKey();
-  const currentMacros = {
-    calories: Math.round(['breakfast','lunch','dinner','snacks'].reduce((s,m)=>(nutritionLog[today]?.[m]||[]).reduce((a,f)=>a+(f.calories||0),s),0)),
-    water: hydrationLog[today]||0,
-    mood: (scores[today]||{}).mood||0,
-    energy: (scores[today]||{}).energy||0,
-  };
-
-  try {
-    const res = await fetchWithTimeout(SERVER+'/ai-log', {
+  try{
+    // Step 1: call server
+    if(resultEl) resultEl.innerHTML='<div style="font-size:12px;color:var(--muted);">Contacting server...</div>';
+    const res = await fetchWithTimeout(SERVER+'/ai-log',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        system: `You are a health logging AI for the Meridian wellness app. Parse the user's morning message and extract loggable data. Return ONLY valid JSON with this exact structure (omit any field you cannot extract):
-{
-  "food": [{"name":"string","calories":number,"protein":number,"carbs":number,"fat":number,"qty":number,"unit":"string"}],
-  "water_cups": number,
-  "sunlight_minutes": number,
-  "mood": number,
-  "energy": number,
-  "focus": number,
-  "social_count": number,
-  "breathwork_minutes": number,
-  "stress_level": number,
-  "gratitude": "string",
-  "summary": "string"
-}
-For mood/energy/focus use 1-10 scale based on descriptive words (great/motivated=8-9, good=7, okay=5-6, tired=3-4, bad=1-2).
-For food, estimate reasonable macros if not specified (e.g. overnight oats = 350 cal, 12g protein, 55g carbs, 8g fat).
-Only return JSON. No other text.`,
-        input: text
+      body:JSON.stringify({
+        system:'You are a health logging assistant. Extract what the user mentions and return ONLY a JSON object. Fields: food (array with name/calories/protein/carbs/fat/qty/unit), water_cups, sunlight_minutes, mood, energy, focus (1-10 scale), social_count, stress_level, gratitude. Estimate food macros. Only include mentioned fields. No markdown, no explanation.',
+        input:text
       })
-    });
+    },12000);
+
+    // Step 2: parse response
+    if(resultEl) resultEl.innerHTML='<div style="font-size:12px;color:var(--muted);">Parsing response...</div>';
     const data = await res.json();
-    let parsed;
-    try {
-      let raw = (data.text||'').replace(/```json|```/g,'').trim();
-      // Extract JSON object if there's text around it
-      const jsonMatch = raw.match(/\{[\s\S]*\}/);
-      if(jsonMatch) raw = jsonMatch[0];
-      parsed = JSON.parse(raw);
-    } catch(e) {
-      if(btn){ btn.textContent = '→'; btn.disabled = false; }
-      // Show persistent error instead of disappearing toast
-      if(resultEl){
-        resultEl.style.display='block';
-        resultEl.innerHTML = '<div style="color:var(--red);font-size:12px;">Could not parse response. Try being more specific, e.g. "2 eggs and coffee, feeling good today, 2 cups water"</div>';
-      }
+
+    if(!res.ok || data.error){
+      clearTimeout(safetyReset);
+      if(btn){btn.textContent='→';btn.disabled=false;}
+      if(resultEl) resultEl.innerHTML='<div style="color:var(--red);font-size:12px;">Server error: '+(data.error||res.status)+'</div>';
       return;
     }
 
-    // Execute all the logging actions
-    const actions = [];
+    let parsed;
+    try{
+      let raw=(data.text||'').trim();
+      // Strip markdown fences
+      raw=raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+      // Extract first JSON object
+      const m=raw.match(/\{[\s\S]*\}/);
+      if(m) raw=m[0];
+      parsed=JSON.parse(raw);
+    }catch(parseErr){
+      clearTimeout(safetyReset);
+      if(btn){btn.textContent='→';btn.disabled=false;}
+      if(resultEl) resultEl.innerHTML='<div style="color:var(--red);font-size:12px;">Could not parse AI response. Raw response: "'+(data.text||'empty').substring(0,100)+'"</div>';
+      return;
+    }
+
+    // Step 3: execute actions
+    if(resultEl) resultEl.innerHTML='<div style="font-size:12px;color:var(--muted);">Logging...</div>';
+    const today=todayKey();
+    const actions=[];
 
     // Food
     if(parsed.food?.length){
-      if(!nutritionLog[today]) nutritionLog[today]={breakfast:[],lunch:[],dinner:[],snacks:[]};
-      const meal = 'breakfast';
-      parsed.food.forEach(f => nutritionLog[today][meal].push(f));
-      saveNutrition();
-      renderNutrition();
-      renderMacroProgress();
-      renderEnergyBalance();
-      actions.push(parsed.food.map(f=>f.name).join(', ')+' logged to breakfast');
+      try{
+        if(!nutritionLog[today]) nutritionLog[today]={breakfast:[],lunch:[],dinner:[],snacks:[]};
+        const hr=new Date().getHours();
+        const meal=hr<11?'breakfast':hr<15?'lunch':hr<19?'dinner':'snacks';
+        parsed.food.forEach(f=>{ if(f.name) nutritionLog[today][meal].push({name:f.name,calories:f.calories||0,protein:f.protein||0,carbs:f.carbs||0,fat:f.fat||0,qty:f.qty||1,unit:f.unit||'serving'}); });
+        try{localStorage.setItem('nutrition_log',JSON.stringify(nutritionLog));}catch(e){}
+        saveCloud('nutrition_log',nutritionLog);
+        try{renderNutrition();}catch(e){}
+        try{renderMacroProgress();}catch(e){}
+        try{renderEnergyBalance();}catch(e){}
+        actions.push('🍽 '+parsed.food.map(f=>f.name).join(', ')+' logged to '+meal);
+      }catch(e){actions.push('⚠ Food log failed: '+e.message);}
     }
 
-    // Water (1 cup = 8oz)
-    if(parsed.water_cups > 0){
-      logWater(parsed.water_cups * 8);
-      actions.push(parsed.water_cups+' cup'+(parsed.water_cups>1?'s':'')+' of water ('+parsed.water_cups*8+'oz) logged');
+    // Water
+    if(parsed.water_cups>0){
+      try{
+        logWater(parsed.water_cups*8);
+        actions.push('💧 '+parsed.water_cups+' cup'+(parsed.water_cups>1?'s':'')+' of water');
+      }catch(e){actions.push('⚠ Water log failed: '+e.message);}
     }
 
-    // Sunlight/nature
-    if(parsed.sunlight_minutes > 0){
-      const k = todayKey();
-      if(!natureLog[k]) natureLog[k]={minutes:0};
-      natureLog[k].minutes = (natureLog[k].minutes||0) + parsed.sunlight_minutes;
-      saveNatureLog(); renderNatureTracker();
-      actions.push(parsed.sunlight_minutes+' min sunlight logged');
+    // Sunlight
+    if(parsed.sunlight_minutes>0){
+      try{
+        const k=todayKey();
+        if(!natureLog[k]) natureLog[k]={minutes:0};
+        natureLog[k].minutes=(natureLog[k].minutes||0)+parsed.sunlight_minutes;
+        saveNatureLog();
+        try{renderNatureTracker();}catch(e){}
+        actions.push('☀️ '+parsed.sunlight_minutes+' min sunlight');
+      }catch(e){actions.push('⚠ Sunlight log failed: '+e.message);}
     }
 
     // Mood/energy/focus
     if(parsed.mood||parsed.energy||parsed.focus){
-      if(!scores[today]) scores[today]={};
-      if(parsed.mood) scores[today].mood = parsed.mood;
-      if(parsed.energy) scores[today].energy = parsed.energy;
-      if(parsed.focus) scores[today].focus = parsed.focus;
-      saveCloud('scores', scores);
-      try{ localStorage.setItem('scores', JSON.stringify(scores)); }catch(e){}
-      loadScores();
-      const scoreNames = [];
-      if(parsed.mood) scoreNames.push('mood '+parsed.mood+'/10');
-      if(parsed.energy) scoreNames.push('energy '+parsed.energy+'/10');
-      if(parsed.focus) scoreNames.push('focus '+parsed.focus+'/10');
-      actions.push(scoreNames.join(', ')+' logged');
+      try{
+        if(!scores[today]) scores[today]={};
+        if(parsed.mood) scores[today].mood=parsed.mood;
+        if(parsed.energy) scores[today].energy=parsed.energy;
+        if(parsed.focus) scores[today].focus=parsed.focus;
+        try{localStorage.setItem('scores',JSON.stringify(scores));}catch(e){}
+        saveCloud('scores',scores);
+        try{loadScores();}catch(e){}
+        const parts=[];
+        if(parsed.mood) parts.push('mood '+parsed.mood);
+        if(parsed.energy) parts.push('energy '+parsed.energy);
+        if(parsed.focus) parts.push('focus '+parsed.focus);
+        actions.push('😊 '+parts.join(', ')+' /10');
+      }catch(e){actions.push('⚠ Scores log failed: '+e.message);}
     }
 
-    // Social connections
-    if(parsed.social_count > 0){ try{
-      logSocial(parsed.social_count);
-      actions.push(parsed.social_count+' social interaction'+(parsed.social_count>1?'s':'')+' logged');
-    }catch(e){ console.warn('social log failed',e); } }
+    // Social
+    if(parsed.social_count>0){
+      try{
+        logSocial(parsed.social_count);
+        actions.push('🤝 '+parsed.social_count+' social interaction'+(parsed.social_count>1?'s':''));
+      }catch(e){actions.push('⚠ Social log failed: '+e.message);}
+    }
 
     // Stress
-    if(parsed.stress_level > 0){ try{
-      const k = todayKey();
-      stressLog[k] = {level: parsed.stress_level, ts: new Date().toISOString()};
-      saveStressLog();
-      try{ renderStressPips(); }catch(e){}
-      try{ renderStressWeekChart(); }catch(e){}
-      actions.push('stress level '+parsed.stress_level+'/10 logged');
-    }catch(e){ console.warn('stress log failed',e); } }
-
-    // Breathwork
-    if(parsed.breathwork_minutes > 0){ try{
-      const k = todayKey();
-      if(!mindfulLog[k]) mindfulLog[k]={minutes:0,entries:[]};
-      mindfulLog[k].minutes = (mindfulLog[k].minutes||0) + parsed.breathwork_minutes;
-      saveMindfulLog();
-      try{ renderMindfulness(); }catch(e){}
-      actions.push(parsed.breathwork_minutes+' min mindfulness logged');
-    }catch(e){ console.warn('breathwork log failed',e); } }
+    if(parsed.stress_level>0){
+      try{
+        stressLog[today]={level:parsed.stress_level,ts:new Date().toISOString()};
+        saveStressLog();
+        try{renderStressPips();}catch(e){}
+        actions.push('🧠 Stress level '+parsed.stress_level+'/10');
+      }catch(e){actions.push('⚠ Stress log failed: '+e.message);}
+    }
 
     // Gratitude
-    if(parsed.gratitude){ try{
-      const k = todayKey();
-      if(!journalLog[k]) journalLog[k]=[];
-      journalLog[k].push({prompt:'Morning log', entry:parsed.gratitude, ts:new Date().toISOString()});
-      saveJournalLog();
-      try{ renderJournalStreak(); }catch(e){}
-      actions.push('gratitude noted');
-    }catch(e){ console.warn('gratitude log failed',e); } }
+    if(parsed.gratitude){
+      try{
+        if(!journalLog[today]) journalLog[today]=[];
+        journalLog[today].push({prompt:'Morning log',entry:parsed.gratitude,ts:new Date().toISOString()});
+        saveJournalLog();
+        try{renderJournalStreak();}catch(e){}
+        actions.push('🙏 Gratitude noted');
+      }catch(e){actions.push('⚠ Gratitude log failed: '+e.message);}
+    }
 
-    // Show what was logged (always show result, even if nothing was parsed)
+    clearTimeout(safetyReset);
+    if(btn){btn.textContent='✓';setTimeout(()=>{btn.textContent='→';btn.disabled=false;},2000);}
+    input.value='';
+    input.style.height='auto';
+    try{renderMeridianScore();}catch(e){}
+
     if(resultEl){
-      resultEl.style.display = 'block';
       if(actions.length){
-        resultEl.innerHTML = '<div style="font-size:11px;color:var(--gold);font-weight:700;margin-bottom:6px;">✓ Logged successfully</div>' +
-          actions.map(a=>'<div style="color:var(--text);">• '+a+'</div>').join('') +
-          (parsed.summary ? '<div style="color:var(--muted);margin-top:6px;font-style:italic;">'+parsed.summary+'</div>' : '');
+        resultEl.innerHTML='<div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px;">✓ Logged '+actions.length+' item'+(actions.length>1?'s':'')+'</div>'
+          +actions.map(a=>'<div style="font-size:12px;color:var(--text);padding:2px 0;">'+a+'</div>').join('');
       } else {
-        resultEl.innerHTML = '<div style="font-size:11px;color:var(--muted);">Nothing specific was logged — try being more specific. E.g. "2 cups of water, eggs for breakfast, feeling good 7/10"</div>';
+        resultEl.innerHTML='<div style="font-size:12px;color:var(--muted);">Nothing specific detected — try "2 cups water, eggs for breakfast, feeling great, 10 min outside"</div>';
       }
     }
-    if(actions.length) showToast('✓ Morning logged');
 
-    clearTimeout(_safetyReset);
-    input.value = '';
-    renderMeridianScore();
-    if(btn){ btn.textContent = '✓'; setTimeout(()=>{ btn.textContent='→'; btn.disabled=false; },2000); }
-
-  } catch(e) {
-    clearTimeout(_safetyReset);
-    console.error('Morning log error:', e);
-    if(btn){ btn.textContent = '→'; btn.disabled = false; }
-    // Show what we could parse even if some actions failed
-    if(resultEl && resultEl.innerHTML){
-      resultEl.style.display = 'block';
-    } else {
-      showToast('Error: '+e.message+' — check console');
+  }catch(e){
+    clearTimeout(safetyReset);
+    if(btn){btn.textContent='→';btn.disabled=false;}
+    const msg=e.message||'Unknown error';
+    if(resultEl){
+      resultEl.style.display='block';
+      resultEl.innerHTML='<div style="color:var(--red);font-size:12px;">Failed: '+msg+'</div>';
     }
+    console.error('Morning log error:',e);
   }
 }
 
-
-// ══════════════════════════════════════════
-// HERO CARD NAVIGATION HELPERS
-// ══════════════════════════════════════════
-function goToNutrition(){
-  switchView('health');
-  const bodyEl = document.getElementById('section-body');
-  if(bodyEl && bodyEl.classList.contains('section-collapsed')) toggleSection('section-body');
-  setTimeout(()=>{
-    const el = document.getElementById('meal-breakfast');
-    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
-  }, 350);
-}
-
-function goToWorkout(){
-  switchView('health');
-  const bodyEl = document.getElementById('section-body');
-  if(bodyEl && bodyEl.classList.contains('section-collapsed')) toggleSection('section-body');
-  setTimeout(()=>{
-    const el = document.querySelector('.workout-section-header');
-    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
-  }, 350);
-}
-
-function goToSection(sectionId, scrollToId){
-  switchView('health');
-  const sectionEl = document.getElementById(sectionId);
-  if(sectionEl && sectionEl.classList.contains('section-collapsed')) toggleSection(sectionId);
-  setTimeout(()=>{
-    const el = scrollToId ? document.getElementById(scrollToId) : sectionEl;
-    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
-  }, 350);
-}
-
-
-// ══════════════════════════════════════════
-// EXERCISE HISTORY MODAL
-// ══════════════════════════════════════════
-function openExHistory(exIdx){
-  if(!activeWorkout || !workoutHistory) return;
-  const ex = activeWorkout.exercises[exIdx];
-  if(!ex) return;
-  const name = ex.name;
-
-  // Find all past sessions with this exercise
-  const sessions = [];
-  workoutHistory.forEach(w => {
-    const match = (w.exercises||[]).find(e => e.name === name);
-    if(match && match.sets?.length){
-      sessions.push({
-        date: w.date || w.dateLabel || 'Unknown date',
-        sets: match.sets
-      });
-    }
-  });
-
-  // Populate modal
-  const titleEl = document.getElementById('ex-history-title');
-  const contentEl = document.getElementById('ex-history-content');
-  if(titleEl) titleEl.textContent = name;
-  if(contentEl){
-    if(!sessions.length){
-      contentEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);">No history yet — this is your first time logging this exercise.</div>';
-    } else {
-      // Show most recent first, max 10 sessions
-      const recent = sessions.slice(-10).reverse();
-      contentEl.innerHTML = recent.map(s => {
-        const bestSet = s.sets.reduce((best, set) => {
-          const vol = (parseFloat(set.weight)||0) * (parseInt(set.reps)||0);
-          return vol > ((parseFloat(best.weight)||0) * (parseInt(best.reps)||0)) ? set : best;
-        }, s.sets[0]);
-        const orm = calc1RM(parseFloat(bestSet.weight)||0, parseInt(bestSet.reps)||0);
-
-        return `<div style="background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <div style="font-size:12px;font-weight:700;color:var(--text);">${s.date}</div>
-            ${orm ? '<div style="font-size:11px;color:var(--gold);">~'+orm+' lb 1RM</div>' : ''}
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;">
-            ${s.sets.map((set,i) => `
-              <div style="background:var(--surface3);border-radius:8px;padding:5px 8px;font-size:11px;text-align:center;">
-                <div style="color:var(--muted);font-size:9px;margin-bottom:2px;">SET ${i+1}</div>
-                <div style="font-weight:700;color:var(--text);">${set.weight||'—'} lbs</div>
-                <div style="color:var(--muted);">${set.reps||'—'} reps</div>
-                ${set.effort ? '<div style="color:var(--gold);font-size:9px;">RPE '+set.effort+'</div>' : ''}
-              </div>`).join('')}
-          </div>
-        </div>`;
-      }).join('');
-    }
-  }
-
-  document.getElementById('ex-history-modal').classList.add('open');
-}
-
-
-function promptWeightCorrection(){
-  const current = document.getElementById('hero-weight')?.textContent || '';
-  const val = prompt('Enter correct weight (lbs):', current === '—' ? '' : current);
-  if(!val || isNaN(parseFloat(val))) return;
-  const weight = parseFloat(val);
-  // Update server
-  fetch(SERVER+'/update-weight', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({weight})
-  }).then(r=>r.json()).then(data=>{
-    if(data.success){
-      healthToday.weight = weight;
-      try{ localStorage.setItem('health_today_cache', JSON.stringify(healthToday)); }catch(e){}
-      setHero('hero-weight', weight.toFixed(1));
-      renderMeridianScore();
-      renderEnergyBalance();
-      showToast('✓ Weight updated to '+weight+' lbs');
-    } else {
-      showToast('Failed to update weight');
-    }
-  }).catch(()=>showToast('Could not reach server'));
-}
-
-
-// ══════════════════════════════════════════
-// FOOD UNIT CONVERSION
-// ══════════════════════════════════════════
-// Conversion: how many grams is 1 of each unit (approximate)
-const UNIT_TO_GRAMS = {
-  'serving': null,  // no conversion — serving is the base
-  'g':       1,
-  'oz':      28.3495,
-  'ml':      1,     // approximate for water-based foods
-  'cup':     240,
-  'tbsp':    15,
-  'piece':   null,  // no conversion
-};
-
-// Store the original serving size in grams when food is opened (if known)
-let _foodServingGrams = null;
-
-function onFoodUnitChange(){
-  const unitSel = document.getElementById('food-edit-unit');
-  const qtyInput = document.getElementById('food-edit-qty');
-  if(!unitSel || !qtyInput) return;
-
-  const newUnit = unitSel.value;
-  const qty = parseFloat(qtyInput.value) || 1;
-
-  // Get current macro values (already showing for current qty)
-  const currentCals = parseFloat(document.getElementById('food-edit-cal').value) || 0;
-  const currentPro  = parseFloat(document.getElementById('food-edit-pro').value)  || 0;
-  const currentCarb = parseFloat(document.getElementById('food-edit-carb').value) || 0;
-  const currentFat  = parseFloat(document.getElementById('food-edit-fat').value)  || 0;
-
-  // If switching to/from g or oz, attempt gram-based conversion
-  const newGrams = UNIT_TO_GRAMS[newUnit];
-
-  if(newGrams !== null && newGrams !== undefined){
-    // New unit has a known gram equivalent
-    // Find what the original food's per-gram macros are
-    // We need total grams currently represented = qty * oldUnitGrams
-    // For now: set qty to a sensible default for the new unit
-    // and scale macros accordingly
-    const perUnitCals = _foodBaseCalories; // per original serving
-    if(newUnit === 'g'){
-      // Show macros per 100g — standard display
-      qtyInput.value = 100;
-      // Scale: _foodBaseCalories is per serving. We need per gram.
-      // If the food's serving size is stored, use it. Otherwise estimate.
-      // Recalc based on stored base values
-      recalcFoodMacros();
-    } else if(newUnit === 'oz'){
-      qtyInput.value = 1;
-      recalcFoodMacros();
-    } else {
-      qtyInput.value = 1;
-      recalcFoodMacros();
-    }
-  } else {
-    // Serving or piece — reset qty to 1
-    qtyInput.value = 1;
-    recalcFoodMacros();
-  }
-}
-
-
-// ══════════════════════════════════════════
-// LOG VIEW
-// ══════════════════════════════════════════
-function renderLogView(){
-  renderLogViewMacros();
-}
-
-function renderLogViewMacros(){
-  const el = document.getElementById('log-view-macros');
-  if(!el) return;
-  const today = todayKey();
-  const log = nutritionLog[today]||{};
-  let cal=0,pro=0,carb=0,fat=0;
-  ['breakfast','lunch','dinner','snacks'].forEach(m=>(log[m]||[]).forEach(f=>{cal+=f.calories||0;pro+=f.protein||0;carb+=f.carbs||0;fat+=f.fat||0;}));
-  cal=Math.round(cal); pro=Math.round(pro); carb=Math.round(carb); fat=Math.round(fat);
-  if(!cal){ el.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px;">No food logged today</div>'; return; }
-  const g=macroGoals;
-  el.innerHTML=`
-    <div style="text-align:center;margin-bottom:14px;">
-      <div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:var(--gold);">${cal}</div>
-      <div style="font-size:11px;color:var(--muted);">of ${g.calories} kcal · ${Math.max(0,g.calories-cal)} left</div>
-    </div>
-    ${[{l:'Protein',v:pro,g:g.protein,c:'var(--green)'},{l:'Carbs',v:carb,g:g.carbs,c:'var(--blue,#60a5fa)'},{l:'Fat',v:fat,g:g.fat,c:'var(--orange,#fb923c)'}].map(m=>`
-    <div style="margin-bottom:8px;">
-      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">
-        <span style="color:var(--muted);">${m.l}</span>
-        <span style="color:${m.c};font-weight:700;">${m.v}g <span style="color:var(--muted);font-weight:400;">/ ${m.g}g · ${Math.max(0,m.g-m.v)}g left</span></span>
-      </div>
-      <div style="height:5px;background:var(--border2);border-radius:3px;overflow:hidden;">
-        <div style="height:100%;width:${Math.min(m.v/(m.g||1)*100,100)}%;background:${m.c};border-radius:3px;"></div>
-      </div>
-    </div>`).join('')}`;
-}
 
 async function logViewAIFood(){
   const inp = document.getElementById('log-food-input');
