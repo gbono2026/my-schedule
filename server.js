@@ -323,8 +323,8 @@ app.post('/ai-log', async (req, res) => {
   if (!input) return res.status(400).json({ error: 'Missing input' });
   try {
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
+      model: 'claude-sonnet-4-5-20251101',
+      max_tokens: 2000,
       system: system,
       messages: [{ role: 'user', content: input }]
     });
