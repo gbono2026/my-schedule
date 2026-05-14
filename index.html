@@ -638,7 +638,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260512110000">
+<meta name="app-version" content="20260512120000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
@@ -808,7 +808,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
           <div style="flex:1;">
             <div style="display:flex;align-items:baseline;gap:6px;">
               <div class="hero-wide-val" id="hero-nutrition">— kcal</div>
-              <div style="font-size:10px;color:var(--muted);">eaten</div>
+              <div style="font-size:10px;color:var(--gold);font-weight:600;">→ log food</div>
             </div>
             <div style="display:flex;align-items:center;gap:4px;">
               <div id="hero-calories-left" style="font-size:11px;color:var(--gold);font-weight:700;"></div>
@@ -821,7 +821,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
             <div class="hero-wide-icon">❤️</div>
             <div>
               <div class="hero-wide-val" id="hero-rhr">—</div>
-              <div class="hero-wide-label">resting HR · log workout ›</div>
+              <div class="hero-wide-label" style="color:var(--teal);font-weight:600;">→ log workout</div>
             </div>
           </div>
           <button onclick="event.stopPropagation();loadHealthData()" style="background:transparent;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;">↻</button>
@@ -2329,7 +2329,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <div style="margin-bottom:12px;">
       <div class="dash-section"><div class="dash-section-label">Quick log</div><div class="dash-section-line"></div></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <button onclick="switchView('health');setTimeout(()=>{const b=document.getElementById('section-body');if(b&&b.classList.contains('section-collapsed'))toggleSection('section-body');setTimeout(()=>{document.querySelector('.workout-section-header')?.scrollIntoView({behavior:'smooth'})},300)},200)" style="background:var(--surface);border:1px solid var(--gold-border);border-radius:14px;padding:14px;cursor:pointer;font-family:inherit;text-align:center;">
+        <button onclick="goToWorkout()" style="background:var(--surface);border:1px solid var(--gold-border);border-radius:14px;padding:14px;cursor:pointer;font-family:inherit;text-align:center;">
           <div style="font-size:22px;margin-bottom:4px;">🏋️</div>
           <div style="font-size:12px;font-weight:600;color:var(--gold);">Start Workout</div>
         </button>
@@ -8683,6 +8683,85 @@ async function fetchWithTimeout(url, options, timeoutMs=12000){
     if(e.name==='AbortError') throw new Error('Request timed out — Railway may be starting up. Try again in 10 seconds.');
     throw e;
   }
+}
+
+
+// ══════════════════════════════════════════
+// NAVIGATION HELPERS
+// ══════════════════════════════════════════
+function goToNutrition(){
+  if(currentView !== 'health') switchView('health');
+  const bodyEl = document.getElementById('section-body');
+  if(bodyEl && bodyEl.classList.contains('section-collapsed')) toggleSection('section-body');
+  // Wait for section to expand then scroll
+  setTimeout(()=>{
+    const el = document.getElementById('meal-breakfast');
+    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+    else {
+      // fallback — scroll to nutrition section label
+      const labels = document.querySelectorAll('.dash-section-label');
+      for(const l of labels){ if(l.textContent.includes('Nutrition')){ l.scrollIntoView({behavior:'smooth'}); break; } }
+    }
+  }, 400);
+}
+
+function goToWorkout(){
+  if(currentView !== 'health') switchView('health');
+  const bodyEl = document.getElementById('section-body');
+  if(bodyEl && bodyEl.classList.contains('section-collapsed')) toggleSection('section-body');
+  setTimeout(()=>{
+    const el = document.querySelector('.workout-section-header') || document.getElementById('exercise-list');
+    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 400);
+}
+
+function goToSection(sectionId, scrollToId){
+  switchView('health');
+  const sectionEl = document.getElementById(sectionId);
+  if(sectionEl && sectionEl.classList.contains('section-collapsed')) toggleSection(sectionId);
+  setTimeout(()=>{
+    const el = scrollToId ? document.getElementById(scrollToId) : sectionEl;
+    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 350);
+}
+
+// ══════════════════════════════════════════
+// LOG VIEW RENDER
+// ══════════════════════════════════════════
+function renderLogView(){
+  renderLogViewMacros();
+}
+
+function renderLogViewMacros(){
+  const el = document.getElementById('log-view-macros');
+  if(!el) return;
+  const today = todayKey();
+  const log = nutritionLog[today]||{};
+  let cal=0,pro=0,carb=0,fat=0;
+  ['breakfast','lunch','dinner','snacks'].forEach(m=>(log[m]||[]).forEach(f=>{
+    cal+=f.calories||0; pro+=f.protein||0; carb+=f.carbs||0; fat+=f.fat||0;
+  }));
+  cal=Math.round(cal); pro=Math.round(pro); carb=Math.round(carb); fat=Math.round(fat);
+  if(!cal){
+    el.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px;">No food logged today</div>';
+    return;
+  }
+  const g = macroGoals;
+  el.innerHTML='<div style="text-align:center;margin-bottom:14px;">'
+    +'<div style="font-family:serif;font-size:36px;font-weight:700;color:var(--gold);">'+cal+'</div>'
+    +'<div style="font-size:11px;color:var(--muted);">of '+(g.calories||2000)+' kcal · '+Math.max(0,(g.calories||2000)-cal)+' left</div>'
+    +'</div>'
+    +[{l:'Protein',v:pro,g:g.protein||175,c:'var(--green)'},
+      {l:'Carbs',v:carb,g:g.carbs||175,c:'#60a5fa'},
+      {l:'Fat',v:fat,g:g.fat||67,c:'#fb923c'}].map(m=>
+      '<div style="margin-bottom:8px;">'
+      +'<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">'
+      +'<span style="color:var(--muted);">'+m.l+'</span>'
+      +'<span style="color:'+m.c+';font-weight:700;">'+m.v+'g <span style="color:var(--muted);font-weight:400;">/ '+m.g+'g · '+Math.max(0,m.g-m.v)+'g left</span></span>'
+      +'</div>'
+      +'<div style="height:5px;background:var(--border2);border-radius:3px;overflow:hidden;">'
+      +'<div style="height:100%;width:'+Math.min(m.v/(m.g||1)*100,100)+'%;background:'+m.c+';border-radius:3px;"></div>'
+      +'</div></div>').join('');
 }
 
 // ── Boot ──
