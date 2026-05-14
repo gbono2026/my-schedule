@@ -641,19 +641,19 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 <meta name="app-version" content="20260512120000">
 <script>
 // ── Meridian Cache Manager ──
-// Checks for new version on every load and auto-updates
+// Reads version from meta tag — always stays in sync automatically
 (function(){
-  const CURRENT = '20260409183746';
+  // Read version from the meta tag — never hardcoded so it can't drift
+  const metaEl = document.querySelector('meta[name="app-version"]');
+  const CURRENT = metaEl ? metaEl.getAttribute('content') : '20260512120000';
   const CACHE_KEY = 'meridian-v';
 
-  // If we stored a different version last time, clear everything and reload
   const stored = localStorage.getItem(CACHE_KEY);
   if(stored && stored !== CURRENT){
-    // New version detected — clear caches and reload fresh
+    // New version detected — clear all caches and force fresh load
     localStorage.setItem(CACHE_KEY, CURRENT);
     if('caches' in window){
       caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).then(()=>{
-        // Unregister any old service workers
         if('serviceWorker' in navigator){
           navigator.serviceWorker.getRegistrations().then(regs=>{
             Promise.all(regs.map(r=>r.unregister())).then(()=>{
@@ -669,10 +669,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     }
     return;
   }
-  // First load or same version — store current version
   localStorage.setItem(CACHE_KEY, CURRENT);
-  
-  // Unregister any lingering service workers (we don't use them)
   if('serviceWorker' in navigator){
     navigator.serviceWorker.getRegistrations().then(regs=>{
       regs.forEach(r=>r.unregister());
