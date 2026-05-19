@@ -638,14 +638,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260513090000">
+<meta name="app-version" content="20260513100000">
 <script>
 // ── Meridian Cache Manager ──
 // Reads version from meta tag — always stays in sync automatically
 (function(){
   // Read version from the meta tag — never hardcoded so it can't drift
   const metaEl = document.querySelector('meta[name="app-version"]');
-  const CURRENT = metaEl ? metaEl.getAttribute('content') : '20260513090000';
+  const CURRENT = metaEl ? metaEl.getAttribute('content') : '20260513100000';
   const CACHE_KEY = 'meridian-v';
 
   const stored = localStorage.getItem(CACHE_KEY);
@@ -4547,16 +4547,24 @@ async function searchFood(query){
   const results = [];
   // Search Open Food Facts v2 API — better results, proper brand matching
   try{
-    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=20&sort_by=unique_scans_n&fields=product_name,brands,serving_size,nutriments,nutriscore_grade`;
+    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=20&sort_by=unique_scans_n&lc=en&cc=us&fields=product_name,product_name_en,brands,serving_size,nutriments&tagtype_0=languages&tag_contains_0=contains&tag_0=en`;
     const r = await fetch(url);
     const data = await r.json();
     if(data.products){
       data.products.forEach(p=>{
-        if(!p.product_name || p.product_name.trim()==='') return;
+        // Prefer English name, fall back to generic name
+        const _name = (p.product_name_en || p.product_name || '').trim();
+        if(!_name) return;
+        // Skip results that look non-English (contain accented chars typical of French/Spanish)
+        const hasAccents = /[àâäéèêëîïôùûüçœæÀÂÄÉÈÊËÎÏÔÙÛÜÇŒÆ]/.test(_name);
+        const hasEnglishName = !!p.product_name_en;
+        // Allow if: has explicit English name, OR name has no accents
+        if(hasAccents && !hasEnglishName) return;
+        p._display_name = _name;
         const {cals,prot,carbs,fat,serving} = parseOFFProduct(p);
         if(!cals && !prot) return; // skip items with zero nutritional data
         results.push({
-          name: p.product_name.trim(),
+          name: p._display_name.trim(),
           brand: (p.brands||'').split(',')[0].trim(), // first brand only
           serving,
           calories: cals,
@@ -5816,7 +5824,7 @@ function searchRecipeIngredient(query){
     const wrap = document.getElementById('recipe-search-results');
     wrap.innerHTML='<div style="font-size:12px;color:var(--muted);padding:6px;">Searching...</div>';
     try{
-      const r = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=8&sort_by=unique_scans_n&fields=product_name,brands,serving_size,nutriments`);
+      const r = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=8&sort_by=unique_scans_n&lc=en&cc=us&fields=product_name,brands,serving_size,nutriments`);
       const data = await r.json();
       const results = (data.products||[]).filter(p=>p.product_name).slice(0,6);
       if(!results.length){ wrap.innerHTML='<div style="font-size:12px;color:var(--muted);padding:6px;">No results</div>'; return; }
