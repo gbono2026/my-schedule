@@ -643,14 +643,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
   50%{ box-shadow:0 0 0 8px rgba(34,197,94,0.2); }
 }
 </style>
-<meta name="app-version" content="20260513120000">
+<meta name="app-version" content="20260513140000">
 <script>
 // ── Meridian Cache Manager ──
 // Reads version from meta tag — always stays in sync automatically
 (function(){
   // Read version from the meta tag — never hardcoded so it can't drift
   const metaEl = document.querySelector('meta[name="app-version"]');
-  const CURRENT = metaEl ? metaEl.getAttribute('content') : '20260513120000';
+  const CURRENT = metaEl ? metaEl.getAttribute('content') : '20260513140000';
   const CACHE_KEY = 'meridian-v';
 
   const stored = localStorage.getItem(CACHE_KEY);
@@ -2574,6 +2574,21 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
   </div>
 </div>
 
+<!-- SCHEDULE AI DRAWER -->
+<div id="sched-drawer" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:400;background:var(--surface);border-radius:20px 20px 0 0;border-top:1px solid var(--border);padding:20px 20px 32px;box-shadow:0 -8px 40px rgba(0,0,0,0.6);">
+  <div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px;"></div>
+  <div style="font-size:16px;font-weight:700;font-family:'Playfair Display',serif;margin-bottom:3px;">Update Schedule</div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Describe all changes — applied instantly, no reload needed</div>
+  <input id="drawer-pwd" type="password" placeholder="Admin password" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;padding:10px 12px;font-family:inherit;outline:none;margin-bottom:8px;">
+  <textarea id="drawer-instructions" placeholder="Examples:&#10;• Add yoga Mondays 7am&#10;• Remove chin tucks&#10;• Move gym to 6pm weekdays&#10;• Add 10 min meditation every morning" rows="4" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:10px 12px;font-family:inherit;resize:none;outline:none;line-height:1.6;margin-bottom:8px;"></textarea>
+  <div id="drawer-status" style="display:none;font-size:12px;margin-bottom:8px;padding:8px 12px;border-radius:8px;background:var(--surface2);"></div>
+  <div style="display:flex;gap:8px;">
+    <button onclick="submitSchedDrawer()" id="drawer-submit-btn" style="flex:3;background:linear-gradient(135deg,var(--green),#16a34a);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;padding:13px;cursor:pointer;font-family:inherit;">Apply Changes</button>
+    <button onclick="closeSchedDrawer()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:14px;padding:13px;cursor:pointer;font-family:inherit;">Cancel</button>
+  </div>
+</div>
+<div id="sched-drawer-bg" onclick="closeSchedDrawer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:399;"></div>
+
 <!-- BOTTOM NAV -->
 <div class="bottom-nav">
   <div class="nav-item" id="nav-schedule" onclick="switchView('schedule');dismissPartnerBadge()" style="position:relative;">
@@ -2600,21 +2615,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 </div>
 
 <!-- ADMIN -->
-<button class="admin-btn" id="admin-btn">✦ AI Update Schedule</button>
-<div class="admin-overlay" id="admin-overlay">
-  <div class="admin-box">
-    <div class="admin-handle"></div>
-    <div class="admin-title">Update Schedule</div>
-    <div class="admin-sub">Describe what you want to change in plain English. Example: "Add yoga on Mondays at 6am"</div>
-    <input class="admin-input" type="password" id="admin-password" placeholder="Password" />
-    <textarea class="admin-input" id="admin-instruction" placeholder="What would you like to change?" rows="3" style="resize:none;"></textarea>
-    <button id="sched-voice-btn" onclick="toggleSchedVoice()" style="width:100%;margin-bottom:8px;padding:13px;border-radius:12px;border:1px solid var(--gold-border);background:var(--gold-dim);color:var(--gold);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;"><span style="font-size:18px;">🎤</span> Tap to Speak</button>
-    <div id="sched-voice-status" style="font-size:12px;color:var(--muted);text-align:center;min-height:16px;margin-bottom:6px;"></div>
-    <div class="admin-status" id="admin-status"></div>
-    <button class="admin-submit" id="admin-submit">Update My Schedule</button>
-    <button class="admin-cancel" id="admin-cancel">Cancel</button>
-  </div>
-</div>
+<button class="admin-btn" id="admin-btn" onclick="openSchedDrawer()">✦ AI Update Schedule</button>
 
 <div class="toast" id="toast"></div>
 <button id="scroll-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" style="display:none;position:fixed;bottom:200px;left:16px;width:40px;height:40px;border-radius:50%;border:2px solid var(--gold-border);background:var(--gold-dim);color:var(--gold);font-size:16px;font-weight:700;cursor:pointer;z-index:500;box-shadow:0 4px 14px rgba(184,150,90,0.3);align-items:center;justify-content:center;">↑</button>
@@ -9059,6 +9060,65 @@ function skipRest(){
   if(wrap) wrap.style.display='none';
   if(exWrap) exWrap.style.opacity='1';
   hideRestTimer();
+}
+
+
+// ══════════════════════════════════════════
+// SCHEDULE AI DRAWER
+// ══════════════════════════════════════════
+function openSchedDrawer(){
+  const d=document.getElementById('sched-drawer');
+  const bg=document.getElementById('sched-drawer-bg');
+  if(d) d.style.display='block';
+  if(bg) bg.style.display='block';
+  const saved=localStorage.getItem('sched_pwd');
+  if(saved){ const el=document.getElementById('drawer-pwd'); if(el) el.value=saved; }
+  setTimeout(()=>document.getElementById('drawer-instructions')?.focus(), 100);
+}
+
+function closeSchedDrawer(){
+  document.getElementById('sched-drawer').style.display='none';
+  document.getElementById('sched-drawer-bg').style.display='none';
+  const st=document.getElementById('drawer-status');
+  if(st) st.style.display='none';
+  const inp=document.getElementById('drawer-instructions');
+  if(inp) inp.value='';
+}
+
+async function submitSchedDrawer(){
+  const pwd=(document.getElementById('drawer-pwd')?.value||'').trim();
+  const instructions=(document.getElementById('drawer-instructions')?.value||'').trim();
+  const btn=document.getElementById('drawer-submit-btn');
+  const status=document.getElementById('drawer-status');
+  if(!instructions){ showToast('Describe the changes you want'); return; }
+  if(!pwd){ showToast('Enter admin password'); return; }
+  localStorage.setItem('sched_pwd',pwd);
+  btn.textContent='Updating...'; btn.disabled=true;
+  status.style.display='block'; status.style.color='var(--muted)'; status.textContent='Sending to AI...';
+  try{
+    const r=await fetchWithTimeout(SERVER+'/update-sched',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:pwd,instructions:instructions,currentSched:SCHED})
+    },25000);
+    const data=await r.json();
+    if(!r.ok||data.error){
+      status.style.color='var(--red)'; status.textContent='Error: '+data.error;
+      btn.textContent='Apply Changes'; btn.disabled=false; return;
+    }
+    if(data.schedule){
+      Object.assign(SCHED,data.schedule);
+      saveCloud('user_schedule',SCHED);
+      try{localStorage.setItem('user_schedule_cache',JSON.stringify(SCHED));}catch(e){}
+    }
+    status.style.color='var(--green)'; status.textContent='✓ Applied! Changes are live.';
+    btn.textContent='✓ Done!';
+    render();
+    setTimeout(()=>{ closeSchedDrawer(); btn.textContent='Apply Changes'; btn.disabled=false; },1500);
+  }catch(e){
+    status.style.color='var(--red)'; status.textContent='Failed: '+(e.message||'Server unreachable');
+    btn.textContent='Apply Changes'; btn.disabled=false;
+  }
 }
 
 // ── Boot ──
