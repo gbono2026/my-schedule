@@ -435,6 +435,57 @@ app.post("/update", async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// ── Fast schedule update (reads/writes userdata, not GitHub) ──
+app.post('/update-sched', async (req, res) => {
+  const { password, instructions, currentSched } = req.body;
+  if (password !== ADMIN_PASSWORD) return res.status(401).json({ error: 'Wrong password' });
+  if (!instructions) return res.status(400).json({ error: 'No instructions provided' });
+
+  try {
+    // Use the SCHED passed from the client (no GitHub fetch needed)
+    const schedJson = typeof currentSched === 'string' ? currentSched : JSON.stringify(currentSched, null, 2);
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 8000,
+      messages: [{ role: 'user', content: `You are editing a weekly schedule JSON object.
+
+Current schedule:
+${schedJson}
+
+Instructions to apply (apply ALL of them):
+${instructions}
+
+Rules:
+1. Return ONLY the updated JSON object starting with { and ending with }
+2. Keep exact format: day names as keys, time strings as keys, task names as string values
+3. Apply every instruction listed
+4. No explanation, no markdown, no variable name — just the raw { } object` }]
+    });
+
+    let newSched = message.content[0].text.trim();
+    newSched = newSched.replace(/^\`\`\`[a-z]*\n?/i, '').replace(/\n?\`\`\`$/, '').trim();
+    newSched = newSched.replace(/^const SCHED\s*=\s*/, '').replace(/;$/, '').trim();
+
+    if (!newSched.startsWith('{') || !newSched.includes('Monday')) {
+      return res.status(500).json({ error: 'AI returned invalid schedule — try again' });
+    }
+
+    const parsed = JSON.parse(newSched);
+
+    // Save to userdata for fast retrieval (no GitHub needed)
+    const { createClient } = require('@supabase/supabase-js');
+    const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+    await sb.from('user_data').upsert({ key: 'user_schedule', value: JSON.stringify(parsed) });
+
+    res.json({ success: true, schedule: parsed });
+  } catch(e) {
+    console.error('update-sched error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 setupUserDataTable();
 app.get("/", (req, res) => res.send("Schedule API running"));
 app.listen(process.env.PORT || 3000, () => console.log("Server running"));
