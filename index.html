@@ -638,14 +638,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260512120000">
+<meta name="app-version" content="20260513090000">
 <script>
 // ── Meridian Cache Manager ──
 // Reads version from meta tag — always stays in sync automatically
 (function(){
   // Read version from the meta tag — never hardcoded so it can't drift
   const metaEl = document.querySelector('meta[name="app-version"]');
-  const CURRENT = metaEl ? metaEl.getAttribute('content') : '20260512120000';
+  const CURRENT = metaEl ? metaEl.getAttribute('content') : '20260513090000';
   const CACHE_KEY = 'meridian-v';
 
   const stored = localStorage.getItem(CACHE_KEY);
@@ -8024,7 +8024,24 @@ async function processMorningLog(){
         try{renderNutrition();}catch(e){}
         try{renderMacroProgress();}catch(e){}
         try{renderEnergyBalance();}catch(e){}
-        actions.push('🍽 '+parsed.food.map(f=>f.name).join(', ')+' logged to '+meal);
+        try{renderLogViewMacros();}catch(e){}  // update LOG tab
+        // Auto-expand body section so user can see nutrition updated
+        try{
+          // Update hero nutrition tile with new calorie count
+          const _log2=nutritionLog[today]||{};
+          let _heroKcal=0;
+          ['breakfast','lunch','dinner','snacks'].forEach(m=>(_log2[m]||[]).forEach(f=>{_heroKcal+=f.calories||0;}));
+          _heroKcal=Math.round(_heroKcal);
+          const _nutEl=document.getElementById('hero-nutrition');
+          if(_nutEl) _nutEl.textContent=_heroKcal+' kcal';
+          const _leftEl=document.getElementById('hero-calories-left');
+          if(_leftEl){
+            const _rem=(macroGoals?.calories||2000)-_heroKcal;
+            _leftEl.textContent=_rem>0?_rem+' left':''+Math.abs(_rem)+' over';
+            _leftEl.style.color=_rem>0?'var(--gold)':'var(--red)';
+          }
+        }catch(e){}
+        actions.push('🍽 '+parsed.food.map(f=>f.name).join(', ')+' → '+meal);
       }catch(e){actions.push('⚠ Food log failed: '+e.message);}
     }
 
@@ -8103,10 +8120,20 @@ async function processMorningLog(){
 
     if(resultEl){
       if(actions.length){
+        // Show macro summary if food was logged
+        let macroSummary = '';
+        try{
+          const _log=nutritionLog[today]||{};
+          let _cal=0,_pro=0,_carb=0,_fat=0;
+          ['breakfast','lunch','dinner','snacks'].forEach(m=>(_log[m]||[]).forEach(f=>{_cal+=f.calories||0;_pro+=f.protein||0;_carb+=f.carbs||0;_fat+=f.fat||0;}));
+          _cal=Math.round(_cal);
+          if(_cal>0) macroSummary='<div style="font-size:11px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">Today: '+_cal+' kcal · P:'+Math.round(_pro)+'g C:'+Math.round(_carb)+'g F:'+Math.round(_fat)+'g</div>';
+        }catch(e){}
         resultEl.innerHTML='<div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px;">✓ Logged '+actions.length+' item'+(actions.length>1?'s':'')+'</div>'
-          +actions.map(a=>'<div style="font-size:12px;color:var(--text);padding:2px 0;">'+a+'</div>').join('');
+          +actions.map(a=>'<div style="font-size:12px;color:var(--text);padding:2px 0;">'+a+'</div>').join('')
+          +macroSummary;
       } else {
-        resultEl.innerHTML='<div style="font-size:12px;color:var(--muted);">Nothing specific detected — try "2 cups water, eggs for breakfast, feeling great, 10 min outside"</div>';
+        resultEl.innerHTML='<div style="font-size:12px;color:var(--muted);">Nothing specific detected — try: "2 eggs and coffee for breakfast, 2 cups water, feeling good today, 10 min outside"</div>';
       }
     }
 
