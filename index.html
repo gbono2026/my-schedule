@@ -637,15 +637,20 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 /* Toast */
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+
+@keyframes pulse-green {
+  0%,100%{ box-shadow:0 0 0 0 rgba(34,197,94,0); }
+  50%{ box-shadow:0 0 0 8px rgba(34,197,94,0.2); }
+}
 </style>
-<meta name="app-version" content="20260513100000">
+<meta name="app-version" content="20260513120000">
 <script>
 // ── Meridian Cache Manager ──
 // Reads version from meta tag — always stays in sync automatically
 (function(){
   // Read version from the meta tag — never hardcoded so it can't drift
   const metaEl = document.querySelector('meta[name="app-version"]');
-  const CURRENT = metaEl ? metaEl.getAttribute('content') : '20260513100000';
+  const CURRENT = metaEl ? metaEl.getAttribute('content') : '20260513120000';
   const CACHE_KEY = 'meridian-v';
 
   const stored = localStorage.getItem(CACHE_KEY);
@@ -1437,6 +1442,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
             <div class="workout-meta" id="workout-exercise-count">0 exercises</div>
           </div>
           <div style="display:flex;align-items:center;gap:12px;">
+          <button onclick="openWatchMode()" style="padding:4px 10px;border-radius:12px;border:1px solid var(--gold-border);background:var(--gold-dim);color:var(--gold);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">⌚</button>
           <div class="workout-timer" id="workout-elapsed">0:00</div>
           <div style="font-size:11px;color:var(--muted);font-weight:600;">✓ <span id="workout-set-count">0</span> sets</div>
         </div>
@@ -2504,6 +2510,66 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <div style="display:flex;gap:8px;">
       <button onclick="savePartnerSettings()" style="flex:2;background:rgba(167,139,250,0.9);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;padding:13px;cursor:pointer;font-family:inherit;">Save & Link</button>
       <button onclick="document.getElementById('partner-modal').style.display='none'" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:14px;padding:13px;cursor:pointer;font-family:inherit;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- WATCH MODE MODAL -->
+<div id="watch-modal" style="display:none;position:fixed;inset:0;background:#000;z-index:800;flex-direction:column;align-items:center;justify-content:center;">
+  <!-- Rest timer countdown (big) -->
+  <div id="wm-rest-wrap" style="display:none;text-align:center;margin-bottom:20px;">
+    <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px;">Rest</div>
+    <div id="wm-rest-time" style="font-family:'Playfair Display',serif;font-size:80px;font-weight:700;color:var(--gold);line-height:1;">2:00</div>
+    <div style="display:flex;gap:12px;margin-top:12px;justify-content:center;">
+      <button onclick="adjustRest(-15)" style="padding:8px 16px;border-radius:20px;border:1px solid #333;background:transparent;color:#888;font-size:14px;cursor:pointer;">-15s</button>
+      <button onclick="skipRest()" style="padding:8px 20px;border-radius:20px;border:none;background:var(--gold);color:#000;font-size:14px;font-weight:700;cursor:pointer;">Skip</button>
+      <button onclick="adjustRest(15)" style="padding:8px 16px;border-radius:20px;border:1px solid #333;background:transparent;color:#888;font-size:14px;cursor:pointer;">+15s</button>
+    </div>
+  </div>
+
+  <!-- Current exercise log -->
+  <div id="wm-exercise-wrap" style="width:100%;max-width:340px;padding:0 20px;">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;" id="wm-ex-name">Exercise</div>
+      <div style="font-size:13px;color:#555;" id="wm-set-label">Set 1</div>
+    </div>
+
+    <!-- Weight stepper -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;text-align:center;">Weight (lbs)</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:16px;">
+        <button onclick="wmStep('weight',-2.5)" style="width:48px;height:48px;border-radius:50%;border:2px solid #222;background:transparent;color:#888;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+        <div id="wm-weight" style="font-family:'Playfair Display',serif;font-size:48px;font-weight:700;color:#f0ead6;min-width:100px;text-align:center;">—</div>
+        <button onclick="wmStep('weight',2.5)" style="width:48px;height:48px;border-radius:50%;border:2px solid #222;background:transparent;color:#888;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+      </div>
+    </div>
+
+    <!-- Reps stepper -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;text-align:center;">Reps</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:16px;">
+        <button onclick="wmStep('reps',-1)" style="width:48px;height:48px;border-radius:50%;border:2px solid #222;background:transparent;color:#888;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
+        <div id="wm-reps" style="font-family:'Playfair Display',serif;font-size:48px;font-weight:700;color:#f0ead6;min-width:80px;text-align:center;">—</div>
+        <button onclick="wmStep('reps',1)" style="width:48px;height:48px;border-radius:50%;border:2px solid #222;background:transparent;color:#888;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
+      </div>
+    </div>
+
+    <!-- Effort -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;text-align:center;">Effort (RPE)</div>
+      <div style="display:flex;gap:8px;justify-content:center;" id="wm-effort-btns">
+        ${[6,7,8,9,10].map(e=>`<button onclick="wmSetEffort(${e})" id="wm-eff-${e}" style="width:44px;height:44px;border-radius:50%;border:2px solid #222;background:transparent;color:#888;font-size:15px;font-weight:600;cursor:pointer;">${e}</button>`).join('')}
+      </div>
+    </div>
+
+    <!-- Done button -->
+    <button onclick="wmCompleteSet()" style="width:100%;padding:16px;border-radius:16px;border:none;background:var(--gold);color:#000;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">✓ Done — Start Rest</button>
+
+    <!-- Nav -->
+    <div style="display:flex;justify-content:space-between;margin-top:12px;">
+      <button onclick="wmPrevSet()" style="padding:8px 16px;border-radius:12px;border:1px solid #222;background:transparent;color:#666;font-size:13px;cursor:pointer;">◀ Prev</button>
+      <button onclick="closeWatchMode()" style="padding:8px 16px;border-radius:12px;border:1px solid #333;background:transparent;color:#666;font-size:13px;cursor:pointer;">Exit</button>
+      <button onclick="wmNextSet()" style="padding:8px 16px;border-radius:12px;border:1px solid #222;background:transparent;color:#666;font-size:13px;cursor:pointer;">Next ▶</button>
     </div>
   </div>
 </div>
@@ -3709,8 +3775,24 @@ function renderExercises(){
           return `<tr>
             <td><div class="set-num">${si+1}</div></td>
             <td><div class="set-prev">${prevText}</div></td>
-            <td><input class="set-input" type="number" inputmode="decimal" placeholder="lbs" value="${set.weight||''}" onchange="updateSet(${exIdx},${si},'weight',this.value)"></td>
-            <td><input class="set-input" type="number" inputmode="numeric" placeholder="reps" value="${set.reps||''}" onchange="updateSet(${exIdx},${si},'reps',this.value)"></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:2px;">
+                <div style="display:flex;flex-direction:column;gap:1px;">
+                  <button onclick="event.stopPropagation();stepSet(${exIdx},${si},'weight',2.5)" style="width:16px;height:14px;border-radius:3px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:9px;cursor:pointer;line-height:1;padding:0;">▲</button>
+                  <button onclick="event.stopPropagation();stepSet(${exIdx},${si},'weight',-2.5)" style="width:16px;height:14px;border-radius:3px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:9px;cursor:pointer;line-height:1;padding:0;">▼</button>
+                </div>
+                <input class="set-input" type="number" inputmode="decimal" placeholder="lbs" value="${set.weight||''}" onchange="updateSet(${exIdx},${si},'weight',this.value)" style="width:52px;">
+              </div>
+            </td>
+            <td>
+              <div style="display:flex;align-items:center;gap:2px;">
+                <div style="display:flex;flex-direction:column;gap:1px;">
+                  <button onclick="event.stopPropagation();stepSet(${exIdx},${si},'reps',1)" style="width:16px;height:14px;border-radius:3px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:9px;cursor:pointer;line-height:1;padding:0;">▲</button>
+                  <button onclick="event.stopPropagation();stepSet(${exIdx},${si},'reps',-1)" style="width:16px;height:14px;border-radius:3px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:9px;cursor:pointer;line-height:1;padding:0;">▼</button>
+                </div>
+                <input class="set-input" type="number" inputmode="numeric" placeholder="reps" value="${set.reps||''}" onchange="updateSet(${exIdx},${si},'reps',this.value)" style="width:44px;">
+              </div>
+            </td>
             <td><div class="effort-btns">${[6,7,8,9,10].map(e=>`<button class="effort-btn e${e}${set.effort===e?' selected':''}" data-ex="${exIdx}" data-set="${si}" data-effort="${e}" onclick="event.stopPropagation();updateSet(${exIdx},${si},'effort',${e})">${e}</button>`).join('')}</div></td>
             <td><button class="set-done-btn${set.done?' done':''}" onclick="completeSet(${exIdx},${si})">${set.done?'✓':''}</button></td>
             <td><button onclick="deleteSet(${exIdx},${si})" title="Delete" style="width:20px;height:20px;border-radius:50%;border:none;background:transparent;color:var(--muted);font-size:14px;cursor:pointer;line-height:1;padding:0;">×</button></td>
@@ -3767,9 +3849,7 @@ function renderExercises(){
 function updateSet(exIdx, si, field, val){
   if(!activeWorkout) return;
   activeWorkout.exercises[exIdx].sets[si][field] = field==='effort'||field==='weight'||field==='reps' ? (isNaN(parseFloat(val))?val:parseFloat(val)) : val;
-  // Persist draft
   try{ localStorage.setItem('active_workout_draft', JSON.stringify(activeWorkout)); }catch(e){}
-  // Re-render effort buttons immediately so selection is visible
   if(field==='effort'){
     const exId = activeWorkout.exercises[exIdx].id;
     const block = document.getElementById(exId);
@@ -3780,6 +3860,42 @@ function updateSet(exIdx, si, field, val){
         btn.classList.toggle('selected', e===parseFloat(val));
       });
     }
+  }
+  checkWorkoutCompletion();
+}
+
+function stepSet(exIdx, si, field, delta){
+  if(!activeWorkout) return;
+  const set = activeWorkout.exercises[exIdx]?.sets[si];
+  if(!set) return;
+  const current = parseFloat(set[field])||0;
+  set[field] = Math.max(field==='reps'?1:0, +(current+delta).toFixed(1));
+  renderExercises();
+  saveActiveDraft();
+  checkWorkoutCompletion();
+}
+
+function checkWorkoutCompletion(){
+  if(!activeWorkout || !activeWorkout.exercises.length) return;
+  const allFilled = activeWorkout.exercises.every(ex=>
+    ex.sets.length > 0 && ex.sets.every(s=> (parseFloat(s.weight)>0||parseFloat(s.reps)>0) && s.effort)
+  );
+  const btn = document.querySelector('.finish-workout-btn');
+  const banner = document.getElementById('workout-complete-banner');
+  if(allFilled){
+    if(btn){ btn.style.background='linear-gradient(135deg,var(--green),#16a34a)'; btn.style.animation='pulse-green 1.5s 3'; }
+    if(!banner){
+      const b = document.createElement('div');
+      b.id='workout-complete-banner';
+      b.style.cssText='background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.35);border-radius:12px;padding:10px 14px;margin:8px 0;display:flex;align-items:center;gap:8px;animation:fadeIn .4s ease;';
+      b.innerHTML='<div style="font-size:18px;">🎯</div><div><div style="font-size:13px;font-weight:700;color:var(--green);">All sets complete!</div><div style="font-size:11px;color:var(--muted);">Ready to finish your workout</div></div>';
+      if(btn?.parentElement) btn.parentElement.insertBefore(b, btn);
+    }
+    try{ navigator.vibrate&&navigator.vibrate([100,50,100]); }catch(e){}
+    try{ if('Notification' in window&&Notification.permission==='granted') new Notification('Meridian — Workout complete!',{body:'All sets filled — tap Finish Exercise to save.'}); }catch(e){}
+  } else {
+    if(banner) banner.remove();
+    if(btn){ btn.style.background=''; btn.style.animation=''; }
   }
 }
 
@@ -8794,6 +8910,155 @@ function renderLogViewMacros(){
       +'<div style="height:5px;background:var(--border2);border-radius:3px;overflow:hidden;">'
       +'<div style="height:100%;width:'+Math.min(m.v/(m.g||1)*100,100)+'%;background:'+m.c+';border-radius:3px;"></div>'
       +'</div></div>').join('');
+}
+
+
+// ══════════════════════════════════════════
+// WATCH MODE
+// ══════════════════════════════════════════
+let _wmExIdx = 0, _wmSetIdx = 0, _wmEffort = null, _wmRestInterval = null;
+
+function openWatchMode(){
+  if(!activeWorkout || !activeWorkout.exercises.length){ showToast('Start a workout first'); return; }
+  // Find the first incomplete set
+  let foundEx = 0, foundSet = 0;
+  outer: for(let ei=0; ei<activeWorkout.exercises.length; ei++){
+    const sets = activeWorkout.exercises[ei].sets;
+    for(let si=0; si<sets.length; si++){
+      if(!sets[si].done){ foundEx=ei; foundSet=si; break outer; }
+    }
+  }
+  _wmExIdx = foundEx; _wmSetIdx = foundSet; _wmEffort = null;
+  document.getElementById('watch-modal').style.display='flex';
+  renderWatchMode();
+  // Sync rest timer display
+  wmSyncRestTimer();
+}
+
+function closeWatchMode(){
+  document.getElementById('watch-modal').style.display='none';
+  clearInterval(_wmRestInterval);
+}
+
+function renderWatchMode(){
+  const ex = activeWorkout?.exercises[_wmExIdx];
+  if(!ex) return;
+  const set = ex.sets[_wmSetIdx];
+  const exTotal = activeWorkout.exercises.reduce((t,e)=>t+e.sets.length,0);
+  const setsDone = activeWorkout.exercises.reduce((t,e)=>t+e.sets.filter(s=>s.done).length,0);
+
+  const nameEl=document.getElementById('wm-ex-name');
+  const setLbl=document.getElementById('wm-set-label');
+  const wEl=document.getElementById('wm-weight');
+  const rEl=document.getElementById('wm-reps');
+  if(nameEl) nameEl.textContent = ex.name;
+  if(setLbl) setLbl.textContent = 'Set '+(_wmSetIdx+1)+' of '+ex.sets.length+' · '+setsDone+'/'+exTotal+' total done';
+  if(wEl) wEl.textContent = set?.weight || '—';
+  if(rEl) rEl.textContent = set?.reps || '—';
+  _wmEffort = set?.effort || null;
+  // Render effort buttons
+  [6,7,8,9,10].forEach(e=>{
+    const btn=document.getElementById('wm-eff-'+e);
+    if(btn){
+      btn.style.background = e===_wmEffort ? 'var(--gold)' : 'transparent';
+      btn.style.color = e===_wmEffort ? '#000' : '#888';
+      btn.style.borderColor = e===_wmEffort ? 'var(--gold)' : '#222';
+    }
+  });
+}
+
+function wmStep(field, delta){
+  const set = activeWorkout?.exercises[_wmExIdx]?.sets[_wmSetIdx];
+  if(!set) return;
+  const current = parseFloat(set[field])||0;
+  set[field] = Math.max(field==='reps'?1:0, +(current+delta).toFixed(1));
+  const el = document.getElementById('wm-'+field);
+  if(el) el.textContent = set[field];
+  saveActiveDraft();
+}
+
+function wmSetEffort(e){
+  _wmEffort = e;
+  [6,7,8,9,10].forEach(n=>{
+    const btn=document.getElementById('wm-eff-'+n);
+    if(btn){
+      btn.style.background=n===e?'var(--gold)':'transparent';
+      btn.style.color=n===e?'#000':'#888';
+      btn.style.borderColor=n===e?'var(--gold)':'#222';
+    }
+  });
+  const set = activeWorkout?.exercises[_wmExIdx]?.sets[_wmSetIdx];
+  if(set) { set.effort=e; saveActiveDraft(); }
+}
+
+function wmCompleteSet(){
+  const ex = activeWorkout?.exercises[_wmExIdx];
+  if(!ex) return;
+  const set = ex.sets[_wmSetIdx];
+  if(set){
+    set.done=true;
+    if(_wmEffort) set.effort=_wmEffort;
+    saveActiveDraft();
+    checkWorkoutCompletion();
+  }
+  // Start rest timer + show countdown
+  startRestTimer(120);
+  wmShowRest(120);
+  // Advance to next set
+  wmNextSet();
+}
+
+function wmShowRest(secs){
+  const wrap=document.getElementById('wm-rest-wrap');
+  const exWrap=document.getElementById('wm-exercise-wrap');
+  if(wrap) wrap.style.display='block';
+  if(exWrap) exWrap.style.opacity='0.4';
+  clearInterval(_wmRestInterval);
+  let remaining=secs;
+  const el=document.getElementById('wm-rest-time');
+  if(el) el.textContent=_fmtTime(remaining);
+  _wmRestInterval=setInterval(()=>{
+    remaining--;
+    if(el) el.textContent=_fmtTime(remaining);
+    if(remaining<=0){
+      clearInterval(_wmRestInterval);
+      if(wrap) wrap.style.display='none';
+      if(exWrap) exWrap.style.opacity='1';
+      try{ navigator.vibrate&&navigator.vibrate([300,100,300]); }catch(e){}
+    }
+  },1000);
+}
+
+function wmSyncRestTimer(){
+  const restEnd=localStorage.getItem('rest_timer_end');
+  if(restEnd){
+    const remaining=Math.ceil((parseInt(restEnd)-Date.now())/1000);
+    if(remaining>0) wmShowRest(remaining);
+  }
+}
+
+function wmNextSet(){
+  const ex=activeWorkout?.exercises[_wmExIdx];
+  if(!ex) return;
+  if(_wmSetIdx < ex.sets.length-1){ _wmSetIdx++; }
+  else if(_wmExIdx < activeWorkout.exercises.length-1){ _wmExIdx++; _wmSetIdx=0; }
+  _wmEffort=null;
+  renderWatchMode();
+}
+function wmPrevSet(){
+  if(_wmSetIdx>0){ _wmSetIdx--; }
+  else if(_wmExIdx>0){ _wmExIdx--; _wmSetIdx=activeWorkout.exercises[_wmExIdx].sets.length-1; }
+  _wmEffort=null;
+  renderWatchMode();
+}
+function _fmtTime(s){ const m=Math.floor(s/60); return m+':'+(s%60<10?'0':'')+s%60; }
+function skipRest(){
+  clearInterval(_wmRestInterval);
+  const wrap=document.getElementById('wm-rest-wrap');
+  const exWrap=document.getElementById('wm-exercise-wrap');
+  if(wrap) wrap.style.display='none';
+  if(exWrap) exWrap.style.opacity='1';
+  hideRestTimer();
 }
 
 // ── Boot ──
