@@ -643,14 +643,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
   50%{ box-shadow:0 0 0 8px rgba(34,197,94,0.2); }
 }
 </style>
-<meta name="app-version" content="20260513140000">
+<meta name="app-version" content="20260519100000">
 <script>
 // ── Meridian Cache Manager ──
 // Reads version from meta tag — always stays in sync automatically
 (function(){
   // Read version from the meta tag — never hardcoded so it can't drift
   const metaEl = document.querySelector('meta[name="app-version"]');
-  const CURRENT = metaEl ? metaEl.getAttribute('content') : '20260513140000';
+  const CURRENT = metaEl ? metaEl.getAttribute('content') : '20260519100000';
   const CACHE_KEY = 'meridian-v';
 
   const stored = localStorage.getItem(CACHE_KEY);
@@ -716,6 +716,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 
 <!-- HEALTH VIEW -->
 <div class="view active" id="view-health">
+  <!-- Offline banner -->
+  <div id="offline-banner" style="display:none;background:rgba(251,146,60,0.15);border-bottom:1px solid rgba(251,146,60,0.3);padding:8px 16px;align-items:center;gap:8px;">
+    <div style="font-size:14px;">⚠️</div>
+    <div style="flex:1;font-size:12px;color:#fb923c;">Server offline — showing cached data. AI features unavailable until reconnected.</div>
+    <button onclick="location.reload()" style="background:transparent;border:1px solid rgba(251,146,60,0.4);border-radius:8px;color:#fb923c;font-size:11px;padding:4px 8px;cursor:pointer;font-family:inherit;">Retry</button>
+  </div>
   <div class="dash-wrap">
     <!-- MERIDIAN HEADER -->
     <div class="meridian-header">
@@ -3588,10 +3594,16 @@ let restSeconds = 0;
 let workoutHistory = [];
 
 async function loadWorkoutHistory(){
-  const cloud = await loadCloud('workout_history');
-  if(cloud){ workoutHistory = cloud; localStorage.setItem('workout_history', JSON.stringify(cloud)); return; }
-  try{ workoutHistory = JSON.parse(localStorage.getItem('workout_history')||'[]'); }
-  catch(e){ workoutHistory=[]; }
+  // Load localStorage immediately
+  try{ workoutHistory = JSON.parse(localStorage.getItem('workout_history')||'[]'); }catch(e){ workoutHistory=[]; }
+  // Background cloud sync
+  try{
+    const cloud = await loadCloud('workout_history');
+    if(cloud && Array.isArray(cloud) && cloud.length >= workoutHistory.length){
+      workoutHistory = cloud;
+      localStorage.setItem('workout_history', JSON.stringify(cloud));
+    }
+  }catch(e){}
 }
 
 function restoreActiveDraft(){
@@ -4312,12 +4324,17 @@ const DAYS_FULL = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'
 function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
 async function loadNutrition(){
-  // Try cloud first
-  const cloud = await loadCloud('nutrition_log');
-  if(cloud){ nutritionLog = cloud; localStorage.setItem('nutrition_log', JSON.stringify(cloud)); return; }
-  // Fall back to localStorage
-  try{ nutritionLog = JSON.parse(localStorage.getItem('nutrition_log')||'{}'); }
-  catch(e){ nutritionLog={}; }
+  // Load localStorage immediately (instant, no network)
+  try{ nutritionLog = JSON.parse(localStorage.getItem('nutrition_log')||'{}'); }catch(e){ nutritionLog={}; }
+  // Then try cloud in background — update if newer data found
+  try{
+    const cloud = await loadCloud('nutrition_log');
+    if(cloud && JSON.stringify(cloud) !== JSON.stringify(nutritionLog)){
+      nutritionLog = cloud;
+      localStorage.setItem('nutrition_log', JSON.stringify(cloud));
+      try{ renderNutrition(); renderMacroProgress(); }catch(e){}
+    }
+  }catch(e){}
 }
 function saveNutrition(){
   try{ localStorage.setItem('nutrition_log', JSON.stringify(nutritionLog)); }catch(e){}
@@ -5144,9 +5161,12 @@ async function saveCloud(key, value){
   }catch(e){ console.warn('Cloud save failed:',key,e.message); }
 }
 
-async function loadCloud(key){
+async function loadCloud(key, timeoutMs=3000){
   try{
-    const r = await fetch(SERVER+'/userdata/'+encodeURIComponent(key));
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(), timeoutMs);
+    const r = await fetch(SERVER+'/userdata/'+encodeURIComponent(key), {signal:controller.signal});
+    clearTimeout(timer);
     if(!r.ok) return null;
     const d = await r.json();
     return d.value !== undefined ? d.value : null;
@@ -9124,29 +9144,44 @@ async function submitSchedDrawer(){
 // ── Boot ──
 (async ()=>{ try {
   activeDay=todayIdx();
-  await loadState();
-  await loadPhotoSessions();
-  await loadNutrition();
-  await loadWorkoutHistory();
-  await loadBFReadings();
-  await initMyFoods();
-  await loadThermalLog();
-  await loadHydration();
-  await loadMindfulLog();
-  await loadTherapyLog();
-  await loadSocialLog();
-  await loadBreathworkLog();
-  await loadStressLog();
-  await loadJournalLog();
-  await loadNatureLog();
-  await loadScreenLog();
+  // ── Phase 1: Load from localStorage INSTANTLY and render ──
+  // This makes the app usable immediately even if server is down
+  try{ const sc=localStorage.getItem('sched_checks'); checks=sc?JSON.parse(sc):{} }catch(e){ checks={}; }
+  try{ nutritionLog=JSON.parse(localStorage.getItem('nutrition_log')||'{}'); }catch(e){ nutritionLog={}; }
+  try{ workoutHistory=JSON.parse(localStorage.getItem('workout_history')||'[]'); }catch(e){ workoutHistory=[]; }
+  try{ bioData=JSON.parse(localStorage.getItem('bio_data')||'{}'); }catch(e){ bioData={}; }
   loadBMRProfile();
   loadFastingLog();
   loadSaunaSocialLog();
   render();
   switchView('health');
   resumeThermalIfActive();
+  restoreActiveDraft();
   loadHealthData();
+  // ── Phase 2: Background cloud sync (won't block UI) ──
+  // Each runs independently — a failed one doesn't affect others
+  Promise.allSettled([
+    loadState(),
+    loadPhotoSessions(),
+    loadNutrition(),
+    loadWorkoutHistory(),
+    loadBFReadings(),
+    initMyFoods(),
+    loadThermalLog(),
+    loadHydration(),
+    loadMindfulLog(),
+    loadTherapyLog(),
+    loadSocialLog(),
+    loadBreathworkLog(),
+    loadStressLog(),
+    loadJournalLog(),
+    loadNatureLog(),
+    loadScreenLog(),
+  ]).then(()=>{
+    // Re-render after all cloud data arrives
+    try{ render(); }catch(e){}
+    try{ generateMorningBriefing(); }catch(e){}
+  });
   const now=new Date(),ch=now.getHours(),cp=ch<12?"AM":"PM",cdh=ch===0?12:ch>12?ch-12:ch,target=`${cdh}:00 ${cp}`;
   setTimeout(()=>{document.querySelectorAll(".slot-time").forEach(el=>{if(el.textContent.trim()===target)el.closest(".slot").scrollIntoView({behavior:"smooth",block:"center"});});},400);
 } catch(e) {
