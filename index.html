@@ -637,28 +637,23 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 /* Toast */
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
-
-@keyframes pulse-green {
-  0%,100%{ box-shadow:0 0 0 0 rgba(34,197,94,0); }
-  50%{ box-shadow:0 0 0 8px rgba(34,197,94,0.2); }
-}
 </style>
-<meta name="app-version" content="20260519100000">
+<meta name="app-version" content="20260521090000">
 <script>
 // ── Meridian Cache Manager ──
-// Reads version from meta tag — always stays in sync automatically
+// Checks for new version on every load and auto-updates
 (function(){
-  // Read version from the meta tag — never hardcoded so it can't drift
-  const metaEl = document.querySelector('meta[name="app-version"]');
-  const CURRENT = metaEl ? metaEl.getAttribute('content') : '20260519100000';
+  const CURRENT = '20260521090000';
   const CACHE_KEY = 'meridian-v';
 
+  // If we stored a different version last time, clear everything and reload
   const stored = localStorage.getItem(CACHE_KEY);
-  if(stored && stored !== CURRENT){
-    // New version detected — clear all caches and force fresh load
+  if(stored && stored !== CURRENT && stored < CURRENT){
+    // New version detected — clear caches and reload fresh
     localStorage.setItem(CACHE_KEY, CURRENT);
     if('caches' in window){
       caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).then(()=>{
+        // Unregister any old service workers
         if('serviceWorker' in navigator){
           navigator.serviceWorker.getRegistrations().then(regs=>{
             Promise.all(regs.map(r=>r.unregister())).then(()=>{
@@ -674,7 +669,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     }
     return;
   }
+  // First load or same version — store current version
   localStorage.setItem(CACHE_KEY, CURRENT);
+  
+  // Unregister any lingering service workers (we don't use them)
   if('serviceWorker' in navigator){
     navigator.serviceWorker.getRegistrations().then(regs=>{
       regs.forEach(r=>r.unregister());
@@ -708,20 +706,19 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <button class="reset-btn" id="reset-btn">↺ Reset This Day</button>
     <div class="all-done" id="all-done">🎉 All done today!</div>
   </div>
-
-  <!-- Partner schedule -->
-  <div style="margin:0 16px 10px;" id="partner-schedule-wrap"></div>
+  <!-- 7-day completion chart -->
+  <div style="margin:4px 16px 8px;padding:10px 12px;background:var(--surface);border-radius:12px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">7-Day Completion</div>
+      <div id="avg-completion-pct" style="font-size:11px;color:var(--gold);font-weight:700;"></div>
+    </div>
+    <div id="schedule-completion-chart"></div>
+  </div>
   <div class="schedule" id="schedule"></div>
 </div>
 
 <!-- HEALTH VIEW -->
 <div class="view active" id="view-health">
-  <!-- Offline banner -->
-  <div id="offline-banner" style="display:none;background:rgba(251,146,60,0.15);border-bottom:1px solid rgba(251,146,60,0.3);padding:8px 16px;align-items:center;gap:8px;">
-    <div style="font-size:14px;">⚠️</div>
-    <div style="flex:1;font-size:12px;color:#fb923c;">Server offline — showing cached data. AI features unavailable until reconnected.</div>
-    <button onclick="location.reload()" style="background:transparent;border:1px solid rgba(251,146,60,0.4);border-radius:8px;color:#fb923c;font-size:11px;padding:4px 8px;cursor:pointer;font-family:inherit;">Retry</button>
-  </div>
   <div class="dash-wrap">
     <!-- MERIDIAN HEADER -->
     <div class="meridian-header">
@@ -816,7 +813,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
           <div style="flex:1;">
             <div style="display:flex;align-items:baseline;gap:6px;">
               <div class="hero-wide-val" id="hero-nutrition">— kcal</div>
-              <div style="font-size:10px;color:var(--gold);font-weight:600;">→ log food</div>
+              <div style="font-size:10px;color:var(--muted);">eaten</div>
             </div>
             <div style="display:flex;align-items:center;gap:4px;">
               <div id="hero-calories-left" style="font-size:11px;color:var(--gold);font-weight:700;"></div>
@@ -829,7 +826,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
             <div class="hero-wide-icon">❤️</div>
             <div>
               <div class="hero-wide-val" id="hero-rhr">—</div>
-              <div class="hero-wide-label" style="color:var(--teal);font-weight:600;">→ log workout</div>
+              <div class="hero-wide-label">resting HR · log workout ›</div>
             </div>
           </div>
           <button onclick="event.stopPropagation();loadHealthData()" style="background:transparent;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;">↻</button>
@@ -1448,7 +1445,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
             <div class="workout-meta" id="workout-exercise-count">0 exercises</div>
           </div>
           <div style="display:flex;align-items:center;gap:12px;">
-          <button onclick="openWatchMode()" style="padding:4px 10px;border-radius:12px;border:1px solid var(--gold-border);background:var(--gold-dim);color:var(--gold);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">⌚</button>
           <div class="workout-timer" id="workout-elapsed">0:00</div>
           <div style="font-size:11px;color:var(--muted);font-weight:600;">✓ <span id="workout-set-count">0</span> sets</div>
         </div>
@@ -2338,7 +2334,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <div style="margin-bottom:12px;">
       <div class="dash-section"><div class="dash-section-label">Quick log</div><div class="dash-section-line"></div></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <button onclick="goToWorkout()" style="background:var(--surface);border:1px solid var(--gold-border);border-radius:14px;padding:14px;cursor:pointer;font-family:inherit;text-align:center;">
+        <button onclick="switchView('health');setTimeout(()=>{const b=document.getElementById('section-body');if(b&&b.classList.contains('section-collapsed'))toggleSection('section-body');setTimeout(()=>{document.querySelector('.workout-section-header')?.scrollIntoView({behavior:'smooth'})},300)},200)" style="background:var(--surface);border:1px solid var(--gold-border);border-radius:14px;padding:14px;cursor:pointer;font-family:inherit;text-align:center;">
           <div style="font-size:22px;margin-bottom:4px;">🏋️</div>
           <div style="font-size:12px;font-weight:600;color:var(--gold);">Start Workout</div>
         </button>
@@ -2485,122 +2481,11 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
   </div>
 </div>
 
-<!-- PARTNER SETTINGS MODAL -->
-<div id="partner-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:700;align-items:flex-end;justify-content:center;">
-  <div style="background:var(--surface);border-radius:24px 24px 0 0;padding:24px;width:100%;max-width:500px;">
-    <div style="font-size:18px;font-weight:700;font-family:'Playfair Display',serif;margin-bottom:4px;">Partner Schedule</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:20px;">Link schedules so you can see each other's events</div>
-
-    <!-- Partner name -->
-    <div style="margin-bottom:16px;">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">Partner name</div>
-      <input id="pm-name" type="text" placeholder="e.g. Sarah" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;padding:10px 12px;font-family:inherit;outline:none;">
-    </div>
-
-    <!-- Their code to enter -->
-    <div style="margin-bottom:16px;">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;">Enter partner's code</div>
-      <input id="pm-link-code" type="text" placeholder="e.g. MRD-X4K2" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:15px;padding:10px 12px;font-family:inherit;outline:none;text-transform:uppercase;letter-spacing:2px;">
-      <div style="font-size:11px;color:var(--muted);margin-top:5px;">Ask your partner to share their code with you</div>
-    </div>
-
-    <!-- Your code to share -->
-    <div style="margin-bottom:20px;padding:12px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.25);border-radius:12px;">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:6px;">Your code — share this with your partner</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div id="pm-my-code" style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:#a78bfa;letter-spacing:3px;"></div>
-        <button onclick="copyPartnerCode()" style="background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.3);border-radius:10px;color:#a78bfa;font-size:12px;font-weight:600;padding:7px 14px;cursor:pointer;font-family:inherit;">Copy</button>
-      </div>
-    </div>
-
-    <div style="display:flex;gap:8px;">
-      <button onclick="savePartnerSettings()" style="flex:2;background:rgba(167,139,250,0.9);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;padding:13px;cursor:pointer;font-family:inherit;">Save & Link</button>
-      <button onclick="document.getElementById('partner-modal').style.display='none'" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:14px;padding:13px;cursor:pointer;font-family:inherit;">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- WATCH MODE MODAL -->
-<div id="watch-modal" style="display:none;position:fixed;inset:0;background:#000;z-index:800;flex-direction:column;align-items:center;justify-content:center;">
-  <!-- Rest timer countdown (big) -->
-  <div id="wm-rest-wrap" style="display:none;text-align:center;margin-bottom:20px;">
-    <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px;">Rest</div>
-    <div id="wm-rest-time" style="font-family:'Playfair Display',serif;font-size:80px;font-weight:700;color:var(--gold);line-height:1;">2:00</div>
-    <div style="display:flex;gap:12px;margin-top:12px;justify-content:center;">
-      <button onclick="adjustRest(-15)" style="padding:8px 16px;border-radius:20px;border:1px solid #333;background:transparent;color:#888;font-size:14px;cursor:pointer;">-15s</button>
-      <button onclick="skipRest()" style="padding:8px 20px;border-radius:20px;border:none;background:var(--gold);color:#000;font-size:14px;font-weight:700;cursor:pointer;">Skip</button>
-      <button onclick="adjustRest(15)" style="padding:8px 16px;border-radius:20px;border:1px solid #333;background:transparent;color:#888;font-size:14px;cursor:pointer;">+15s</button>
-    </div>
-  </div>
-
-  <!-- Current exercise log -->
-  <div id="wm-exercise-wrap" style="width:100%;max-width:340px;padding:0 20px;">
-    <div style="text-align:center;margin-bottom:16px;">
-      <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;" id="wm-ex-name">Exercise</div>
-      <div style="font-size:13px;color:#555;" id="wm-set-label">Set 1</div>
-    </div>
-
-    <!-- Weight stepper -->
-    <div style="margin-bottom:14px;">
-      <div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;text-align:center;">Weight (lbs)</div>
-      <div style="display:flex;align-items:center;justify-content:center;gap:16px;">
-        <button onclick="wmStep('weight',-2.5)" style="width:48px;height:48px;border-radius:50%;border:2px solid #222;background:transparent;color:#888;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-        <div id="wm-weight" style="font-family:'Playfair Display',serif;font-size:48px;font-weight:700;color:#f0ead6;min-width:100px;text-align:center;">—</div>
-        <button onclick="wmStep('weight',2.5)" style="width:48px;height:48px;border-radius:50%;border:2px solid #222;background:transparent;color:#888;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
-      </div>
-    </div>
-
-    <!-- Reps stepper -->
-    <div style="margin-bottom:14px;">
-      <div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;text-align:center;">Reps</div>
-      <div style="display:flex;align-items:center;justify-content:center;gap:16px;">
-        <button onclick="wmStep('reps',-1)" style="width:48px;height:48px;border-radius:50%;border:2px solid #222;background:transparent;color:#888;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">−</button>
-        <div id="wm-reps" style="font-family:'Playfair Display',serif;font-size:48px;font-weight:700;color:#f0ead6;min-width:80px;text-align:center;">—</div>
-        <button onclick="wmStep('reps',1)" style="width:48px;height:48px;border-radius:50%;border:2px solid #222;background:transparent;color:#888;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;">+</button>
-      </div>
-    </div>
-
-    <!-- Effort -->
-    <div style="margin-bottom:20px;">
-      <div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;text-align:center;">Effort (RPE)</div>
-      <div style="display:flex;gap:8px;justify-content:center;" id="wm-effort-btns">
-        ${[6,7,8,9,10].map(e=>`<button onclick="wmSetEffort(${e})" id="wm-eff-${e}" style="width:44px;height:44px;border-radius:50%;border:2px solid #222;background:transparent;color:#888;font-size:15px;font-weight:600;cursor:pointer;">${e}</button>`).join('')}
-      </div>
-    </div>
-
-    <!-- Done button -->
-    <button onclick="wmCompleteSet()" style="width:100%;padding:16px;border-radius:16px;border:none;background:var(--gold);color:#000;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit;">✓ Done — Start Rest</button>
-
-    <!-- Nav -->
-    <div style="display:flex;justify-content:space-between;margin-top:12px;">
-      <button onclick="wmPrevSet()" style="padding:8px 16px;border-radius:12px;border:1px solid #222;background:transparent;color:#666;font-size:13px;cursor:pointer;">◀ Prev</button>
-      <button onclick="closeWatchMode()" style="padding:8px 16px;border-radius:12px;border:1px solid #333;background:transparent;color:#666;font-size:13px;cursor:pointer;">Exit</button>
-      <button onclick="wmNextSet()" style="padding:8px 16px;border-radius:12px;border:1px solid #222;background:transparent;color:#666;font-size:13px;cursor:pointer;">Next ▶</button>
-    </div>
-  </div>
-</div>
-
-<!-- SCHEDULE AI DRAWER -->
-<div id="sched-drawer" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:400;background:var(--surface);border-radius:20px 20px 0 0;border-top:1px solid var(--border);padding:20px 20px 32px;box-shadow:0 -8px 40px rgba(0,0,0,0.6);">
-  <div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px;"></div>
-  <div style="font-size:16px;font-weight:700;font-family:'Playfair Display',serif;margin-bottom:3px;">Update Schedule</div>
-  <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">Describe all changes — applied instantly, no reload needed</div>
-  <input id="drawer-pwd" type="password" placeholder="Admin password" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;padding:10px 12px;font-family:inherit;outline:none;margin-bottom:8px;">
-  <textarea id="drawer-instructions" placeholder="Examples:&#10;• Add yoga Mondays 7am&#10;• Remove chin tucks&#10;• Move gym to 6pm weekdays&#10;• Add 10 min meditation every morning" rows="4" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:10px 12px;font-family:inherit;resize:none;outline:none;line-height:1.6;margin-bottom:8px;"></textarea>
-  <div id="drawer-status" style="display:none;font-size:12px;margin-bottom:8px;padding:8px 12px;border-radius:8px;background:var(--surface2);"></div>
-  <div style="display:flex;gap:8px;">
-    <button onclick="submitSchedDrawer()" id="drawer-submit-btn" style="flex:3;background:linear-gradient(135deg,var(--green),#16a34a);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;padding:13px;cursor:pointer;font-family:inherit;">Apply Changes</button>
-    <button onclick="closeSchedDrawer()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:14px;padding:13px;cursor:pointer;font-family:inherit;">Cancel</button>
-  </div>
-</div>
-<div id="sched-drawer-bg" onclick="closeSchedDrawer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:399;"></div>
-
 <!-- BOTTOM NAV -->
 <div class="bottom-nav">
-  <div class="nav-item" id="nav-schedule" onclick="switchView('schedule');dismissPartnerBadge()" style="position:relative;">
+  <div class="nav-item" id="nav-schedule" onclick="switchView('schedule')">
     <span class="nav-icon">📅</span>
     <span class="nav-label">SCHEDULE</span>
-    <span id="sched-nav-badge" style="display:none;position:absolute;top:4px;right:20px;width:8px;height:8px;border-radius:50%;background:#a78bfa;"></span>
   </div>
   <div class="nav-item active" id="nav-health" onclick="switchView('health')">
     <span class="nav-icon">❤️</span>
@@ -2621,7 +2506,21 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 </div>
 
 <!-- ADMIN -->
-<button class="admin-btn" id="admin-btn" onclick="openSchedDrawer()">✦ AI Update Schedule</button>
+<button class="admin-btn" id="admin-btn">✦ AI Update Schedule</button>
+<div class="admin-overlay" id="admin-overlay">
+  <div class="admin-box">
+    <div class="admin-handle"></div>
+    <div class="admin-title">Update Schedule</div>
+    <div class="admin-sub">Describe what you want to change in plain English. Example: "Add yoga on Mondays at 6am"</div>
+    <input class="admin-input" type="password" id="admin-password" placeholder="Password" />
+    <textarea class="admin-input" id="admin-instruction" placeholder="What would you like to change?" rows="3" style="resize:none;"></textarea>
+    <button id="sched-voice-btn" onclick="toggleSchedVoice()" style="width:100%;margin-bottom:8px;padding:13px;border-radius:12px;border:1px solid var(--gold-border);background:var(--gold-dim);color:var(--gold);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;"><span style="font-size:18px;">🎤</span> Tap to Speak</button>
+    <div id="sched-voice-status" style="font-size:12px;color:var(--muted);text-align:center;min-height:16px;margin-bottom:6px;"></div>
+    <div class="admin-status" id="admin-status"></div>
+    <button class="admin-submit" id="admin-submit">Update My Schedule</button>
+    <button class="admin-cancel" id="admin-cancel">Cancel</button>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 <button id="scroll-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" style="display:none;position:fixed;bottom:200px;left:16px;width:40px;height:40px;border-radius:50%;border:2px solid var(--gold-border);background:var(--gold-dim);color:var(--gold);font-size:16px;font-weight:700;cursor:pointer;z-index:500;box-shadow:0 4px 14px rgba(184,150,90,0.3);align-items:center;justify-content:center;">↑</button>
@@ -3060,7 +2959,6 @@ function render(){
   renderSchedule();
   renderProgress();
   renderDateBadge();
-  try{ renderPartnerEvents(); }catch(e){}
   // Update schedule completion chart
   try{ renderScheduleCompletion(); }catch(e){}
   try{
@@ -3594,16 +3492,10 @@ let restSeconds = 0;
 let workoutHistory = [];
 
 async function loadWorkoutHistory(){
-  // Load localStorage immediately
-  try{ workoutHistory = JSON.parse(localStorage.getItem('workout_history')||'[]'); }catch(e){ workoutHistory=[]; }
-  // Background cloud sync
-  try{
-    const cloud = await loadCloud('workout_history');
-    if(cloud && Array.isArray(cloud) && cloud.length >= workoutHistory.length){
-      workoutHistory = cloud;
-      localStorage.setItem('workout_history', JSON.stringify(cloud));
-    }
-  }catch(e){}
+  const cloud = await loadCloud('workout_history');
+  if(cloud){ workoutHistory = cloud; localStorage.setItem('workout_history', JSON.stringify(cloud)); return; }
+  try{ workoutHistory = JSON.parse(localStorage.getItem('workout_history')||'[]'); }
+  catch(e){ workoutHistory=[]; }
 }
 
 function restoreActiveDraft(){
@@ -3788,24 +3680,8 @@ function renderExercises(){
           return `<tr>
             <td><div class="set-num">${si+1}</div></td>
             <td><div class="set-prev">${prevText}</div></td>
-            <td>
-              <div style="display:flex;align-items:center;gap:2px;">
-                <div style="display:flex;flex-direction:column;gap:1px;">
-                  <button onclick="event.stopPropagation();stepSet(${exIdx},${si},'weight',2.5)" style="width:16px;height:14px;border-radius:3px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:9px;cursor:pointer;line-height:1;padding:0;">▲</button>
-                  <button onclick="event.stopPropagation();stepSet(${exIdx},${si},'weight',-2.5)" style="width:16px;height:14px;border-radius:3px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:9px;cursor:pointer;line-height:1;padding:0;">▼</button>
-                </div>
-                <input class="set-input" type="number" inputmode="decimal" placeholder="lbs" value="${set.weight||''}" onchange="updateSet(${exIdx},${si},'weight',this.value)" style="width:52px;">
-              </div>
-            </td>
-            <td>
-              <div style="display:flex;align-items:center;gap:2px;">
-                <div style="display:flex;flex-direction:column;gap:1px;">
-                  <button onclick="event.stopPropagation();stepSet(${exIdx},${si},'reps',1)" style="width:16px;height:14px;border-radius:3px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:9px;cursor:pointer;line-height:1;padding:0;">▲</button>
-                  <button onclick="event.stopPropagation();stepSet(${exIdx},${si},'reps',-1)" style="width:16px;height:14px;border-radius:3px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:9px;cursor:pointer;line-height:1;padding:0;">▼</button>
-                </div>
-                <input class="set-input" type="number" inputmode="numeric" placeholder="reps" value="${set.reps||''}" onchange="updateSet(${exIdx},${si},'reps',this.value)" style="width:44px;">
-              </div>
-            </td>
+            <td><input class="set-input" type="number" inputmode="decimal" placeholder="lbs" value="${set.weight||''}" onchange="updateSet(${exIdx},${si},'weight',this.value)"></td>
+            <td><input class="set-input" type="number" inputmode="numeric" placeholder="reps" value="${set.reps||''}" onchange="updateSet(${exIdx},${si},'reps',this.value)"></td>
             <td><div class="effort-btns">${[6,7,8,9,10].map(e=>`<button class="effort-btn e${e}${set.effort===e?' selected':''}" data-ex="${exIdx}" data-set="${si}" data-effort="${e}" onclick="event.stopPropagation();updateSet(${exIdx},${si},'effort',${e})">${e}</button>`).join('')}</div></td>
             <td><button class="set-done-btn${set.done?' done':''}" onclick="completeSet(${exIdx},${si})">${set.done?'✓':''}</button></td>
             <td><button onclick="deleteSet(${exIdx},${si})" title="Delete" style="width:20px;height:20px;border-radius:50%;border:none;background:transparent;color:var(--muted);font-size:14px;cursor:pointer;line-height:1;padding:0;">×</button></td>
@@ -3862,7 +3738,9 @@ function renderExercises(){
 function updateSet(exIdx, si, field, val){
   if(!activeWorkout) return;
   activeWorkout.exercises[exIdx].sets[si][field] = field==='effort'||field==='weight'||field==='reps' ? (isNaN(parseFloat(val))?val:parseFloat(val)) : val;
+  // Persist draft
   try{ localStorage.setItem('active_workout_draft', JSON.stringify(activeWorkout)); }catch(e){}
+  // Re-render effort buttons immediately so selection is visible
   if(field==='effort'){
     const exId = activeWorkout.exercises[exIdx].id;
     const block = document.getElementById(exId);
@@ -3873,42 +3751,6 @@ function updateSet(exIdx, si, field, val){
         btn.classList.toggle('selected', e===parseFloat(val));
       });
     }
-  }
-  checkWorkoutCompletion();
-}
-
-function stepSet(exIdx, si, field, delta){
-  if(!activeWorkout) return;
-  const set = activeWorkout.exercises[exIdx]?.sets[si];
-  if(!set) return;
-  const current = parseFloat(set[field])||0;
-  set[field] = Math.max(field==='reps'?1:0, +(current+delta).toFixed(1));
-  renderExercises();
-  saveActiveDraft();
-  checkWorkoutCompletion();
-}
-
-function checkWorkoutCompletion(){
-  if(!activeWorkout || !activeWorkout.exercises.length) return;
-  const allFilled = activeWorkout.exercises.every(ex=>
-    ex.sets.length > 0 && ex.sets.every(s=> (parseFloat(s.weight)>0||parseFloat(s.reps)>0) && s.effort)
-  );
-  const btn = document.querySelector('.finish-workout-btn');
-  const banner = document.getElementById('workout-complete-banner');
-  if(allFilled){
-    if(btn){ btn.style.background='linear-gradient(135deg,var(--green),#16a34a)'; btn.style.animation='pulse-green 1.5s 3'; }
-    if(!banner){
-      const b = document.createElement('div');
-      b.id='workout-complete-banner';
-      b.style.cssText='background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.35);border-radius:12px;padding:10px 14px;margin:8px 0;display:flex;align-items:center;gap:8px;animation:fadeIn .4s ease;';
-      b.innerHTML='<div style="font-size:18px;">🎯</div><div><div style="font-size:13px;font-weight:700;color:var(--green);">All sets complete!</div><div style="font-size:11px;color:var(--muted);">Ready to finish your workout</div></div>';
-      if(btn?.parentElement) btn.parentElement.insertBefore(b, btn);
-    }
-    try{ navigator.vibrate&&navigator.vibrate([100,50,100]); }catch(e){}
-    try{ if('Notification' in window&&Notification.permission==='granted') new Notification('Meridian — Workout complete!',{body:'All sets filled — tap Finish Exercise to save.'}); }catch(e){}
-  } else {
-    if(banner) banner.remove();
-    if(btn){ btn.style.background=''; btn.style.animation=''; }
   }
 }
 
@@ -4324,17 +4166,12 @@ const DAYS_FULL = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'
 function todayKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
 async function loadNutrition(){
-  // Load localStorage immediately (instant, no network)
-  try{ nutritionLog = JSON.parse(localStorage.getItem('nutrition_log')||'{}'); }catch(e){ nutritionLog={}; }
-  // Then try cloud in background — update if newer data found
-  try{
-    const cloud = await loadCloud('nutrition_log');
-    if(cloud && JSON.stringify(cloud) !== JSON.stringify(nutritionLog)){
-      nutritionLog = cloud;
-      localStorage.setItem('nutrition_log', JSON.stringify(cloud));
-      try{ renderNutrition(); renderMacroProgress(); }catch(e){}
-    }
-  }catch(e){}
+  // Try cloud first
+  const cloud = await loadCloud('nutrition_log');
+  if(cloud){ nutritionLog = cloud; localStorage.setItem('nutrition_log', JSON.stringify(cloud)); return; }
+  // Fall back to localStorage
+  try{ nutritionLog = JSON.parse(localStorage.getItem('nutrition_log')||'{}'); }
+  catch(e){ nutritionLog={}; }
 }
 function saveNutrition(){
   try{ localStorage.setItem('nutrition_log', JSON.stringify(nutritionLog)); }catch(e){}
@@ -4681,24 +4518,16 @@ async function searchFood(query){
   const results = [];
   // Search Open Food Facts v2 API — better results, proper brand matching
   try{
-    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=20&sort_by=unique_scans_n&lc=en&cc=us&fields=product_name,product_name_en,brands,serving_size,nutriments&tagtype_0=languages&tag_contains_0=contains&tag_0=en`;
+    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=20&sort_by=unique_scans_n&fields=product_name,brands,serving_size,nutriments,nutriscore_grade`;
     const r = await fetch(url);
     const data = await r.json();
     if(data.products){
       data.products.forEach(p=>{
-        // Prefer English name, fall back to generic name
-        const _name = (p.product_name_en || p.product_name || '').trim();
-        if(!_name) return;
-        // Skip results that look non-English (contain accented chars typical of French/Spanish)
-        const hasAccents = /[àâäéèêëîïôùûüçœæÀÂÄÉÈÊËÎÏÔÙÛÜÇŒÆ]/.test(_name);
-        const hasEnglishName = !!p.product_name_en;
-        // Allow if: has explicit English name, OR name has no accents
-        if(hasAccents && !hasEnglishName) return;
-        p._display_name = _name;
+        if(!p.product_name || p.product_name.trim()==='') return;
         const {cals,prot,carbs,fat,serving} = parseOFFProduct(p);
         if(!cals && !prot) return; // skip items with zero nutritional data
         results.push({
-          name: p._display_name.trim(),
+          name: p.product_name.trim(),
           brand: (p.brands||'').split(',')[0].trim(), // first brand only
           serving,
           calories: cals,
@@ -5161,12 +4990,9 @@ async function saveCloud(key, value){
   }catch(e){ console.warn('Cloud save failed:',key,e.message); }
 }
 
-async function loadCloud(key, timeoutMs=3000){
+async function loadCloud(key){
   try{
-    const controller = new AbortController();
-    const timer = setTimeout(()=>controller.abort(), timeoutMs);
-    const r = await fetch(SERVER+'/userdata/'+encodeURIComponent(key), {signal:controller.signal});
-    clearTimeout(timer);
+    const r = await fetch(SERVER+'/userdata/'+encodeURIComponent(key));
     if(!r.ok) return null;
     const d = await r.json();
     return d.value !== undefined ? d.value : null;
@@ -5961,7 +5787,7 @@ function searchRecipeIngredient(query){
     const wrap = document.getElementById('recipe-search-results');
     wrap.innerHTML='<div style="font-size:12px;color:var(--muted);padding:6px;">Searching...</div>';
     try{
-      const r = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=8&sort_by=unique_scans_n&lc=en&cc=us&fields=product_name,brands,serving_size,nutriments`);
+      const r = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=8&sort_by=unique_scans_n&fields=product_name,brands,serving_size,nutriments`);
       const data = await r.json();
       const results = (data.products||[]).filter(p=>p.product_name).slice(0,6);
       if(!results.length){ wrap.innerHTML='<div style="font-size:12px;color:var(--muted);padding:6px;">No results</div>'; return; }
@@ -6180,56 +6006,34 @@ function quickLogFood(idx){
 // ── AI Morning Briefing ──
 let briefingShown = false;
 async function generateMorningBriefing(){
+  // Only show once per day and only if health data exists
   const todayKey2 = todayKey();
-  // Check if already generated today (only skip if we have cached text)
-  const cachedDate = localStorage.getItem('briefing_date');
-  const cachedText = localStorage.getItem('briefing_text');
+  const shown = localStorage.getItem('briefing_date');
+  if(shown === todayKey2) return;
+  if(!healthToday || !healthToday.sleep) return; // no data yet
+  briefingShown = true;
+  localStorage.setItem('briefing_date', todayKey2);
   const card = document.getElementById('morning-briefing');
   const textEl = document.getElementById('morning-briefing-text');
   if(!card || !textEl) return;
-  card.style.display = 'block';
-  // Show cached briefing immediately if available
-  if(cachedDate === todayKey2 && cachedText){
-    textEl.textContent = cachedText;
-    textEl.style.display = 'block';
-    return;
-  }
-  // Need any health data — don't gate on sleep specifically
-  const hasData = healthToday && Object.keys(healthToday).some(k=>healthToday[k] && k !== 'date' && k !== 'lastSync');
-  if(!hasData){ textEl.textContent = ''; return; }
-  textEl.style.display = 'block';
-  textEl.textContent = 'Analyzing your data...';
+  card.style.display='block';
+  textEl.textContent='Analyzing your overnight data...';
   try{
     const d = healthToday;
-    let saunaWeek=0, coldWeek=0;
-    for(let i=0;i<7;i++){
-      const dt=new Date(); dt.setDate(dt.getDate()-i);
-      const k=dt.toISOString().split('T')[0];
-      (thermalLog[k]||[]).forEach(s=>{ if(s.type==='sauna') saunaWeek+=s.minutes||0; else coldWeek+=s.minutes||0; });
-    }
-    const score = calcMeridianScore()?.score || '—';
-    const summary = 'Sleep: '+(d.sleep?.toFixed(1)||'—')+'hrs, HRV: '+(d.hrv?Math.round(d.hrv):'—')+'ms, Resting HR: '+(d.restingHR?Math.round(d.restingHR):'—')+'bpm, Weight: '+(d.weight||'—')+'lbs, Steps: '+(d.steps?Math.round(d.steps):'—')+', Active cal: '+(d.activeCalories?Math.round(d.activeCalories):'—');
-    const res = await fetchWithTimeout(SERVER+'/ai-log', {
+    const summary = `Sleep: ${d.sleep?.toFixed(1)||'—'}hrs (REM: ${d.sleepREM?.toFixed(1)||'—'}hrs), HRV: ${d.hrv?Math.round(d.hrv):'—'}ms, Resting HR: ${d.restingHR?Math.round(d.restingHR):'—'}bpm, Weight: ${d.weight||'—'}lbs`;
+    const res = await fetch(SERVER+'/ai-log', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        system: 'You are Meridian — a premium wellness coach. Write a personal 2-3 sentence morning briefing using the health data provided. Be specific with the numbers. End with exactly one action recommendation for today (workout, rest, sauna, walk, etc). Be direct and warm. Never be generic.',
-        input: 'Health data: '+summary+'. Meridian score: '+score+'/100. Sauna this week: '+saunaWeek+'min, cold plunge: '+coldWeek+'min. Write the morning briefing.'
+        mode:'briefing',
+        system: `You are Meridian — an elite wellness coach for a Nordic spa. Give a 2-3 sentence morning briefing. Be specific with numbers, warm but direct. End with ONE clear action recommendation based on the data (sauna, cold plunge, workout, rest, walk, etc). Never be generic.`,
+        input: `Health data: ${summary}. Meridian score: ${meridianScore}. Thermal this week: sauna ${saunaWeek}min, cold ${coldWeek}min. Give a smart morning briefing and tell me exactly what to prioritize today and why.`
       })
     });
     const data = await res.json();
-    const text = data.text || '';
-    if(text){
-      textEl.textContent = text;
-      // Save so we can show immediately on next open today
-      localStorage.setItem('briefing_date', todayKey2);
-      localStorage.setItem('briefing_text', text);
-    } else {
-      textEl.textContent = '';
-    }
+    textEl.textContent = data.text || 'Good morning. Your data looks good — have a great day.';
   }catch(e){
-    console.warn('Briefing error:', e.message);
-    textEl.textContent = '';
+    card.style.display='none';
   }
 }
 
@@ -8099,201 +7903,384 @@ async function processMorningLog(){
   const input = document.getElementById('morning-log-input');
   const btn = document.getElementById('morning-log-btn');
   const resultEl = document.getElementById('morning-log-result');
-  const text = (input?.value||'').trim();
+  const text = input?.value?.trim();
   if(!text){ showToast('Tell me about your morning first'); return; }
 
-  // Show result area immediately with progress steps
-  if(resultEl){
-    resultEl.style.display='block';
-    resultEl.innerHTML='<div style="font-size:12px;color:var(--muted);">Sending to AI...</div>';
-  }
-  if(btn){ btn.textContent='⟳'; btn.disabled=true; }
-  const safetyReset=setTimeout(()=>{
-    if(btn){btn.textContent='→';btn.disabled=false;}
-    if(resultEl) resultEl.innerHTML='<div style="color:var(--red);font-size:12px;">Timed out — Railway may be sleeping. Wait 10 seconds and try again.</div>';
-  },15000);
+  if(btn){ btn.textContent = '⟳'; btn.disabled = true; }
 
-  try{
-    // Step 1: call server
-    if(resultEl) resultEl.innerHTML='<div style="font-size:12px;color:var(--muted);">Contacting server...</div>';
-    const res = await fetchWithTimeout(SERVER+'/ai-log',{
+  // Build context for AI to parse
+  const today = todayKey();
+  const currentMacros = {
+    calories: Math.round(['breakfast','lunch','dinner','snacks'].reduce((s,m)=>(nutritionLog[today]?.[m]||[]).reduce((a,f)=>a+(f.calories||0),s),0)),
+    water: hydrationLog[today]||0,
+    mood: (scores[today]||{}).mood||0,
+    energy: (scores[today]||{}).energy||0,
+  };
+
+  try {
+    const res = await fetch(SERVER+'/ai-log', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        system:'You are a health logging assistant. Extract what the user mentions and return ONLY a JSON object. Fields: food (array with name/calories/protein/carbs/fat/qty/unit), water_cups, sunlight_minutes, mood, energy, focus (1-10 scale), social_count, stress_level, gratitude. Estimate food macros. Only include mentioned fields. No markdown, no explanation.',
-        input:text
+      body: JSON.stringify({
+        system: `You are a health logging AI for the Meridian wellness app. Parse the user's morning message and extract loggable data. Return ONLY valid JSON with this exact structure (omit any field you cannot extract):
+{
+  "food": [{"name":"string","calories":number,"protein":number,"carbs":number,"fat":number,"qty":number,"unit":"string"}],
+  "water_cups": number,
+  "sunlight_minutes": number,
+  "mood": number,
+  "energy": number,
+  "focus": number,
+  "social_count": number,
+  "breathwork_minutes": number,
+  "stress_level": number,
+  "gratitude": "string",
+  "summary": "string"
+}
+For mood/energy/focus use 1-10 scale based on descriptive words (great/motivated=8-9, good=7, okay=5-6, tired=3-4, bad=1-2).
+For food, estimate reasonable macros if not specified (e.g. overnight oats = 350 cal, 12g protein, 55g carbs, 8g fat).
+Only return JSON. No other text.`,
+        input: text
       })
-    },12000);
-
-    // Step 2: parse response
-    if(resultEl) resultEl.innerHTML='<div style="font-size:12px;color:var(--muted);">Parsing response...</div>';
+    });
     const data = await res.json();
-
-    if(!res.ok || data.error){
-      clearTimeout(safetyReset);
-      if(btn){btn.textContent='→';btn.disabled=false;}
-      if(resultEl) resultEl.innerHTML='<div style="color:var(--red);font-size:12px;">Server error: '+(data.error||res.status)+'</div>';
-      return;
-    }
-
     let parsed;
-    try{
-      let raw=(data.text||'').trim();
-      // Strip markdown fences
-      raw=raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
-      // Extract first JSON object
-      const m=raw.match(/\{[\s\S]*\}/);
-      if(m) raw=m[0];
-      parsed=JSON.parse(raw);
-    }catch(parseErr){
-      clearTimeout(safetyReset);
-      if(btn){btn.textContent='→';btn.disabled=false;}
-      if(resultEl) resultEl.innerHTML='<div style="color:var(--red);font-size:12px;">Could not parse AI response. Raw response: "'+(data.text||'empty').substring(0,100)+'"</div>';
+    try {
+      const raw = (data.text||'').replace(/```json|```/g,'').trim();
+      parsed = JSON.parse(raw);
+    } catch(e) {
+      if(btn){ btn.textContent = '→'; btn.disabled = false; }
+      showToast('Could not parse response — try again');
       return;
     }
 
-    // Step 3: execute actions
-    if(resultEl) resultEl.innerHTML='<div style="font-size:12px;color:var(--muted);">Logging...</div>';
-    const today=todayKey();
-    const actions=[];
+    // Execute all the logging actions
+    const actions = [];
 
     // Food
     if(parsed.food?.length){
-      try{
-        if(!nutritionLog[today]) nutritionLog[today]={breakfast:[],lunch:[],dinner:[],snacks:[]};
-        const hr=new Date().getHours();
-        const meal=hr<11?'breakfast':hr<15?'lunch':hr<19?'dinner':'snacks';
-        parsed.food.forEach(f=>{ if(f.name) nutritionLog[today][meal].push({name:f.name,calories:f.calories||0,protein:f.protein||0,carbs:f.carbs||0,fat:f.fat||0,qty:f.qty||1,unit:f.unit||'serving'}); });
-        try{localStorage.setItem('nutrition_log',JSON.stringify(nutritionLog));}catch(e){}
-        saveCloud('nutrition_log',nutritionLog);
-        try{renderNutrition();}catch(e){}
-        try{renderMacroProgress();}catch(e){}
-        try{renderEnergyBalance();}catch(e){}
-        try{renderLogViewMacros();}catch(e){}  // update LOG tab
-        // Auto-expand body section so user can see nutrition updated
-        try{
-          // Update hero nutrition tile with new calorie count
-          const _log2=nutritionLog[today]||{};
-          let _heroKcal=0;
-          ['breakfast','lunch','dinner','snacks'].forEach(m=>(_log2[m]||[]).forEach(f=>{_heroKcal+=f.calories||0;}));
-          _heroKcal=Math.round(_heroKcal);
-          const _nutEl=document.getElementById('hero-nutrition');
-          if(_nutEl) _nutEl.textContent=_heroKcal+' kcal';
-          const _leftEl=document.getElementById('hero-calories-left');
-          if(_leftEl){
-            const _rem=(macroGoals?.calories||2000)-_heroKcal;
-            _leftEl.textContent=_rem>0?_rem+' left':''+Math.abs(_rem)+' over';
-            _leftEl.style.color=_rem>0?'var(--gold)':'var(--red)';
-          }
-        }catch(e){}
-        actions.push('🍽 '+parsed.food.map(f=>f.name).join(', ')+' → '+meal);
-      }catch(e){actions.push('⚠ Food log failed: '+e.message);}
+      if(!nutritionLog[today]) nutritionLog[today]={breakfast:[],lunch:[],dinner:[],snacks:[]};
+      const meal = 'breakfast';
+      parsed.food.forEach(f => nutritionLog[today][meal].push(f));
+      saveNutrition();
+      renderNutrition();
+      renderMacroProgress();
+      renderEnergyBalance();
+      actions.push(parsed.food.map(f=>f.name).join(', ')+' logged to breakfast');
     }
 
-    // Water
-    if(parsed.water_cups>0){
-      try{
-        logWater(parsed.water_cups*8);
-        actions.push('💧 '+parsed.water_cups+' cup'+(parsed.water_cups>1?'s':'')+' of water');
-      }catch(e){actions.push('⚠ Water log failed: '+e.message);}
+    // Water (1 cup = 8oz)
+    if(parsed.water_cups > 0){
+      logWater(parsed.water_cups * 8);
+      actions.push(parsed.water_cups+' cup'+(parsed.water_cups>1?'s':'')+' of water ('+parsed.water_cups*8+'oz) logged');
     }
 
-    // Sunlight
-    if(parsed.sunlight_minutes>0){
-      try{
-        const k=todayKey();
-        if(!natureLog[k]) natureLog[k]={minutes:0};
-        natureLog[k].minutes=(natureLog[k].minutes||0)+parsed.sunlight_minutes;
-        saveNatureLog();
-        try{renderNatureTracker();}catch(e){}
-        actions.push('☀️ '+parsed.sunlight_minutes+' min sunlight');
-      }catch(e){actions.push('⚠ Sunlight log failed: '+e.message);}
+    // Sunlight/nature
+    if(parsed.sunlight_minutes > 0){
+      const k = todayKey();
+      if(!natureLog[k]) natureLog[k]={minutes:0};
+      natureLog[k].minutes = (natureLog[k].minutes||0) + parsed.sunlight_minutes;
+      saveNatureLog(); renderNatureTracker();
+      actions.push(parsed.sunlight_minutes+' min sunlight logged');
     }
 
     // Mood/energy/focus
     if(parsed.mood||parsed.energy||parsed.focus){
-      try{
-        if(!scores[today]) scores[today]={};
-        if(parsed.mood) scores[today].mood=parsed.mood;
-        if(parsed.energy) scores[today].energy=parsed.energy;
-        if(parsed.focus) scores[today].focus=parsed.focus;
-        try{localStorage.setItem('scores',JSON.stringify(scores));}catch(e){}
-        saveCloud('scores',scores);
-        try{loadScores();}catch(e){}
-        const parts=[];
-        if(parsed.mood) parts.push('mood '+parsed.mood);
-        if(parsed.energy) parts.push('energy '+parsed.energy);
-        if(parsed.focus) parts.push('focus '+parsed.focus);
-        actions.push('😊 '+parts.join(', ')+' /10');
-      }catch(e){actions.push('⚠ Scores log failed: '+e.message);}
+      if(!scores[today]) scores[today]={};
+      if(parsed.mood) scores[today].mood = parsed.mood;
+      if(parsed.energy) scores[today].energy = parsed.energy;
+      if(parsed.focus) scores[today].focus = parsed.focus;
+      saveCloud('scores', scores);
+      try{ localStorage.setItem('scores', JSON.stringify(scores)); }catch(e){}
+      loadScores();
+      const scoreNames = [];
+      if(parsed.mood) scoreNames.push('mood '+parsed.mood+'/10');
+      if(parsed.energy) scoreNames.push('energy '+parsed.energy+'/10');
+      if(parsed.focus) scoreNames.push('focus '+parsed.focus+'/10');
+      actions.push(scoreNames.join(', ')+' logged');
     }
 
-    // Social
-    if(parsed.social_count>0){
-      try{
-        logSocial(parsed.social_count);
-        actions.push('🤝 '+parsed.social_count+' social interaction'+(parsed.social_count>1?'s':''));
-      }catch(e){actions.push('⚠ Social log failed: '+e.message);}
-    }
+    // Social connections
+    if(parsed.social_count > 0){ try{
+      logSocial(parsed.social_count);
+      actions.push(parsed.social_count+' social interaction'+(parsed.social_count>1?'s':'')+' logged');
+    }catch(e){ console.warn('social log failed',e); } }
 
     // Stress
-    if(parsed.stress_level>0){
-      try{
-        stressLog[today]={level:parsed.stress_level,ts:new Date().toISOString()};
-        saveStressLog();
-        try{renderStressPips();}catch(e){}
-        actions.push('🧠 Stress level '+parsed.stress_level+'/10');
-      }catch(e){actions.push('⚠ Stress log failed: '+e.message);}
-    }
+    if(parsed.stress_level > 0){ try{
+      const k = todayKey();
+      stressLog[k] = {level: parsed.stress_level, ts: new Date().toISOString()};
+      saveStressLog();
+      try{ renderStressPips(); }catch(e){}
+      try{ renderStressWeekChart(); }catch(e){}
+      actions.push('stress level '+parsed.stress_level+'/10 logged');
+    }catch(e){ console.warn('stress log failed',e); } }
+
+    // Breathwork
+    if(parsed.breathwork_minutes > 0){ try{
+      const k = todayKey();
+      if(!mindfulLog[k]) mindfulLog[k]={minutes:0,entries:[]};
+      mindfulLog[k].minutes = (mindfulLog[k].minutes||0) + parsed.breathwork_minutes;
+      saveMindfulLog();
+      try{ renderMindfulness(); }catch(e){}
+      actions.push(parsed.breathwork_minutes+' min mindfulness logged');
+    }catch(e){ console.warn('breathwork log failed',e); } }
 
     // Gratitude
-    if(parsed.gratitude){
-      try{
-        if(!journalLog[today]) journalLog[today]=[];
-        journalLog[today].push({prompt:'Morning log',entry:parsed.gratitude,ts:new Date().toISOString()});
-        saveJournalLog();
-        try{renderJournalStreak();}catch(e){}
-        actions.push('🙏 Gratitude noted');
-      }catch(e){actions.push('⚠ Gratitude log failed: '+e.message);}
-    }
+    if(parsed.gratitude){ try{
+      const k = todayKey();
+      if(!journalLog[k]) journalLog[k]=[];
+      journalLog[k].push({prompt:'Morning log', entry:parsed.gratitude, ts:new Date().toISOString()});
+      saveJournalLog();
+      try{ renderJournalStreak(); }catch(e){}
+      actions.push('gratitude noted');
+    }catch(e){ console.warn('gratitude log failed',e); } }
 
-    clearTimeout(safetyReset);
-    if(btn){btn.textContent='✓';setTimeout(()=>{btn.textContent='→';btn.disabled=false;},2000);}
-    input.value='';
-    input.style.height='auto';
-    try{renderMeridianScore();}catch(e){}
-
+    // Show what was logged (always show result, even if nothing was parsed)
     if(resultEl){
+      resultEl.style.display = 'block';
       if(actions.length){
-        // Show macro summary if food was logged
-        let macroSummary = '';
-        try{
-          const _log=nutritionLog[today]||{};
-          let _cal=0,_pro=0,_carb=0,_fat=0;
-          ['breakfast','lunch','dinner','snacks'].forEach(m=>(_log[m]||[]).forEach(f=>{_cal+=f.calories||0;_pro+=f.protein||0;_carb+=f.carbs||0;_fat+=f.fat||0;}));
-          _cal=Math.round(_cal);
-          if(_cal>0) macroSummary='<div style="font-size:11px;color:var(--muted);margin-top:6px;padding-top:6px;border-top:1px solid var(--border);">Today: '+_cal+' kcal · P:'+Math.round(_pro)+'g C:'+Math.round(_carb)+'g F:'+Math.round(_fat)+'g</div>';
-        }catch(e){}
-        resultEl.innerHTML='<div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px;">✓ Logged '+actions.length+' item'+(actions.length>1?'s':'')+'</div>'
-          +actions.map(a=>'<div style="font-size:12px;color:var(--text);padding:2px 0;">'+a+'</div>').join('')
-          +macroSummary;
+        resultEl.innerHTML = '<div style="font-size:11px;color:var(--gold);font-weight:700;margin-bottom:6px;">✓ Logged successfully</div>' +
+          actions.map(a=>'<div style="color:var(--text);">• '+a+'</div>').join('') +
+          (parsed.summary ? '<div style="color:var(--muted);margin-top:6px;font-style:italic;">'+parsed.summary+'</div>' : '');
       } else {
-        resultEl.innerHTML='<div style="font-size:12px;color:var(--muted);">Nothing specific detected — try: "2 eggs and coffee for breakfast, 2 cups water, feeling good today, 10 min outside"</div>';
+        resultEl.innerHTML = '<div style="font-size:11px;color:var(--muted);">Nothing specific was logged — try being more specific. E.g. "2 cups of water, eggs for breakfast, feeling good 7/10"</div>';
       }
     }
+    if(actions.length) showToast('✓ Morning logged');
 
-  }catch(e){
-    clearTimeout(safetyReset);
-    if(btn){btn.textContent='→';btn.disabled=false;}
-    const msg=e.message||'Unknown error';
-    if(resultEl){
-      resultEl.style.display='block';
-      resultEl.innerHTML='<div style="color:var(--red);font-size:12px;">Failed: '+msg+'</div>';
+    input.value = '';
+    renderMeridianScore();
+    if(btn){ btn.textContent = '✓'; setTimeout(()=>{ btn.textContent='→'; btn.disabled=false; },2000); }
+
+  } catch(e) {
+    console.error('Morning log error:', e);
+    if(btn){ btn.textContent = '→'; btn.disabled = false; }
+    // Show what we could parse even if some actions failed
+    if(resultEl && resultEl.innerHTML){
+      resultEl.style.display = 'block';
+    } else {
+      showToast('Error: '+e.message+' — check console');
     }
-    console.error('Morning log error:',e);
   }
 }
 
+
+// ══════════════════════════════════════════
+// HERO CARD NAVIGATION HELPERS
+// ══════════════════════════════════════════
+function goToNutrition(){
+  switchView('health');
+  const bodyEl = document.getElementById('section-body');
+  if(bodyEl && bodyEl.classList.contains('section-collapsed')) toggleSection('section-body');
+  setTimeout(()=>{
+    const el = document.getElementById('meal-breakfast');
+    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 350);
+}
+
+function goToWorkout(){
+  switchView('health');
+  const bodyEl = document.getElementById('section-body');
+  if(bodyEl && bodyEl.classList.contains('section-collapsed')) toggleSection('section-body');
+  setTimeout(()=>{
+    const el = document.querySelector('.workout-section-header');
+    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 350);
+}
+
+function goToSection(sectionId, scrollToId){
+  switchView('health');
+  const sectionEl = document.getElementById(sectionId);
+  if(sectionEl && sectionEl.classList.contains('section-collapsed')) toggleSection(sectionId);
+  setTimeout(()=>{
+    const el = scrollToId ? document.getElementById(scrollToId) : sectionEl;
+    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 350);
+}
+
+
+// ══════════════════════════════════════════
+// EXERCISE HISTORY MODAL
+// ══════════════════════════════════════════
+function openExHistory(exIdx){
+  if(!activeWorkout || !workoutHistory) return;
+  const ex = activeWorkout.exercises[exIdx];
+  if(!ex) return;
+  const name = ex.name;
+
+  // Find all past sessions with this exercise
+  const sessions = [];
+  workoutHistory.forEach(w => {
+    const match = (w.exercises||[]).find(e => e.name === name);
+    if(match && match.sets?.length){
+      sessions.push({
+        date: w.date || w.dateLabel || 'Unknown date',
+        sets: match.sets
+      });
+    }
+  });
+
+  // Populate modal
+  const titleEl = document.getElementById('ex-history-title');
+  const contentEl = document.getElementById('ex-history-content');
+  if(titleEl) titleEl.textContent = name;
+  if(contentEl){
+    if(!sessions.length){
+      contentEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);">No history yet — this is your first time logging this exercise.</div>';
+    } else {
+      // Show most recent first, max 10 sessions
+      const recent = sessions.slice(-10).reverse();
+      contentEl.innerHTML = recent.map(s => {
+        const bestSet = s.sets.reduce((best, set) => {
+          const vol = (parseFloat(set.weight)||0) * (parseInt(set.reps)||0);
+          return vol > ((parseFloat(best.weight)||0) * (parseInt(best.reps)||0)) ? set : best;
+        }, s.sets[0]);
+        const orm = calc1RM(parseFloat(bestSet.weight)||0, parseInt(bestSet.reps)||0);
+
+        return `<div style="background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div style="font-size:12px;font-weight:700;color:var(--text);">${s.date}</div>
+            ${orm ? '<div style="font-size:11px;color:var(--gold);">~'+orm+' lb 1RM</div>' : ''}
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            ${s.sets.map((set,i) => `
+              <div style="background:var(--surface3);border-radius:8px;padding:5px 8px;font-size:11px;text-align:center;">
+                <div style="color:var(--muted);font-size:9px;margin-bottom:2px;">SET ${i+1}</div>
+                <div style="font-weight:700;color:var(--text);">${set.weight||'—'} lbs</div>
+                <div style="color:var(--muted);">${set.reps||'—'} reps</div>
+                ${set.effort ? '<div style="color:var(--gold);font-size:9px;">RPE '+set.effort+'</div>' : ''}
+              </div>`).join('')}
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  document.getElementById('ex-history-modal').classList.add('open');
+}
+
+
+function promptWeightCorrection(){
+  const current = document.getElementById('hero-weight')?.textContent || '';
+  const val = prompt('Enter correct weight (lbs):', current === '—' ? '' : current);
+  if(!val || isNaN(parseFloat(val))) return;
+  const weight = parseFloat(val);
+  // Update server
+  fetch(SERVER+'/update-weight', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({weight})
+  }).then(r=>r.json()).then(data=>{
+    if(data.success){
+      healthToday.weight = weight;
+      try{ localStorage.setItem('health_today_cache', JSON.stringify(healthToday)); }catch(e){}
+      setHero('hero-weight', weight.toFixed(1));
+      renderMeridianScore();
+      renderEnergyBalance();
+      showToast('✓ Weight updated to '+weight+' lbs');
+    } else {
+      showToast('Failed to update weight');
+    }
+  }).catch(()=>showToast('Could not reach server'));
+}
+
+
+// ══════════════════════════════════════════
+// FOOD UNIT CONVERSION
+// ══════════════════════════════════════════
+// Conversion: how many grams is 1 of each unit (approximate)
+const UNIT_TO_GRAMS = {
+  'serving': null,  // no conversion — serving is the base
+  'g':       1,
+  'oz':      28.3495,
+  'ml':      1,     // approximate for water-based foods
+  'cup':     240,
+  'tbsp':    15,
+  'piece':   null,  // no conversion
+};
+
+// Store the original serving size in grams when food is opened (if known)
+let _foodServingGrams = null;
+
+function onFoodUnitChange(){
+  const unitSel = document.getElementById('food-edit-unit');
+  const qtyInput = document.getElementById('food-edit-qty');
+  if(!unitSel || !qtyInput) return;
+
+  const newUnit = unitSel.value;
+  const qty = parseFloat(qtyInput.value) || 1;
+
+  // Get current macro values (already showing for current qty)
+  const currentCals = parseFloat(document.getElementById('food-edit-cal').value) || 0;
+  const currentPro  = parseFloat(document.getElementById('food-edit-pro').value)  || 0;
+  const currentCarb = parseFloat(document.getElementById('food-edit-carb').value) || 0;
+  const currentFat  = parseFloat(document.getElementById('food-edit-fat').value)  || 0;
+
+  // If switching to/from g or oz, attempt gram-based conversion
+  const newGrams = UNIT_TO_GRAMS[newUnit];
+
+  if(newGrams !== null && newGrams !== undefined){
+    // New unit has a known gram equivalent
+    // Find what the original food's per-gram macros are
+    // We need total grams currently represented = qty * oldUnitGrams
+    // For now: set qty to a sensible default for the new unit
+    // and scale macros accordingly
+    const perUnitCals = _foodBaseCalories; // per original serving
+    if(newUnit === 'g'){
+      // Show macros per 100g — standard display
+      qtyInput.value = 100;
+      // Scale: _foodBaseCalories is per serving. We need per gram.
+      // If the food's serving size is stored, use it. Otherwise estimate.
+      // Recalc based on stored base values
+      recalcFoodMacros();
+    } else if(newUnit === 'oz'){
+      qtyInput.value = 1;
+      recalcFoodMacros();
+    } else {
+      qtyInput.value = 1;
+      recalcFoodMacros();
+    }
+  } else {
+    // Serving or piece — reset qty to 1
+    qtyInput.value = 1;
+    recalcFoodMacros();
+  }
+}
+
+
+// ══════════════════════════════════════════
+// LOG VIEW
+// ══════════════════════════════════════════
+function renderLogView(){
+  renderLogViewMacros();
+}
+
+function renderLogViewMacros(){
+  const el = document.getElementById('log-view-macros');
+  if(!el) return;
+  const today = todayKey();
+  const log = nutritionLog[today]||{};
+  let cal=0,pro=0,carb=0,fat=0;
+  ['breakfast','lunch','dinner','snacks'].forEach(m=>(log[m]||[]).forEach(f=>{cal+=f.calories||0;pro+=f.protein||0;carb+=f.carbs||0;fat+=f.fat||0;}));
+  cal=Math.round(cal); pro=Math.round(pro); carb=Math.round(carb); fat=Math.round(fat);
+  if(!cal){ el.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px;">No food logged today</div>'; return; }
+  const g=macroGoals;
+  el.innerHTML=`
+    <div style="text-align:center;margin-bottom:14px;">
+      <div style="font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:var(--gold);">${cal}</div>
+      <div style="font-size:11px;color:var(--muted);">of ${g.calories} kcal · ${Math.max(0,g.calories-cal)} left</div>
+    </div>
+    ${[{l:'Protein',v:pro,g:g.protein,c:'var(--green)'},{l:'Carbs',v:carb,g:g.carbs,c:'var(--blue,#60a5fa)'},{l:'Fat',v:fat,g:g.fat,c:'var(--orange,#fb923c)'}].map(m=>`
+    <div style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">
+        <span style="color:var(--muted);">${m.l}</span>
+        <span style="color:${m.c};font-weight:700;">${m.v}g <span style="color:var(--muted);font-weight:400;">/ ${m.g}g · ${Math.max(0,m.g-m.v)}g left</span></span>
+      </div>
+      <div style="height:5px;background:var(--border2);border-radius:3px;overflow:hidden;">
+        <div style="height:100%;width:${Math.min(m.v/(m.g||1)*100,100)}%;background:${m.c};border-radius:3px;"></div>
+      </div>
+    </div>`).join('')}`;
+}
 
 async function logViewAIFood(){
   const inp = document.getElementById('log-food-input');
@@ -8632,556 +8619,32 @@ function saveMacroGoalsModal(){
   showToast('✓ Goals saved · '+cals+' kcal · '+ps+'/'+cs+'/'+fs+' split');
 }
 
-
-// ══════════════════════════════════════════
-// PARTNER SCHEDULE + NOTIFICATIONS
-// ══════════════════════════════════════════
-let partnerCalUrl = localStorage.getItem('partner_cal_url') || '';
-let partnerName = localStorage.getItem('partner_name') || 'Partner';
-let partnerEvents = [];
-let _lastPartnerHash = localStorage.getItem('partner_events_hash') || '';
-
-function hashEvents(evts){
-  return JSON.stringify(evts||[]);
-}
-
-function openPartnerSettings(){
-  // Show modal instead of prompt
-  document.getElementById('partner-modal').style.display='flex';
-  // Populate fields
-  document.getElementById('pm-name').value = partnerName !== 'Partner' ? partnerName : '';
-  const myCode = getMyPartnerCode();
-  document.getElementById('pm-my-code').textContent = myCode;
-  document.getElementById('pm-link-code').value = localStorage.getItem('partner_link_code')||'';
-}
-
-function getMyPartnerCode(){
-  let code = localStorage.getItem('my_partner_code');
-  if(!code){
-    // Generate a short unique code from username + random
-    code = 'MRD-' + Math.random().toString(36).substr(2,4).toUpperCase();
-    localStorage.setItem('my_partner_code', code);
-  }
-  return code;
-}
-
-async function savePartnerSettings(){
-  const name = document.getElementById('pm-name').value.trim() || 'Partner';
-  const linkCode = document.getElementById('pm-link-code').value.trim().toUpperCase();
-  partnerName = name;
-  localStorage.setItem('partner_name', name);
-  if(linkCode && linkCode !== getMyPartnerCode()){
-    localStorage.setItem('partner_link_code', linkCode);
-    // Try to load their events from cloud
-    showToast('Linking to partner...');
-    try{
-      const data = await loadCloud('partner_events_'+linkCode);
-      if(data && data.length){
-        partnerEvents = data;
-        localStorage.setItem('partner_events', JSON.stringify(partnerEvents));
-        checkPartnerUpdates();
-        renderPartnerEvents();
-        showToast('✓ Linked to '+name+'! '+data.length+' event day(s) loaded');
-      } else {
-        showToast('Code saved — events will sync when '+name+' adds them');
-      }
-    }catch(e){ showToast('Could not reach server — try again'); }
-  }
-  document.getElementById('partner-modal').style.display='none';
-  requestNotifPermission();
-  renderPartnerEvents();
-}
-
-function copyPartnerCode(){
-  const code = getMyPartnerCode();
-  navigator.clipboard?.writeText(code).then(()=>showToast('Code copied: '+code))
-    .catch(()=>showToast('Your code: '+code));
-}
-
-function requestNotifPermission(){
-  if('Notification' in window && Notification.permission === 'default'){
-    Notification.requestPermission().then(p=>{
-      if(p==='granted') showToast('Notifications enabled for partner updates');
-    });
-  }
-}
-
-function checkPartnerUpdates(){
-  const currentHash = hashEvents(partnerEvents);
-  if(_lastPartnerHash && _lastPartnerHash !== currentHash){
-    // Partner events changed since last session
-    const today = todayKey();
-    const todayEvts = (partnerEvents||[]).find(e=>e.date===today)?.events||[];
-    showPartnerUpdateBanner(partnerName+' updated their schedule');
-    // Fire browser notification
-    if('Notification' in window && Notification.permission === 'granted'){
-      new Notification('Meridian — '+partnerName+' updated their schedule', {
-        body: todayEvts.length
-          ? todayEvts.map(e=>e.time?(e.time+' · '+e.title):e.title).join(', ')
-          : 'Check the schedule tab for updates',
-        icon: '/favicon.png'
-      });
-    }
-    // Badge the schedule nav
-    const navBadge = document.getElementById('sched-nav-badge');
-    if(navBadge) navBadge.style.display = 'block';
-  }
-  _lastPartnerHash = currentHash;
-  localStorage.setItem('partner_events_hash', currentHash);
-}
-
-function showPartnerUpdateBanner(msg){
-  const existing = document.getElementById('partner-update-banner');
-  if(existing) existing.remove();
-  const banner = document.createElement('div');
-  banner.id = 'partner-update-banner';
-  banner.innerHTML = '<div style="display:flex;align-items:center;gap:10px;">'
-    +'<div style="font-size:16px;">🔔</div>'
-    +'<div style="flex:1;">'
-    +'<div style="font-size:12px;font-weight:700;color:#a78bfa;">Schedule update</div>'
-    +'<div style="font-size:11px;color:var(--muted);">'+msg+'</div>'
-    +'</div>'
-    +'<button onclick="this.parentElement.parentElement.remove();dismissPartnerBadge()" '
-    +'style="background:transparent;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0;">×</button>'
-    +'</div>';
-  banner.style.cssText = 'background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.35);border-radius:14px;padding:12px 14px;margin:0 16px 10px;';
-  // Insert at top of schedule view
-  const schedView = document.getElementById('view-schedule');
-  if(schedView) schedView.insertBefore(banner, schedView.firstChild);
-}
-
-function dismissPartnerBadge(){
-  const navBadge = document.getElementById('sched-nav-badge');
-  if(navBadge) navBadge.style.display = 'none';
-}
-
-function addPartnerEventManual(){
-  const title = prompt('Event title (e.g. Dentist appointment):');
-  if(!title) return;
-  const time = prompt('Time (e.g. 2:00 PM) — optional:', '');
-  const today = todayKey();
-  if(!partnerEvents) partnerEvents = [];
-  const existing = partnerEvents.find(e=>e.date===today);
-  if(existing) existing.events.push({title:title.trim(), time:(time||'').trim(), added:Date.now()});
-  else partnerEvents.push({date:today, events:[{title:title.trim(), time:(time||'').trim(), added:Date.now()}]});
-  localStorage.setItem('partner_events', JSON.stringify(partnerEvents));
-  // Save cloud so partner can see (uses shared key for now)
-  const myCode = getMyPartnerCode();
-  saveCloud('partner_events_'+myCode, partnerEvents);
-  _lastPartnerHash = hashEvents(partnerEvents);
-  localStorage.setItem('partner_events_hash', _lastPartnerHash);
-  renderPartnerEvents();
-  showToast('✓ Added to '+partnerName+'s schedule');
-}
-
-function removePartnerEvent(dateStr, idx){
-  const day = (partnerEvents||[]).find(e=>e.date===dateStr);
-  if(!day) return;
-  day.events.splice(idx, 1);
-  localStorage.setItem('partner_events', JSON.stringify(partnerEvents));
-  const myCode = getMyPartnerCode();
-  saveCloud('partner_events_'+myCode, partnerEvents);
-  renderPartnerEvents();
-}
-
-function renderPartnerEvents(){
-  const el = document.getElementById('partner-schedule-wrap');
-  if(!el) return;
-  const today = todayKey();
-  const todayEvts = (partnerEvents||[]).find(e=>e.date===today)?.events||[];
-
-  if(!localStorage.getItem('partner_name') && !(partnerEvents||[]).some(e=>e.events?.length)){
-    // Empty state — prominent dashed card
-    el.innerHTML = '<div style="border:2px dashed rgba(167,139,250,0.3);border-radius:14px;padding:16px;text-align:center;margin-bottom:4px;">'
-      +'<div style="font-size:22px;margin-bottom:6px;">👤</div>'
-      +'<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px;">Add partner schedule</div>'
-      +'<div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:10px;">See their events for the day alongside yours</div>'
-      +'<button onclick="openPartnerSettings()" style="background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.35);border-radius:20px;color:#a78bfa;font-size:12px;font-weight:600;padding:7px 16px;cursor:pointer;font-family:inherit;">+ Link partner schedule</button>'
-      +'</div>';
-    return;
-  }
-
-  // Get first letter for avatar
-  const initial = (partnerName||'P')[0].toUpperCase();
-
-  el.innerHTML = '<div style="background:var(--surface);border:1px solid rgba(167,139,250,0.35);border-radius:14px;overflow:hidden;margin-bottom:4px;">'
-    // Header
-    +'<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid rgba(167,139,250,0.2);">'
-    +'<div style="width:28px;height:28px;border-radius:50%;background:rgba(167,139,250,0.15);color:#a78bfa;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">'+initial+'</div>'
-    +'<div style="flex:1;">'
-    +'<div style="font-size:12px;font-weight:700;color:var(--text);">'+partnerName+'</div>'
-    +'<div style="font-size:10px;color:var(--muted);">partner schedule</div>'
-    +'</div>'
-    +'<div style="display:flex;gap:5px;">'
-    +'<button onclick="addPartnerEventManual()" style="padding:4px 9px;border-radius:12px;border:1px solid rgba(167,139,250,0.3);background:transparent;color:#a78bfa;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;">+ Add</button>'
-    +'<button onclick="openPartnerSettings()" style="padding:4px 7px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;">⚙</button>'
-    +'</div>'
-    +'</div>'
-    // Events
-    +'<div style="padding:8px 12px;">'
-    +(todayEvts.length
-      ? todayEvts.map((e,i)=>{
-          const row = document.createElement('div');
-          row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(167,139,250,0.1);';
-          row.innerHTML = '<div style="width:7px;height:7px;border-radius:50%;background:#a78bfa;flex-shrink:0;"></div>'
-            +'<div style="flex:1;font-size:12px;color:var(--text);">'+e.title+'</div>'
-            +(e.time?'<div style="font-size:10px;color:#a78bfa;font-weight:600;">'+e.time+'</div>':'');
-          const xBtn = document.createElement('button');
-          xBtn.textContent = '×';
-          xBtn.style.cssText = 'background:transparent;border:none;color:var(--muted2);font-size:13px;cursor:pointer;padding:0 2px;line-height:1;';
-          xBtn.onclick = (()=>{const idx=i;return()=>removePartnerEvent(today,idx);})();
-          row.appendChild(xBtn);
-          return row.outerHTML;
-        }).join('')
-      : '<div style="text-align:center;padding:8px 0;font-size:11px;color:var(--muted);">No events today — tap + Add</div>')
-    +'</div>'
-    +'</div>';
-}
-
-
-// ── Fetch with timeout ──
-async function fetchWithTimeout(url, options, timeoutMs=12000){
-  const controller = new AbortController();
-  const timer = setTimeout(()=>controller.abort(), timeoutMs);
-  try{
-    const res = await fetch(url, {...options, signal:controller.signal});
-    clearTimeout(timer);
-    return res;
-  }catch(e){
-    clearTimeout(timer);
-    if(e.name==='AbortError') throw new Error('Request timed out — Railway may be starting up. Try again in 10 seconds.');
-    throw e;
-  }
-}
-
-
-// ══════════════════════════════════════════
-// NAVIGATION HELPERS
-// ══════════════════════════════════════════
-function goToNutrition(){
-  if(currentView !== 'health') switchView('health');
-  const bodyEl = document.getElementById('section-body');
-  if(bodyEl && bodyEl.classList.contains('section-collapsed')) toggleSection('section-body');
-  // Wait for section to expand then scroll
-  setTimeout(()=>{
-    const el = document.getElementById('meal-breakfast');
-    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
-    else {
-      // fallback — scroll to nutrition section label
-      const labels = document.querySelectorAll('.dash-section-label');
-      for(const l of labels){ if(l.textContent.includes('Nutrition')){ l.scrollIntoView({behavior:'smooth'}); break; } }
-    }
-  }, 400);
-}
-
-function goToWorkout(){
-  if(currentView !== 'health') switchView('health');
-  const bodyEl = document.getElementById('section-body');
-  if(bodyEl && bodyEl.classList.contains('section-collapsed')) toggleSection('section-body');
-  setTimeout(()=>{
-    const el = document.querySelector('.workout-section-header') || document.getElementById('exercise-list');
-    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
-  }, 400);
-}
-
-function goToSection(sectionId, scrollToId){
-  switchView('health');
-  const sectionEl = document.getElementById(sectionId);
-  if(sectionEl && sectionEl.classList.contains('section-collapsed')) toggleSection(sectionId);
-  setTimeout(()=>{
-    const el = scrollToId ? document.getElementById(scrollToId) : sectionEl;
-    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
-  }, 350);
-}
-
-// ══════════════════════════════════════════
-// LOG VIEW RENDER
-// ══════════════════════════════════════════
-function renderLogView(){
-  renderLogViewMacros();
-}
-
-function renderLogViewMacros(){
-  const el = document.getElementById('log-view-macros');
-  if(!el) return;
-  const today = todayKey();
-  const log = nutritionLog[today]||{};
-  let cal=0,pro=0,carb=0,fat=0;
-  ['breakfast','lunch','dinner','snacks'].forEach(m=>(log[m]||[]).forEach(f=>{
-    cal+=f.calories||0; pro+=f.protein||0; carb+=f.carbs||0; fat+=f.fat||0;
-  }));
-  cal=Math.round(cal); pro=Math.round(pro); carb=Math.round(carb); fat=Math.round(fat);
-  if(!cal){
-    el.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px;">No food logged today</div>';
-    return;
-  }
-  const g = macroGoals;
-  el.innerHTML='<div style="text-align:center;margin-bottom:14px;">'
-    +'<div style="font-family:serif;font-size:36px;font-weight:700;color:var(--gold);">'+cal+'</div>'
-    +'<div style="font-size:11px;color:var(--muted);">of '+(g.calories||2000)+' kcal · '+Math.max(0,(g.calories||2000)-cal)+' left</div>'
-    +'</div>'
-    +[{l:'Protein',v:pro,g:g.protein||175,c:'var(--green)'},
-      {l:'Carbs',v:carb,g:g.carbs||175,c:'#60a5fa'},
-      {l:'Fat',v:fat,g:g.fat||67,c:'#fb923c'}].map(m=>
-      '<div style="margin-bottom:8px;">'
-      +'<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">'
-      +'<span style="color:var(--muted);">'+m.l+'</span>'
-      +'<span style="color:'+m.c+';font-weight:700;">'+m.v+'g <span style="color:var(--muted);font-weight:400;">/ '+m.g+'g · '+Math.max(0,m.g-m.v)+'g left</span></span>'
-      +'</div>'
-      +'<div style="height:5px;background:var(--border2);border-radius:3px;overflow:hidden;">'
-      +'<div style="height:100%;width:'+Math.min(m.v/(m.g||1)*100,100)+'%;background:'+m.c+';border-radius:3px;"></div>'
-      +'</div></div>').join('');
-}
-
-
-// ══════════════════════════════════════════
-// WATCH MODE
-// ══════════════════════════════════════════
-let _wmExIdx = 0, _wmSetIdx = 0, _wmEffort = null, _wmRestInterval = null;
-
-function openWatchMode(){
-  if(!activeWorkout || !activeWorkout.exercises.length){ showToast('Start a workout first'); return; }
-  // Find the first incomplete set
-  let foundEx = 0, foundSet = 0;
-  outer: for(let ei=0; ei<activeWorkout.exercises.length; ei++){
-    const sets = activeWorkout.exercises[ei].sets;
-    for(let si=0; si<sets.length; si++){
-      if(!sets[si].done){ foundEx=ei; foundSet=si; break outer; }
-    }
-  }
-  _wmExIdx = foundEx; _wmSetIdx = foundSet; _wmEffort = null;
-  document.getElementById('watch-modal').style.display='flex';
-  renderWatchMode();
-  // Sync rest timer display
-  wmSyncRestTimer();
-}
-
-function closeWatchMode(){
-  document.getElementById('watch-modal').style.display='none';
-  clearInterval(_wmRestInterval);
-}
-
-function renderWatchMode(){
-  const ex = activeWorkout?.exercises[_wmExIdx];
-  if(!ex) return;
-  const set = ex.sets[_wmSetIdx];
-  const exTotal = activeWorkout.exercises.reduce((t,e)=>t+e.sets.length,0);
-  const setsDone = activeWorkout.exercises.reduce((t,e)=>t+e.sets.filter(s=>s.done).length,0);
-
-  const nameEl=document.getElementById('wm-ex-name');
-  const setLbl=document.getElementById('wm-set-label');
-  const wEl=document.getElementById('wm-weight');
-  const rEl=document.getElementById('wm-reps');
-  if(nameEl) nameEl.textContent = ex.name;
-  if(setLbl) setLbl.textContent = 'Set '+(_wmSetIdx+1)+' of '+ex.sets.length+' · '+setsDone+'/'+exTotal+' total done';
-  if(wEl) wEl.textContent = set?.weight || '—';
-  if(rEl) rEl.textContent = set?.reps || '—';
-  _wmEffort = set?.effort || null;
-  // Render effort buttons
-  [6,7,8,9,10].forEach(e=>{
-    const btn=document.getElementById('wm-eff-'+e);
-    if(btn){
-      btn.style.background = e===_wmEffort ? 'var(--gold)' : 'transparent';
-      btn.style.color = e===_wmEffort ? '#000' : '#888';
-      btn.style.borderColor = e===_wmEffort ? 'var(--gold)' : '#222';
-    }
-  });
-}
-
-function wmStep(field, delta){
-  const set = activeWorkout?.exercises[_wmExIdx]?.sets[_wmSetIdx];
-  if(!set) return;
-  const current = parseFloat(set[field])||0;
-  set[field] = Math.max(field==='reps'?1:0, +(current+delta).toFixed(1));
-  const el = document.getElementById('wm-'+field);
-  if(el) el.textContent = set[field];
-  saveActiveDraft();
-}
-
-function wmSetEffort(e){
-  _wmEffort = e;
-  [6,7,8,9,10].forEach(n=>{
-    const btn=document.getElementById('wm-eff-'+n);
-    if(btn){
-      btn.style.background=n===e?'var(--gold)':'transparent';
-      btn.style.color=n===e?'#000':'#888';
-      btn.style.borderColor=n===e?'var(--gold)':'#222';
-    }
-  });
-  const set = activeWorkout?.exercises[_wmExIdx]?.sets[_wmSetIdx];
-  if(set) { set.effort=e; saveActiveDraft(); }
-}
-
-function wmCompleteSet(){
-  const ex = activeWorkout?.exercises[_wmExIdx];
-  if(!ex) return;
-  const set = ex.sets[_wmSetIdx];
-  if(set){
-    set.done=true;
-    if(_wmEffort) set.effort=_wmEffort;
-    saveActiveDraft();
-    checkWorkoutCompletion();
-  }
-  // Start rest timer + show countdown
-  startRestTimer(120);
-  wmShowRest(120);
-  // Advance to next set
-  wmNextSet();
-}
-
-function wmShowRest(secs){
-  const wrap=document.getElementById('wm-rest-wrap');
-  const exWrap=document.getElementById('wm-exercise-wrap');
-  if(wrap) wrap.style.display='block';
-  if(exWrap) exWrap.style.opacity='0.4';
-  clearInterval(_wmRestInterval);
-  let remaining=secs;
-  const el=document.getElementById('wm-rest-time');
-  if(el) el.textContent=_fmtTime(remaining);
-  _wmRestInterval=setInterval(()=>{
-    remaining--;
-    if(el) el.textContent=_fmtTime(remaining);
-    if(remaining<=0){
-      clearInterval(_wmRestInterval);
-      if(wrap) wrap.style.display='none';
-      if(exWrap) exWrap.style.opacity='1';
-      try{ navigator.vibrate&&navigator.vibrate([300,100,300]); }catch(e){}
-    }
-  },1000);
-}
-
-function wmSyncRestTimer(){
-  const restEnd=localStorage.getItem('rest_timer_end');
-  if(restEnd){
-    const remaining=Math.ceil((parseInt(restEnd)-Date.now())/1000);
-    if(remaining>0) wmShowRest(remaining);
-  }
-}
-
-function wmNextSet(){
-  const ex=activeWorkout?.exercises[_wmExIdx];
-  if(!ex) return;
-  if(_wmSetIdx < ex.sets.length-1){ _wmSetIdx++; }
-  else if(_wmExIdx < activeWorkout.exercises.length-1){ _wmExIdx++; _wmSetIdx=0; }
-  _wmEffort=null;
-  renderWatchMode();
-}
-function wmPrevSet(){
-  if(_wmSetIdx>0){ _wmSetIdx--; }
-  else if(_wmExIdx>0){ _wmExIdx--; _wmSetIdx=activeWorkout.exercises[_wmExIdx].sets.length-1; }
-  _wmEffort=null;
-  renderWatchMode();
-}
-function _fmtTime(s){ const m=Math.floor(s/60); return m+':'+(s%60<10?'0':'')+s%60; }
-function skipRest(){
-  clearInterval(_wmRestInterval);
-  const wrap=document.getElementById('wm-rest-wrap');
-  const exWrap=document.getElementById('wm-exercise-wrap');
-  if(wrap) wrap.style.display='none';
-  if(exWrap) exWrap.style.opacity='1';
-  hideRestTimer();
-}
-
-
-// ══════════════════════════════════════════
-// SCHEDULE AI DRAWER
-// ══════════════════════════════════════════
-function openSchedDrawer(){
-  const d=document.getElementById('sched-drawer');
-  const bg=document.getElementById('sched-drawer-bg');
-  if(d) d.style.display='block';
-  if(bg) bg.style.display='block';
-  const saved=localStorage.getItem('sched_pwd');
-  if(saved){ const el=document.getElementById('drawer-pwd'); if(el) el.value=saved; }
-  setTimeout(()=>document.getElementById('drawer-instructions')?.focus(), 100);
-}
-
-function closeSchedDrawer(){
-  document.getElementById('sched-drawer').style.display='none';
-  document.getElementById('sched-drawer-bg').style.display='none';
-  const st=document.getElementById('drawer-status');
-  if(st) st.style.display='none';
-  const inp=document.getElementById('drawer-instructions');
-  if(inp) inp.value='';
-}
-
-async function submitSchedDrawer(){
-  const pwd=(document.getElementById('drawer-pwd')?.value||'').trim();
-  const instructions=(document.getElementById('drawer-instructions')?.value||'').trim();
-  const btn=document.getElementById('drawer-submit-btn');
-  const status=document.getElementById('drawer-status');
-  if(!instructions){ showToast('Describe the changes you want'); return; }
-  if(!pwd){ showToast('Enter admin password'); return; }
-  localStorage.setItem('sched_pwd',pwd);
-  btn.textContent='Updating...'; btn.disabled=true;
-  status.style.display='block'; status.style.color='var(--muted)'; status.textContent='Sending to AI...';
-  try{
-    const r=await fetchWithTimeout(SERVER+'/update-sched',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({password:pwd,instructions:instructions,currentSched:SCHED})
-    },25000);
-    const data=await r.json();
-    if(!r.ok||data.error){
-      status.style.color='var(--red)'; status.textContent='Error: '+data.error;
-      btn.textContent='Apply Changes'; btn.disabled=false; return;
-    }
-    if(data.schedule){
-      Object.assign(SCHED,data.schedule);
-      saveCloud('user_schedule',SCHED);
-      try{localStorage.setItem('user_schedule_cache',JSON.stringify(SCHED));}catch(e){}
-    }
-    status.style.color='var(--green)'; status.textContent='✓ Applied! Changes are live.';
-    btn.textContent='✓ Done!';
-    render();
-    setTimeout(()=>{ closeSchedDrawer(); btn.textContent='Apply Changes'; btn.disabled=false; },1500);
-  }catch(e){
-    status.style.color='var(--red)'; status.textContent='Failed: '+(e.message||'Server unreachable');
-    btn.textContent='Apply Changes'; btn.disabled=false;
-  }
-}
-
 // ── Boot ──
 (async ()=>{ try {
   activeDay=todayIdx();
-  // ── Phase 1: Load from localStorage INSTANTLY and render ──
-  // This makes the app usable immediately even if server is down
-  try{ const sc=localStorage.getItem('sched_checks'); checks=sc?JSON.parse(sc):{} }catch(e){ checks={}; }
-  try{ nutritionLog=JSON.parse(localStorage.getItem('nutrition_log')||'{}'); }catch(e){ nutritionLog={}; }
-  try{ workoutHistory=JSON.parse(localStorage.getItem('workout_history')||'[]'); }catch(e){ workoutHistory=[]; }
-  try{ bioData=JSON.parse(localStorage.getItem('bio_data')||'{}'); }catch(e){ bioData={}; }
+  await loadState();
+  await loadPhotoSessions();
+  await loadNutrition();
+  await loadWorkoutHistory();
+  await loadBFReadings();
+  await initMyFoods();
+  await loadThermalLog();
+  await loadHydration();
+  await loadMindfulLog();
+  await loadTherapyLog();
+  await loadSocialLog();
+  await loadBreathworkLog();
+  await loadStressLog();
+  await loadJournalLog();
+  await loadNatureLog();
+  await loadScreenLog();
   loadBMRProfile();
   loadFastingLog();
   loadSaunaSocialLog();
   render();
   switchView('health');
   resumeThermalIfActive();
-  restoreActiveDraft();
   loadHealthData();
-  // ── Phase 2: Background cloud sync (won't block UI) ──
-  // Each runs independently — a failed one doesn't affect others
-  Promise.allSettled([
-    loadState(),
-    loadPhotoSessions(),
-    loadNutrition(),
-    loadWorkoutHistory(),
-    loadBFReadings(),
-    initMyFoods(),
-    loadThermalLog(),
-    loadHydration(),
-    loadMindfulLog(),
-    loadTherapyLog(),
-    loadSocialLog(),
-    loadBreathworkLog(),
-    loadStressLog(),
-    loadJournalLog(),
-    loadNatureLog(),
-    loadScreenLog(),
-  ]).then(()=>{
-    // Re-render after all cloud data arrives
-    try{ render(); }catch(e){}
-    try{ generateMorningBriefing(); }catch(e){}
-  });
   const now=new Date(),ch=now.getHours(),cp=ch<12?"AM":"PM",cdh=ch===0?12:ch>12?ch-12:ch,target=`${cdh}:00 ${cp}`;
   setTimeout(()=>{document.querySelectorAll(".slot-time").forEach(el=>{if(el.textContent.trim()===target)el.closest(".slot").scrollIntoView({behavior:"smooth",block:"center"});});},400);
 } catch(e) {
