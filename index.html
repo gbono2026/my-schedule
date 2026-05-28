@@ -638,12 +638,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260521100000">
+<meta name="app-version" content="20260522090000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
 (function(){
-  const CURRENT = '20260521100000';
+  const CURRENT = '20260522090000';
   const CACHE_KEY = 'meridian-v';
 
   // If we stored a different version last time, clear everything and reload
@@ -3635,7 +3635,8 @@ function getLastSession(exerciseName){
 function renderExercises(){
   const wrap = document.getElementById('exercise-list');
   if(!wrap || !activeWorkout) return;
-  wrap.innerHTML = activeWorkout.exercises.map((ex, exIdx) => {
+  // Group exercises: supersets go side-by-side
+  const exHtmlArr = activeWorkout.exercises.map((ex, exIdx) => {
     const isCardio = ex.type==='cardio';
     const lastSession = getLastSession(ex.name);
     let lastSessionHtml = '';
@@ -3680,8 +3681,24 @@ function renderExercises(){
           return `<tr>
             <td><div class="set-num">${si+1}</div></td>
             <td><div class="set-prev">${prevText}</div></td>
-            <td><input class="set-input" type="number" inputmode="decimal" placeholder="lbs" value="${set.weight||''}" onchange="updateSet(${exIdx},${si},'weight',this.value)"></td>
-            <td><input class="set-input" type="number" inputmode="numeric" placeholder="reps" value="${set.reps||''}" onchange="updateSet(${exIdx},${si},'reps',this.value)"></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:2px;">
+                <div style="display:flex;flex-direction:column;gap:1px;">
+                  <button onclick="event.stopPropagation();stepSet(${exIdx},${si},'weight',2.5)" style="width:18px;height:16px;border-radius:3px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:9px;cursor:pointer;padding:0;line-height:1;">▲</button>
+                  <button onclick="event.stopPropagation();stepSet(${exIdx},${si},'weight',-2.5)" style="width:18px;height:16px;border-radius:3px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:9px;cursor:pointer;padding:0;line-height:1;">▼</button>
+                </div>
+                <input class="set-input" type="number" inputmode="decimal" placeholder="lbs" value="${set.weight||''}" onchange="updateSet(${exIdx},${si},'weight',this.value)" style="width:54px;">
+              </div>
+            </td>
+            <td>
+              <div style="display:flex;align-items:center;gap:2px;">
+                <div style="display:flex;flex-direction:column;gap:1px;">
+                  <button onclick="event.stopPropagation();stepSet(${exIdx},${si},'reps',1)" style="width:18px;height:16px;border-radius:3px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:9px;cursor:pointer;padding:0;line-height:1;">▲</button>
+                  <button onclick="event.stopPropagation();stepSet(${exIdx},${si},'reps',-1)" style="width:18px;height:16px;border-radius:3px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:9px;cursor:pointer;padding:0;line-height:1;">▼</button>
+                </div>
+                <input class="set-input" type="number" inputmode="numeric" placeholder="reps" value="${set.reps||''}" onchange="updateSet(${exIdx},${si},'reps',this.value)" style="width:46px;">
+              </div>
+            </td>
             <td><div class="effort-btns">${[6,7,8,9,10].map(e=>`<button class="effort-btn e${e}${set.effort===e?' selected':''}" data-ex="${exIdx}" data-set="${si}" data-effort="${e}" onclick="event.stopPropagation();updateSet(${exIdx},${si},'effort',${e})">${e}</button>`).join('')}</div></td>
             <td><button class="set-done-btn${set.done?' done':''}" onclick="completeSet(${exIdx},${si})">${set.done?'✓':''}</button></td>
             <td><button onclick="deleteSet(${exIdx},${si})" title="Delete" style="width:20px;height:20px;border-radius:50%;border:none;background:transparent;color:var(--muted);font-size:14px;cursor:pointer;line-height:1;padding:0;">×</button></td>
@@ -3735,6 +3752,17 @@ function renderExercises(){
   });
 }
 
+function stepSet(exIdx, si, field, delta){
+  if(!activeWorkout) return;
+  const set = activeWorkout.exercises[exIdx]?.sets[si];
+  if(!set) return;
+  const current = parseFloat(set[field])||0;
+  set[field] = Math.max(field==='reps'?1:0, +(current+delta).toFixed(1));
+  renderExercises();
+  try{ localStorage.setItem('active_workout_draft', JSON.stringify(activeWorkout)); }catch(e){}
+  checkWorkoutCompletion();
+}
+
 function updateSet(exIdx, si, field, val){
   if(!activeWorkout) return;
   activeWorkout.exercises[exIdx].sets[si][field] = field==='effort'||field==='weight'||field==='reps' ? (isNaN(parseFloat(val))?val:parseFloat(val)) : val;
@@ -3751,6 +3779,30 @@ function updateSet(exIdx, si, field, val){
         btn.classList.toggle('selected', e===parseFloat(val));
       });
     }
+  }
+  checkWorkoutCompletion();
+}
+
+function checkWorkoutCompletion(){
+  if(!activeWorkout || !activeWorkout.exercises.length) return;
+  const allFilled = activeWorkout.exercises.every(ex=>
+    ex.sets.length>0 && ex.sets.every(s=>(parseFloat(s.weight)>0||parseFloat(s.reps)>0) && s.effort)
+  );
+  const btn = document.querySelector('.finish-workout-btn');
+  const banner = document.getElementById('workout-complete-banner');
+  if(allFilled){
+    if(btn){ btn.style.background='linear-gradient(135deg,var(--green),#16a34a)'; }
+    if(!banner){
+      const b=document.createElement('div');
+      b.id='workout-complete-banner';
+      b.style.cssText='background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.35);border-radius:12px;padding:10px 14px;margin:8px 0;display:flex;align-items:center;gap:8px;';
+      b.innerHTML='<div style="font-size:18px;">🎯</div><div><div style="font-size:13px;font-weight:700;color:var(--green);">All sets complete!</div><div style="font-size:11px;color:var(--muted);">Ready to finish your workout</div></div>';
+      btn?.parentElement?.insertBefore(b,btn);
+    }
+    try{ navigator.vibrate&&navigator.vibrate([100,50,100]); }catch(e){}
+  } else {
+    if(banner) banner.remove();
+    if(btn) btn.style.background='';
   }
 }
 
@@ -7394,7 +7446,30 @@ function renderMacroProgress(){
       </div>
       <div style="font-size:9px;color:var(--muted);margin-top:2px;">Goal: ${b.goal}${b.unit}</div>
     </div>`;
-  }).join('');
+  });
+  // Render: supersets side by side, others stacked
+  let finalHtml = '';
+  let i = 0;
+  while(i < exHtmlArr.length){
+    const ex = activeWorkout.exercises[i];
+    const ssG = ex.ssGroup;
+    if(ssG){
+      // Collect all exercises in same SS group that are consecutive
+      let j = i+1;
+      while(j < activeWorkout.exercises.length && activeWorkout.exercises[j].ssGroup===ssG) j++;
+      const paired = exHtmlArr.slice(i,j);
+      if(paired.length > 1){
+        finalHtml += '<div style="display:flex;gap:8px;align-items:flex-start;">' + paired.map(h=>'<div style="flex:1;min-width:0;">'+h+'</div>').join('') + '</div>';
+      } else {
+        finalHtml += paired[0];
+      }
+      i = j;
+    } else {
+      finalHtml += exHtmlArr[i];
+      i++;
+    }
+  }
+  wrap.innerHTML = finalHtml;
 }
 
 // ══════════════════════════════════════════
@@ -7913,6 +7988,10 @@ async function processMorningLog(){
   if(!text){ showToast('Tell me about your morning first'); return; }
 
   if(btn){ btn.textContent = '⟳'; btn.disabled = true; }
+  const _mSafe = setTimeout(()=>{
+    if(btn){ btn.textContent='→'; btn.disabled=false; }
+    if(resultEl){ resultEl.style.display='block'; resultEl.innerHTML='<div style="color:var(--red);font-size:12px;">Request timed out — Railway may be starting up. Try again in 10 seconds.</div>'; }
+  }, 15000);
 
   // Build context for AI to parse
   const today = todayKey();
@@ -7924,30 +8003,18 @@ async function processMorningLog(){
   };
 
   try {
+    const controller = new AbortController();
+    const fetchTimer = setTimeout(()=>controller.abort(), 12000);
     const res = await fetch(SERVER+'/ai-log', {
+      signal: controller.signal,
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        system: `You are a health logging AI for the Meridian wellness app. Parse the user's morning message and extract loggable data. Return ONLY valid JSON with this exact structure (omit any field you cannot extract):
-{
-  "food": [{"name":"string","calories":number,"protein":number,"carbs":number,"fat":number,"qty":number,"unit":"string"}],
-  "water_cups": number,
-  "sunlight_minutes": number,
-  "mood": number,
-  "energy": number,
-  "focus": number,
-  "social_count": number,
-  "breathwork_minutes": number,
-  "stress_level": number,
-  "gratitude": "string",
-  "summary": "string"
-}
-For mood/energy/focus use 1-10 scale based on descriptive words (great/motivated=8-9, good=7, okay=5-6, tired=3-4, bad=1-2).
-For food, estimate reasonable macros if not specified (e.g. overnight oats = 350 cal, 12g protein, 55g carbs, 8g fat).
-Only return JSON. No other text.`,
+        system: 'You are a health logging assistant. Extract what the user mentions and return ONLY a JSON object. Fields: food (array with name/calories/protein/carbs/fat/qty/unit), water_cups, sunlight_minutes, mood, energy, focus (1-10), social_count, stress_level, gratitude. Estimate food macros. Only include mentioned fields. No markdown.',
         input: text
       })
     });
+    clearTimeout(fetchTimer);
     const data = await res.json();
     let parsed;
     try {
