@@ -1,0 +1,10 @@
+{
+  "name": "Meridian",
+  "short_name": "Meridian",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "description": "Personal wellness, nutrition, and workout tracker."
+}

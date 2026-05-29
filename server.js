@@ -2,6 +2,20 @@ const express = require("express");
 const cors = require("cors");
 const Anthropic = require("@anthropic-ai/sdk");
 const fs = require("fs");
+const webpush = require("web-push");
+
+// ── Web Push (VAPID) ──
+// Public key is embedded in the client; keep these in sync. Private key can be
+// overridden via env (VAPID_PRIVATE) — the fallback lets push work without extra
+// Railway config for this personal app.
+const VAPID_PUBLIC = process.env.VAPID_PUBLIC || "BB9dxV5dDUOumzTDbtLTW7oyVmxf6eowO4ANib5Fcg6gB0pPv2yIENBl2bU-fxdj4rL9Tqzv1baDRtKODNe6174";
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE || "-ncIQbn3s6iDTdn_sjAW58drG8TE0tesENe-jbO3eHo";
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:gbono.med@gmail.com";
+try {
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+} catch (e) {
+  console.error("VAPID setup error:", e.message);
+}
 
 const app = express();
 app.use(cors());
@@ -313,6 +327,69 @@ app.post('/userdata/:key', async (req, res) => {
   const { value } = req.body;
   if (value === undefined) return res.status(400).json({ error: 'Missing value' });
   await setUserData(req.params.key, value);
+  res.json({ success: true });
+});
+
+
+// ── Web Push: rest-timer notifications ──
+// Subscriptions are persisted (so they survive restarts) under user_data.
+async function getPushSubs() {
+  const subs = await getUserData('push_subscriptions');
+  return Array.isArray(subs) ? subs : [];
+}
+async function savePushSubs(subs) {
+  await setUserData('push_subscriptions', subs);
+}
+
+// Pending rest push (single-user personal app — one timer is enough).
+let _restPushTimer = null;
+
+app.get('/vapid-public-key', (req, res) => res.json({ key: VAPID_PUBLIC }));
+
+app.post('/push-subscribe', async (req, res) => {
+  const { subscription } = req.body;
+  if (!subscription || !subscription.endpoint) return res.status(400).json({ error: 'Missing subscription' });
+  const subs = await getPushSubs();
+  if (!subs.find(s => s.endpoint === subscription.endpoint)) {
+    subs.push(subscription);
+    await savePushSubs(subs);
+  }
+  res.json({ success: true });
+});
+
+async function sendRestPush(exName) {
+  const subs = await getPushSubs();
+  if (!subs.length) return;
+  const payload = JSON.stringify({
+    title: 'Rest complete ✓',
+    body: (exName ? exName + ' — ' : '') + 'next set ready 💪',
+    tag: 'rest-timer'
+  });
+  const stale = [];
+  await Promise.all(subs.map(async (sub) => {
+    try {
+      await webpush.sendNotification(sub, payload);
+    } catch (e) {
+      if (e.statusCode === 410 || e.statusCode === 404) stale.push(sub.endpoint);
+      else console.error('push send error:', e.statusCode || e.message);
+    }
+  }));
+  if (stale.length) await savePushSubs(subs.filter(s => !stale.includes(s.endpoint)));
+}
+
+app.post('/schedule-rest-push', (req, res) => {
+  const { secs, exName } = req.body || {};
+  const delayMs = Math.max(1, Math.min(parseInt(secs) || 120, 3600)) * 1000;
+  if (_restPushTimer) clearTimeout(_restPushTimer);
+  _restPushTimer = setTimeout(() => {
+    _restPushTimer = null;
+    sendRestPush(exName).catch(e => console.error('sendRestPush:', e.message));
+  }, delayMs);
+  res.json({ success: true });
+});
+
+app.post('/cancel-rest-push', (req, res) => {
+  if (_restPushTimer) { clearTimeout(_restPushTimer); _restPushTimer = null; }
   res.json({ success: true });
 });
 
