@@ -636,7 +636,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
 (function(){
-  const CURRENT = '20260529090000';
+  const CURRENT = '20260529193000';
   const CACHE_KEY = 'meridian-v';
 
   // If we stored a different version last time, clear everything and reload
@@ -1462,27 +1462,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <div id="muscle-split-chart" style="margin-top:10px;"></div>
     </div>
 
-    <!-- DAILY SCORES -->
-        
-    <div class="health-card" style="margin-bottom:8px;">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
-        <div style="font-size:13px;font-weight:700;color:${m.color};">${m.label}</div>
-        <div style="display:flex;align-items:baseline;gap:6px;">
-          <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;">${m.fmt(latest)}</div>
-          <div style="font-size:10px;color:var(--muted);">${m.unit}</div>
-          ${changePct!==null?`<div style="font-size:10px;color:${changePct>0?'var(--green)':'var(--red,#f87171)'};">${changePct>0?'+':''}${changePct.toFixed(1)}%</div>`:''}
-        </div>
-      </div>
-      <div style="display:flex;gap:3px;align-items:flex-end;height:44px;">
-        ${vals.map(x=>{
-          const h=x.v?Math.max((x.v-min)/range*100,5):5;
-          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
-            <div style="width:100%;background:${x.isToday?m.color:m.color+'60'};border-radius:3px 3px 0 0;transition:height .4s;" style="height:${h}%"></div>
-            <div style="font-size:8px;color:${x.isToday?'var(--text)':'var(--muted)'};">${x.label}</div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>
+    <!-- DAILY SCORES (rendered dynamically by renderDailyMetrics) -->
+
     <div class="dash-section"><div class="dash-section-label">Function Health Labs</div><div class="dash-section-line"></div></div>
 
     <div id="biomarker-categories"></div>
