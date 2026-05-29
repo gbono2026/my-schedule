@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Meridian">
+<meta name="theme-color" content="#0a0a0f">
+<link rel="manifest" href="manifest.json">
 <title>Meridian</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -631,31 +633,25 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260529200000">
+<meta name="app-version" content="20260529210000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
 (function(){
-  const CURRENT = '20260529200000';
+  const CURRENT = '20260529210000';
   const CACHE_KEY = 'meridian-v';
 
   // If we stored a different version last time, clear everything and reload
   const stored = localStorage.getItem(CACHE_KEY);
   if(stored && stored !== CURRENT && stored < CURRENT){
-    // New version detected — clear caches and reload fresh
+    // New version detected — clear caches and reload fresh.
+    // NOTE: we intentionally do NOT unregister the service worker here —
+    // it powers rest-timer push notifications and its push subscription
+    // should survive version bumps.
     localStorage.setItem(CACHE_KEY, CURRENT);
     if('caches' in window){
       caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).then(()=>{
-        // Unregister any old service workers
-        if('serviceWorker' in navigator){
-          navigator.serviceWorker.getRegistrations().then(regs=>{
-            Promise.all(regs.map(r=>r.unregister())).then(()=>{
-              window.location.reload(true);
-            });
-          });
-        } else {
-          window.location.reload(true);
-        }
+        window.location.reload(true);
       });
     } else {
       window.location.reload(true);
@@ -664,13 +660,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
   }
   // First load or same version — store current version
   localStorage.setItem(CACHE_KEY, CURRENT);
-  
-  // Unregister any lingering service workers (we don't use them)
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.getRegistrations().then(regs=>{
-      regs.forEach(r=>r.unregister());
-    });
-  }
   window.APP_VERSION = CURRENT;
 })();
 </script>
@@ -2513,6 +2502,77 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 
 <script>
 const SERVER="https://my-schedule-server-production.up.railway.app";
+
+// ── Web Push (rest-timer alerts that fire even when phone is locked/closed) ──
+const VAPID_PUBLIC="BB9dxV5dDUOumzTDbtLTW7oyVmxf6eowO4ANib5Fcg6gB0pPv2yIENBl2bU-fxdj4rL9Tqzv1baDRtKODNe6174";
+let _swReg = null;
+let _pushReady = false;
+
+function urlBase64ToUint8Array(b64){
+  const padding = '='.repeat((4 - b64.length % 4) % 4);
+  const base64 = (b64 + padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw = atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+
+// Register the service worker as early as possible (no permission prompt yet).
+async function registerPushSW(){
+  if(!('serviceWorker' in navigator)) return null;
+  try{
+    if(!_swReg) _swReg = await navigator.serviceWorker.register('sw.js');
+    return _swReg;
+  }catch(e){ console.warn('SW register failed:', e.message); return null; }
+}
+
+// Must be called from a user gesture (e.g. completing a set) so iOS allows the
+// permission prompt. Returns true once a push subscription is registered.
+async function ensurePushSetup(){
+  if(_pushReady) return true;
+  if(!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return false;
+  try{
+    const reg = await registerPushSW();
+    if(!reg) return false;
+    await navigator.serviceWorker.ready;
+    let perm = Notification.permission;
+    if(perm === 'default') perm = await Notification.requestPermission();
+    if(perm !== 'granted') return false;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC)
+      });
+    }
+    await fetch(SERVER+'/push-subscribe', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ subscription: sub })
+    });
+    _pushReady = true;
+    return true;
+  }catch(e){ console.warn('Push setup failed:', e.message); return false; }
+}
+
+// Ask the server to push a "rest complete" notification after `secs` seconds.
+async function scheduleRestPush(secs, exName){
+  const ok = await ensurePushSetup();
+  if(!ok) return;
+  try{
+    await fetch(SERVER+'/schedule-rest-push', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ secs, exName })
+    });
+  }catch(e){}
+}
+
+async function cancelRestPush(){
+  if(!_pushReady) return;
+  try{
+    await fetch(SERVER+'/cancel-rest-push', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+  }catch(e){}
+}
+
 const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const SHORT=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
@@ -3902,25 +3962,31 @@ function completeSet(exIdx, si){
 }
 
 function scheduleRestNotification(secs, exName){
-  if(!('Notification' in window)) return;
-  if(Notification.permission === 'denied') return;
-  const doNotify = ()=>{
-    try{
-      new Notification('Rest complete ✓', {
-        body: exName+' rest done — next set ready',
-        icon: '/favicon.ico',
-        tag: 'rest-timer',
-        silent: false
-      });
-    }catch(e){}
-  };
-  if(Notification.permission === 'granted'){
-    setTimeout(doNotify, secs*1000);
-  } else {
-    Notification.requestPermission().then(p=>{
-      if(p==='granted') setTimeout(doNotify, secs*1000);
-    });
-  }
+  // Server-driven push so the alert fires even when the phone is locked or the
+  // app is closed (and mirrors to Apple Watch via the phone). Set up on this tap.
+  scheduleRestPush(secs, exName);
+}
+
+// In-app alert (sound + vibration) for when the app is open at rest completion.
+function playRestDoneAlert(){
+  try{ navigator.vibrate && navigator.vibrate([200,100,200]); }catch(e){}
+  try{
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(Ctx){
+      const ctx = new Ctx();
+      const beep = (freq, start, dur)=>{
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type='sine'; o.frequency.value=freq;
+        g.gain.setValueAtTime(0.0001, ctx.currentTime+start);
+        g.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime+start+0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+start+dur);
+        o.start(ctx.currentTime+start); o.stop(ctx.currentTime+start+dur);
+      };
+      beep(880, 0, 0.25); beep(1175, 0.28, 0.35);
+      setTimeout(()=>{ try{ ctx.close(); }catch(e){} }, 1200);
+    }
+  }catch(e){}
 }
 
 function startExRestTimer(exId, secs){
@@ -3941,41 +4007,44 @@ function startExRestTimer(exId, secs){
   },1000);
 }
 
-function resumeRestTimer(seconds){
-  restSeconds = seconds;
+// Single countdown tick — always derives remaining time from the stored
+// end-timestamp, so it stays accurate across backgrounding / lock / resume.
+function _restTick(){
+  const end = parseInt(localStorage.getItem('rest_timer_end')||'0');
   const timerEl = document.getElementById('rest-timer');
-  const timeEl = document.getElementById('rest-time');
-  if(timerEl) timerEl.style.display='flex';
+  const remaining = Math.round((end - Date.now())/1000);
+  restSeconds = Math.max(0, remaining);
+  updateRestDisplay();
+  if(!end || remaining <= 0){
+    clearInterval(restInterval); restInterval = null;
+    localStorage.removeItem('rest_timer_end');
+    if(timerEl) timerEl.style.display='none';
+    showToast('⏰ Rest complete — next set!');
+    playRestDoneAlert();
+  }
+}
+
+function resumeRestTimer(seconds){
   clearInterval(restInterval);
-  restInterval = setInterval(()=>{
-    restSeconds--;
-    if(timeEl) timeEl.textContent = restSeconds+'s';
-    if(restSeconds <= 0){
-      clearInterval(restInterval);
-      restInterval = null;
-      localStorage.removeItem('rest_timer_end');
-      if(timerEl) timerEl.style.display='none';
-      showToast('✅ Rest done — next set');
-    }
-  }, 1000);
+  if(!localStorage.getItem('rest_timer_end')){
+    localStorage.setItem('rest_timer_end', Date.now() + Math.max(0,seconds)*1000);
+  }
+  const timerEl = document.getElementById('rest-timer');
+  if(timerEl) timerEl.style.display='flex';
+  restSeconds = Math.max(0, seconds);
+  updateRestDisplay();
+  restInterval = setInterval(_restTick, 1000);
 }
 
 function startRestTimer(secs){
-  restSeconds = secs;
   clearInterval(restInterval);
+  // Persist end-time immediately so a quick lock right after starting still works.
+  localStorage.setItem('rest_timer_end', Date.now() + secs*1000);
+  restSeconds = secs;
   const timerEl = document.getElementById('rest-timer');
-  const timeEl = document.getElementById('rest-time');
   if(timerEl) timerEl.style.display='flex';
   updateRestDisplay();
-  restInterval = setInterval(()=>{
-    restSeconds--;
-    updateRestDisplay();
-    if(restSeconds <= 0){
-      clearInterval(restInterval);
-      if(timerEl) timerEl.style.display='none';
-      showToast('⏰ Rest complete — next set!');
-    }
-  }, 1000);
+  restInterval = setInterval(_restTick, 1000);
 }
 
 function updateRestDisplay(){
@@ -3984,12 +4053,20 @@ function updateRestDisplay(){
   if(el) el.textContent = `${m}:${String(s).padStart(2,'0')}`;
 }
 
-function adjustRest(delta){ restSeconds = Math.max(0, restSeconds + delta); updateRestDisplay(); }
+function adjustRest(delta){
+  restSeconds = Math.max(0, restSeconds + delta);
+  localStorage.setItem('rest_timer_end', Date.now() + restSeconds*1000);
+  updateRestDisplay();
+  // Reschedule the background push to match the new time.
+  cancelRestPush().then(()=>{ if(restSeconds>0) scheduleRestPush(restSeconds, 'Workout'); });
+}
 
 function skipRest(){
-  clearInterval(restInterval);
+  clearInterval(restInterval); restInterval = null;
+  localStorage.removeItem('rest_timer_end');
   const timerEl = document.getElementById('rest-timer');
   if(timerEl) timerEl.style.display='none';
+  cancelRestPush();
 }
 
 function saveAsPreset(){
@@ -4067,6 +4144,8 @@ function finishWorkout(){
   if(!activeWorkout || activeWorkout.exercises.length===0){ showToast('Add at least one exercise first'); return; }
   clearInterval(workoutTimer);
   clearInterval(restInterval);
+  localStorage.removeItem('rest_timer_end');
+  cancelRestPush();
   const duration = Math.round(workoutSeconds/60);
   const totalSets = activeWorkout.exercises.reduce((s,e)=>s+e.sets.filter(s=>s.done).length,0);
   const record = {
@@ -4681,6 +4760,8 @@ function cancelWorkout(){
   if(!confirm('Cancel this workout? All progress will be lost.')) return;
   clearInterval(workoutTimer);
   clearInterval(restInterval);
+  localStorage.removeItem('rest_timer_end');
+  cancelRestPush();
   activeWorkout = null;
   workoutSeconds = 0;
   document.getElementById('active-workout').style.display='none';
@@ -8696,6 +8777,7 @@ async function fetchWithTimeout(url, options, ms=12000){
   switchView('health');
   resumeThermalIfActive();
   loadHealthData();
+  registerPushSW(); // register early; permission is requested later on a tap
   const now=new Date(),ch=now.getHours(),cp=ch<12?"AM":"PM",cdh=ch===0?12:ch>12?ch-12:ch,target=`${cdh}:00 ${cp}`;
   setTimeout(()=>{document.querySelectorAll(".slot-time").forEach(el=>{if(el.textContent.trim()===target)el.closest(".slot").scrollIntoView({behavior:"smooth",block:"center"});});},400);
 } catch(e) {
