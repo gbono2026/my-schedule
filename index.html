@@ -638,12 +638,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260522090000">
+<meta name="app-version" content="20260528180000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
 (function(){
-  const CURRENT = '20260522090000';
+  const CURRENT = '20260528180000';
   const CACHE_KEY = 'meridian-v';
 
   // If we stored a different version last time, clear everything and reload
@@ -3635,7 +3635,7 @@ function getLastSession(exerciseName){
 function renderExercises(){
   const wrap = document.getElementById('exercise-list');
   if(!wrap || !activeWorkout) return;
-  // Group exercises: supersets go side-by-side
+  wrap.innerHTML = ''; // clear first
   const exHtmlArr = activeWorkout.exercises.map((ex, exIdx) => {
     const isCardio = ex.type==='cardio';
     const lastSession = getLastSession(ex.name);
@@ -7459,13 +7459,13 @@ function renderMacroProgress(){
       while(j < activeWorkout.exercises.length && activeWorkout.exercises[j].ssGroup===ssG) j++;
       const paired = exHtmlArr.slice(i,j);
       if(paired.length > 1){
-        finalHtml += '<div style="display:flex;gap:8px;align-items:flex-start;">' + paired.map(h=>'<div style="flex:1;min-width:0;">'+h+'</div>').join('') + '</div>';
+        finalHtml += '<div style="display:flex;gap:8px;align-items:flex-start;">' + paired.map(h=>'<div style="flex:1;min-width:0;">'+(h||'')+'</div>').join('') + '</div>';
       } else {
-        finalHtml += paired[0];
+        finalHtml += (paired[0] || '');
       }
       i = j;
     } else {
-      finalHtml += exHtmlArr[i];
+      finalHtml += (exHtmlArr[i] || '');
       i++;
     }
   }
