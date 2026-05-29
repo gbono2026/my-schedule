@@ -638,12 +638,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260528180000">
+<meta name="app-version" content="20260529090000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
 (function(){
-  const CURRENT = '20260528180000';
+  const CURRENT = '20260529090000';
   const CACHE_KEY = 'meridian-v';
 
   // If we stored a different version last time, clear everything and reload
@@ -808,9 +808,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         </div>
       </div>
       <div class="hero-bottom">
-        <div class="hero-wide" onclick="goToNutrition()" style="cursor:pointer;background:rgba(184,150,90,0.06);border-radius:12px;padding:8px;margin:-4px;" title="Tap to log food">
-          <div class="hero-wide-icon">🍽️</div>
-          <div style="flex:1;">
+        <div style="flex:1;" onclick="goToNutrition()" style="cursor:pointer;">
             <div style="display:flex;align-items:baseline;gap:6px;">
               <div class="hero-wide-val" id="hero-nutrition">— kcal</div>
               <div style="font-size:10px;color:var(--muted);">eaten</div>
@@ -1307,12 +1305,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <div id="macro-progress-bars"></div>
     </div>
 
-    <!-- Quick meal chips -->
-    <div style="margin:0 16px 10px;">
-      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Quick Log</div>
-      <div id="quick-meal-chips" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-    </div>
-
+    
     <!-- Log buttons — below Today's Intake -->
     <div style="display:flex;gap:8px;margin:0 16px 8px;align-items:stretch;">
       <button class="ai-log-btn" style="flex:1;margin:0;" onclick="openAIModal('meal')">✦ Log meal with AI</button>
@@ -1490,6 +1483,25 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 
     <!-- DAILY SCORES -->
         
+    <div class="health-card" style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:700;color:${m.color};">${m.label}</div>
+        <div style="display:flex;align-items:baseline;gap:6px;">
+          <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;">${m.fmt(latest)}</div>
+          <div style="font-size:10px;color:var(--muted);">${m.unit}</div>
+          ${changePct!==null?`<div style="font-size:10px;color:${changePct>0?'var(--green)':'var(--red,#f87171)'};">${changePct>0?'+':''}${changePct.toFixed(1)}%</div>`:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:3px;align-items:flex-end;height:44px;">
+        ${vals.map(x=>{
+          const h=x.v?Math.max((x.v-min)/range*100,5):5;
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
+            <div style="width:100%;background:${x.isToday?m.color:m.color+'60'};border-radius:3px 3px 0 0;transition:height .4s;" style="height:${h}%"></div>
+            <div style="font-size:8px;color:${x.isToday?'var(--text)':'var(--muted)'};">${x.label}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
     <div class="dash-section"><div class="dash-section-label">Function Health Labs</div><div class="dash-section-line"></div></div>
 
     <div id="biomarker-categories"></div>
@@ -1621,12 +1633,9 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       <canvas id="meridian-score-sparkline" height="32" style="width:100%;display:block;"></canvas>
       <!-- Label -->
       <div id="meridian-score-label" style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px;font-style:italic;"></div>
-    </div>
-
     </div><!-- end section-soul -->
 
         <!-- FUNCTION HEALTH BIOMARKERS -->
-
 
   </div><!-- end dash-wrap -->
 <!-- end view-health -->
@@ -2481,6 +2490,21 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
   </div>
 </div>
 
+
+<!-- SCHEDULE DRAWER -->
+<div id="sched-drawer" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:400;background:var(--surface);border-radius:20px 20px 0 0;border-top:1px solid var(--border);padding:20px 20px 32px;box-shadow:0 -8px 40px rgba(0,0,0,0.6);">
+  <div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px;"></div>
+  <div style="font-size:16px;font-weight:700;font-family:'Playfair Display',serif;margin-bottom:3px;">Update Schedule</div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Describe all changes — applied in seconds, no reload needed</div>
+  <input id="drawer-pwd" type="password" placeholder="Admin password" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;padding:10px 12px;font-family:inherit;outline:none;margin-bottom:8px;">
+  <textarea id="drawer-instructions" placeholder="Examples:&#10;• Add yoga Mondays 7am&#10;• Remove chin tucks&#10;• Move gym to 6pm weekdays" rows="4" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:10px 12px;font-family:inherit;resize:none;outline:none;line-height:1.6;margin-bottom:8px;"></textarea>
+  <div id="drawer-status" style="display:none;font-size:12px;margin-bottom:8px;padding:8px 12px;border-radius:8px;background:var(--surface2);"></div>
+  <div style="display:flex;gap:8px;">
+    <button onclick="submitSchedDrawer()" id="drawer-submit-btn" style="flex:3;background:linear-gradient(135deg,var(--green),#16a34a);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;padding:13px;cursor:pointer;font-family:inherit;">Apply Changes</button>
+    <button onclick="closeSchedDrawer()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:14px;padding:13px;cursor:pointer;font-family:inherit;">Cancel</button>
+  </div>
+</div>
+<div id="sched-drawer-bg" onclick="closeSchedDrawer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:399;"></div>
 <!-- BOTTOM NAV -->
 <div class="bottom-nav">
   <div class="nav-item" id="nav-schedule" onclick="switchView('schedule')">
@@ -2506,7 +2530,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 </div>
 
 <!-- ADMIN -->
-<button class="admin-btn" id="admin-btn">✦ AI Update Schedule</button>
+<button class="admin-btn" id="admin-btn" onclick="openSchedDrawer()">✦ AI Update Schedule</button>
 <div class="admin-overlay" id="admin-overlay">
   <div class="admin-box">
     <div class="admin-handle"></div>
@@ -3635,7 +3659,6 @@ function getLastSession(exerciseName){
 function renderExercises(){
   const wrap = document.getElementById('exercise-list');
   if(!wrap || !activeWorkout) return;
-  wrap.innerHTML = ''; // clear first
   const exHtmlArr = activeWorkout.exercises.map((ex, exIdx) => {
     const isCardio = ex.type==='cardio';
     const lastSession = getLastSession(ex.name);
@@ -7447,29 +7470,7 @@ function renderMacroProgress(){
       <div style="font-size:9px;color:var(--muted);margin-top:2px;">Goal: ${b.goal}${b.unit}</div>
     </div>`;
   });
-  // Render: supersets side by side, others stacked
-  let finalHtml = '';
-  let i = 0;
-  while(i < exHtmlArr.length){
-    const ex = activeWorkout.exercises[i];
-    const ssG = ex.ssGroup;
-    if(ssG){
-      // Collect all exercises in same SS group that are consecutive
-      let j = i+1;
-      while(j < activeWorkout.exercises.length && activeWorkout.exercises[j].ssGroup===ssG) j++;
-      const paired = exHtmlArr.slice(i,j);
-      if(paired.length > 1){
-        finalHtml += '<div style="display:flex;gap:8px;align-items:flex-start;">' + paired.map(h=>'<div style="flex:1;min-width:0;">'+(h||'')+'</div>').join('') + '</div>';
-      } else {
-        finalHtml += (paired[0] || '');
-      }
-      i = j;
-    } else {
-      finalHtml += (exHtmlArr[i] || '');
-      i++;
-    }
-  }
-  wrap.innerHTML = finalHtml;
+  wrap.innerHTML = exHtmlArr.join('');
 }
 
 // ══════════════════════════════════════════
@@ -8429,25 +8430,7 @@ function renderTrendsView(){
     const min=Math.min(...valid),max=Math.max(...valid),range=max-min||1;
     const latest=valid[valid.length-1], prev=valid.length>1?valid[valid.length-2]:null;
     const changePct=prev?((latest-prev)/prev*100):null;
-    return `<div class="health-card" style="margin-bottom:8px;">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
-        <div style="font-size:13px;font-weight:700;color:${m.color};">${m.label}</div>
-        <div style="display:flex;align-items:baseline;gap:6px;">
-          <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;">${m.fmt(latest)}</div>
-          <div style="font-size:10px;color:var(--muted);">${m.unit}</div>
-          ${changePct!==null?`<div style="font-size:10px;color:${changePct>0?'var(--green)':'var(--red,#f87171)'};">${changePct>0?'+':''}${changePct.toFixed(1)}%</div>`:''}
-        </div>
-      </div>
-      <div style="display:flex;gap:3px;align-items:flex-end;height:44px;">
-        ${vals.map(x=>{
-          const h=x.v?Math.max((x.v-min)/range*100,5):5;
-          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
-            <div style="width:100%;background:${x.isToday?m.color:m.color+'60'};border-radius:3px 3px 0 0;transition:height .4s;" style="height:${h}%"></div>
-            <div style="font-size:8px;color:${x.isToday?'var(--text)':'var(--muted)'};">${x.label}</div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`;
+    return ``;
   }).filter(Boolean).join('');
   if(!el.innerHTML) el.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);">Health data loads after your morning automation fires.</div>';
 }
@@ -8690,6 +8673,63 @@ function saveMacroGoalsModal(){
   renderEnergyBalance();
   document.getElementById('macro-goals-modal').style.display='none';
   showToast('✓ Goals saved · '+cals+' kcal · '+ps+'/'+cs+'/'+fs+' split');
+}
+
+
+function openSchedDrawer(){
+  const d=document.getElementById('sched-drawer'), bg=document.getElementById('sched-drawer-bg');
+  if(d) d.style.display='block'; if(bg) bg.style.display='block';
+  const saved=localStorage.getItem('sched_pwd');
+  if(saved){const el=document.getElementById('drawer-pwd');if(el)el.value=saved;}
+  setTimeout(()=>document.getElementById('drawer-instructions')?.focus(),100);
+}
+function closeSchedDrawer(){
+  document.getElementById('sched-drawer').style.display='none';
+  document.getElementById('sched-drawer-bg').style.display='none';
+  const st=document.getElementById('drawer-status'); if(st) st.style.display='none';
+  const inp=document.getElementById('drawer-instructions'); if(inp) inp.value='';
+}
+async function submitSchedDrawer(){
+  const pwd=(document.getElementById('drawer-pwd')?.value||'').trim();
+  const instructions=(document.getElementById('drawer-instructions')?.value||'').trim();
+  const btn=document.getElementById('drawer-submit-btn');
+  const status=document.getElementById('drawer-status');
+  if(!instructions){showToast('Describe the changes you want');return;}
+  if(!pwd){showToast('Enter admin password');return;}
+  localStorage.setItem('sched_pwd',pwd);
+  btn.textContent='Updating...'; btn.disabled=true;
+  status.style.display='block'; status.style.color='var(--muted)'; status.textContent='Sending to AI...';
+  try{
+    const controller=new AbortController();
+    setTimeout(()=>controller.abort(),25000);
+    const r=await fetch(SERVER+'/update-sched',{
+      signal:controller.signal,
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:pwd,instructions:instructions,currentSched:SCHED})
+    });
+    const data=await r.json();
+    if(!r.ok||data.error){
+      status.style.color='var(--red)'; status.textContent='Error: '+data.error;
+      btn.textContent='Apply Changes'; btn.disabled=false; return;
+    }
+    if(data.schedule){ Object.assign(SCHED,data.schedule); saveCloud('user_schedule',SCHED); render(); }
+    status.style.color='var(--green)'; status.textContent='✓ Applied! Changes are live.';
+    btn.textContent='✓ Done!';
+    setTimeout(()=>{closeSchedDrawer();btn.textContent='Apply Changes';btn.disabled=false;},1500);
+  }catch(e){
+    status.style.color='var(--red)'; status.textContent='Failed: '+(e.message||'Server unreachable');
+    btn.textContent='Apply Changes'; btn.disabled=false;
+  }
+}
+
+
+async function fetchWithTimeout(url, options, ms=12000){
+  const ctrl=new AbortController();
+  const t=setTimeout(()=>ctrl.abort(),ms);
+  try{
+    const r=await fetch(url,{...options,signal:ctrl.signal});
+    clearTimeout(t); return r;
+  }catch(e){ clearTimeout(t); if(e.name==='AbortError') throw new Error('Request timed out — try again in 10s'); throw e; }
 }
 
 // ── Boot ──
