@@ -633,12 +633,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260529220000">
+<meta name="app-version" content="20260529230000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
 (function(){
-  const CURRENT = '20260529220000';
+  const CURRENT = '20260529230000';
   const CACHE_KEY = 'meridian-v';
 
   // If we stored a different version last time, clear everything and reload
@@ -2824,7 +2824,15 @@ function renderDailyMetrics(history={}){
   const d=healthToday;
   renderSparkline(history);
   renderSleepBreakdown(d);
-  setM("m-weight", d.weight, 1);
+  // Weight syncs less often than steps/HR — if today's is missing, fall back to
+  // the most recent known weight so the card isn't blank.
+  let displayWeight = d.weight;
+  if(!displayWeight){
+    const hist = window._healthHistory || history || {};
+    const dates = Object.keys(hist).sort();
+    for(let i=dates.length-1;i>=0;i--){ const w=hist[dates[i]]?.weight; if(w){ displayWeight=w; break; } }
+  }
+  setM("m-weight", displayWeight, 1);
   setM("m-bodyfat", d.bodyFat, 1);
   setM("m-steps", d.steps?Math.round(d.steps).toLocaleString():null);
   setM("m-activecal", d.activeCalories?Math.round(d.activeCalories):null);
@@ -2834,7 +2842,7 @@ function renderDailyMetrics(history={}){
   setM("m-rem", d.sleepREM?d.sleepREM.toFixed(1):null);
   // Populate hero card
   const setHero = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val||'—'; };
-  setHero('hero-weight', d.weight?parseFloat(d.weight).toFixed(1):null);
+  setHero('hero-weight', displayWeight?parseFloat(displayWeight).toFixed(1):null);
   setHero('hero-sleep', d.sleep?parseFloat(d.sleep).toFixed(1):null);
   setHero('hero-rem', d.sleepREM?parseFloat(d.sleepREM).toFixed(1):null);
   setHero('hero-hrv', d.hrv?Math.round(d.hrv):null);
@@ -7978,7 +7986,11 @@ function toggleMorningVoice(){
   const btn = document.getElementById('morning-voice-btn');
   const input = document.getElementById('morning-log-input');
   if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
-    showToast('Voice not supported on this browser'); return;
+    // iOS Home-Screen web apps don't support the Web Speech API. Send the user
+    // to the keyboard's built-in dictation mic, which works in any text field.
+    if(input) input.focus();
+    showToast('🎤 Tap the mic on your keyboard to dictate');
+    return;
   }
   if(morningVoiceActive){
     if(morningVoiceRec) morningVoiceRec.stop();
@@ -8016,10 +8028,6 @@ async function processMorningLog(){
   if(!text){ showToast('Tell me about your morning first'); return; }
 
   if(btn){ btn.textContent = '⟳'; btn.disabled = true; }
-  const _mSafe = setTimeout(()=>{
-    if(btn){ btn.textContent='→'; btn.disabled=false; }
-    if(resultEl){ resultEl.style.display='block'; resultEl.innerHTML='<div style="color:var(--red);font-size:12px;">Request timed out — Railway may be starting up. Try again in 10 seconds.</div>'; }
-  }, 15000);
 
   // Build context for AI to parse
   const today = todayKey();
@@ -8031,18 +8039,14 @@ async function processMorningLog(){
   };
 
   try {
-    const controller = new AbortController();
-    const fetchTimer = setTimeout(()=>controller.abort(), 12000);
-    const res = await fetch(SERVER+'/ai-log', {
-      signal: controller.signal,
+    const res = await fetchWithTimeout(SERVER+'/ai-log', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         system: 'You are a health logging assistant. Extract what the user mentions and return ONLY a JSON object. Fields: food (array with name/calories/protein/carbs/fat/qty/unit), water_cups, sunlight_minutes, mood, energy, focus (1-10), social_count, stress_level, gratitude. Estimate food macros. Only include mentioned fields. No markdown.',
         input: text
       })
-    });
-    clearTimeout(fetchTimer);
+    }, 30000);
     const data = await res.json();
     let parsed;
     try {
@@ -8156,11 +8160,9 @@ async function processMorningLog(){
   } catch(e) {
     console.error('Morning log error:', e);
     if(btn){ btn.textContent = '→'; btn.disabled = false; }
-    // Show what we could parse even if some actions failed
-    if(resultEl && resultEl.innerHTML){
+    if(resultEl){
       resultEl.style.display = 'block';
-    } else {
-      showToast('Error: '+e.message+' — check console');
+      resultEl.innerHTML = '<div style="color:var(--red);font-size:12px;">Server is waking up — wait ~15s and tap → again.</div>';
     }
   }
 }
