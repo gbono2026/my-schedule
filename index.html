@@ -633,12 +633,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260530000000">
+<meta name="app-version" content="20260530010000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
 (function(){
-  const CURRENT = '20260530000000';
+  const CURRENT = '20260530010000';
   const CACHE_KEY = 'meridian-v';
 
   // If we stored a different version last time, clear everything and reload
@@ -817,8 +817,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
     <div class="setup-banner" id="setup-banner" style="display:none;">
       <div class="setup-title">🔗 Connect Health Auto Export</div>
       <div class="setup-text">Install <strong>Health Auto Export</strong> on iPhone → Automations → REST API → <strong>https://my-schedule-server-production.up.railway.app/health</strong> to auto-sync your Apple Health data daily.</div>
-    </div>
-
     </div>
 
         <div class="category-header" onclick="toggleSection('section-mind')" style="cursor:pointer;user-select:none;" id="hdr-section-mind">
@@ -1589,7 +1587,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
         <!-- FUNCTION HEALTH BIOMARKERS -->
 
   </div><!-- end dash-wrap -->
-<!-- end view-health -->
+</div><!-- end view-health -->
 
 
 <!-- PROGRESS PHOTOS VIEW -->
