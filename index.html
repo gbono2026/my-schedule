@@ -633,12 +633,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260530040000">
+<meta name="app-version" content="20260530050000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
 (function(){
-  const CURRENT = '20260530040000';
+  const CURRENT = '20260530050000';
   const CACHE_KEY = 'meridian-v';
 
   // If we stored a different version last time, clear everything and reload
@@ -687,14 +687,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
   <div style="padding:0 16px;">
     <button class="reset-btn" id="reset-btn">↺ Reset This Day</button>
     <div class="all-done" id="all-done">🎉 All done today!</div>
-  </div>
-  <!-- 7-day completion chart -->
-  <div style="margin:4px 16px 8px;padding:10px 12px;background:var(--surface);border-radius:12px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">7-Day Completion</div>
-      <div id="avg-completion-pct" style="font-size:11px;color:var(--gold);font-weight:700;"></div>
-    </div>
-    <div id="schedule-completion-chart"></div>
   </div>
   <div class="schedule" id="schedule"></div>
 </div>
@@ -2870,31 +2862,40 @@ function renderDailyMetrics(history={}){
   const d=healthToday;
   renderSparkline(history);
   renderSleepBreakdown(d);
-  // Weight syncs less often than steps/HR — if today's is missing, fall back to
-  // the most recent known weight so the card isn't blank.
-  let displayWeight = d.weight;
-  if(!displayWeight){
-    const hist = window._healthHistory || history || {};
-    const dates = Object.keys(hist).sort();
-    for(let i=dates.length-1;i>=0;i--){ const w=hist[dates[i]]?.weight; if(w){ displayWeight=w; break; } }
-  }
-  setM("m-weight", displayWeight, 1);
-  setM("m-bodyfat", d.bodyFat, 1);
+  // Metrics sync at different times, so a value can be missing for "today" while
+  // present on a recent day. For point-in-time / overnight metrics (weight,
+  // sleep, REM, HRV, resting HR, body fat) fall back to the most recent known
+  // value so the cards aren't blank. Steps & active calories accumulate during
+  // the day, so they stay as today's live value.
+  const hist = window._healthHistory || history || {};
+  const _histDates = Object.keys(hist).sort();
+  const latest = (key)=>{
+    if(d[key]!==undefined && d[key]!==null && d[key]!=='') return d[key];
+    for(let i=_histDates.length-1;i>=0;i--){
+      const v = hist[_histDates[i]]?.[key];
+      if(v!==undefined && v!==null && v!=='') return v;
+    }
+    return null;
+  };
+  const wt = latest('weight'), bf = latest('bodyFat'), sl = latest('sleep');
+  const rem = latest('sleepREM'), hrv = latest('hrv'), rhr = latest('restingHR');
+  setM("m-weight", wt, 1);
+  setM("m-bodyfat", bf, 1);
   setM("m-steps", d.steps?Math.round(d.steps).toLocaleString():null);
   setM("m-activecal", d.activeCalories?Math.round(d.activeCalories):null);
-  setM("m-sleep", d.sleep, 1);
-  setM("m-hrv", d.hrv?Math.round(d.hrv):null);
-  setM("m-rhr", d.restingHR?Math.round(d.restingHR):null);
-  setM("m-rem", d.sleepREM?d.sleepREM.toFixed(1):null);
+  setM("m-sleep", sl, 1);
+  setM("m-hrv", hrv?Math.round(hrv):null);
+  setM("m-rhr", rhr?Math.round(rhr):null);
+  setM("m-rem", rem?parseFloat(rem).toFixed(1):null);
   // Populate hero card
   const setHero = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val||'—'; };
-  setHero('hero-weight', displayWeight?parseFloat(displayWeight).toFixed(1):null);
-  setHero('hero-sleep', d.sleep?parseFloat(d.sleep).toFixed(1):null);
-  setHero('hero-rem', d.sleepREM?parseFloat(d.sleepREM).toFixed(1):null);
-  setHero('hero-hrv', d.hrv?Math.round(d.hrv):null);
+  setHero('hero-weight', wt?parseFloat(wt).toFixed(1):null);
+  setHero('hero-sleep', sl?parseFloat(sl).toFixed(1):null);
+  setHero('hero-rem', rem?parseFloat(rem).toFixed(1):null);
+  setHero('hero-hrv', hrv?Math.round(hrv):null);
   setHero('hero-steps', d.steps?Math.round(d.steps).toLocaleString():null);
   setHero('hero-cals', d.activeCalories?Math.round(d.activeCalories):null);
-  setHero('hero-rhr', d.restingHR?Math.round(d.restingHR)+' bpm':null);
+  setHero('hero-rhr', rhr?Math.round(rhr)+' bpm':null);
   // Update Meridian Score + morning briefing after health data loads
   setTimeout(()=>{
     try{ renderMeridianScore(); }catch(e){}
