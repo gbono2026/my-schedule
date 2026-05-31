@@ -633,12 +633,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260530030000">
+<meta name="app-version" content="20260530040000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
 (function(){
-  const CURRENT = '20260530030000';
+  const CURRENT = '20260530040000';
   const CACHE_KEY = 'meridian-v';
 
   // If we stored a different version last time, clear everything and reload
@@ -8776,7 +8776,12 @@ function openSchedDrawer(){
   const d=document.getElementById('sched-drawer'), bg=document.getElementById('sched-drawer-bg');
   if(d) d.style.display='block'; if(bg) bg.style.display='block';
   const saved=localStorage.getItem('sched_pwd');
-  if(saved){const el=document.getElementById('drawer-pwd');if(el)el.value=saved;}
+  const el=document.getElementById('drawer-pwd');
+  if(saved){ if(el) el.value=saved; }
+  else {
+    // Fall back to cloud-synced password (survives reinstall / new device)
+    try{ loadCloud('sched_pwd').then(v=>{ if(v){ try{localStorage.setItem('sched_pwd',v);}catch(e){} if(el && !el.value) el.value=v; } }).catch(()=>{}); }catch(e){}
+  }
   setTimeout(()=>document.getElementById('drawer-instructions')?.focus(),100);
 }
 function closeSchedDrawer(){
@@ -8786,13 +8791,13 @@ function closeSchedDrawer(){
   const inp=document.getElementById('drawer-instructions'); if(inp) inp.value='';
 }
 async function submitSchedDrawer(){
-  const pwd=(document.getElementById('drawer-pwd')?.value||'').trim();
+  let pwd=(document.getElementById('drawer-pwd')?.value||'').trim();
+  if(!pwd) pwd=(localStorage.getItem('sched_pwd')||'').trim(); // fall back to saved
   const instructions=(document.getElementById('drawer-instructions')?.value||'').trim();
   const btn=document.getElementById('drawer-submit-btn');
   const status=document.getElementById('drawer-status');
   if(!instructions){showToast('Describe the changes you want');return;}
   if(!pwd){showToast('Enter admin password');return;}
-  localStorage.setItem('sched_pwd',pwd);
   btn.textContent='Updating...'; btn.disabled=true;
   status.style.display='block'; status.style.color='var(--muted)'; status.textContent='Sending to AI...';
   try{
@@ -8806,6 +8811,9 @@ async function submitSchedDrawer(){
       btn.textContent='Apply Changes'; btn.disabled=false; return;
     }
     if(data.schedule){ Object.assign(SCHED,data.schedule); saveCloud('user_schedule',SCHED); render(); }
+    // Password worked — remember it locally and in the cloud so it never re-asks
+    try{ localStorage.setItem('sched_pwd',pwd); }catch(e){}
+    saveCloud('sched_pwd', pwd);
     status.style.color='var(--green)'; status.textContent='✓ Applied! Changes are live.';
     btn.textContent='✓ Done!';
     setTimeout(()=>{closeSchedDrawer();btn.textContent='Apply Changes';btn.disabled=false;},1500);
