@@ -633,12 +633,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(40px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:24px;font-size:13px;font-weight:600;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);z-index:999;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 </style>
-<meta name="app-version" content="20260530010000">
+<meta name="app-version" content="20260530020000">
 <script>
 // ── Meridian Cache Manager ──
 // Checks for new version on every load and auto-updates
 (function(){
-  const CURRENT = '20260530010000';
+  const CURRENT = '20260530020000';
   const CACHE_KEY = 'meridian-v';
 
   // If we stored a different version last time, clear everything and reload
@@ -3637,9 +3637,12 @@ document.addEventListener('visibilitychange', ()=>{
       const remaining = Math.ceil((parseInt(restEnd) - Date.now()) / 1000);
       if(remaining > 0){
         resumeRestTimer(remaining);
+        try{ _runExRest(); }catch(e){}
       } else {
         localStorage.removeItem('rest_timer_end');
+        localStorage.removeItem('ex_rest_id');
         hideRestTimer();
+        try{ _runExRest(); }catch(e){}
         // Timer already finished while you were away — alert you
         const secsPast = Math.round((Date.now() - parseInt(restEnd)) / 1000);
         showRestDoneAlert(secsPast);
@@ -4004,22 +4007,39 @@ function playRestDoneAlert(){
   }catch(e){}
 }
 
+let _exRestInterval = null;
 function startExRestTimer(exId, secs){
-  const restId = 'exrest-'+exId;
-  const el = document.getElementById(restId);
+  localStorage.setItem('ex_rest_id', exId);
+  // rest_timer_end is set by startRestTimer(secs), called alongside this.
+  if(!localStorage.getItem('rest_timer_end')){
+    localStorage.setItem('rest_timer_end', Date.now() + secs*1000);
+  }
+  _runExRest();
+}
+
+// Timestamp-based per-exercise rest banner — stays accurate across
+// backgrounding/lock because it derives remaining time from the end-timestamp.
+function _runExRest(){
+  clearInterval(_exRestInterval); _exRestInterval = null;
+  const exId = localStorage.getItem('ex_rest_id');
+  if(!exId) return;
+  const el = document.getElementById('exrest-'+exId);
   if(!el) return;
-  el.style.display='block';
-  let remaining = secs;
   const span = el.querySelector('span');
-  if(span) span.textContent = remaining+'s';
-  const iv = setInterval(()=>{
-    remaining--;
-    if(span) span.textContent = remaining+'s';
-    if(remaining<=0){
-      clearInterval(iv);
+  const tick = ()=>{
+    const end = parseInt(localStorage.getItem('rest_timer_end')||'0');
+    const remaining = end ? Math.round((end - Date.now())/1000) : 0;
+    if(end && remaining > 0){
+      el.style.display='block';
+      if(span) span.textContent = remaining+'s';
+    } else {
+      clearInterval(_exRestInterval); _exRestInterval = null;
       el.style.display='none';
+      localStorage.removeItem('ex_rest_id');
     }
-  },1000);
+  };
+  tick();
+  _exRestInterval = setInterval(tick, 1000);
 }
 
 // Single countdown tick — always derives remaining time from the stored
@@ -4078,7 +4098,9 @@ function adjustRest(delta){
 
 function skipRest(){
   clearInterval(restInterval); restInterval = null;
+  clearInterval(_exRestInterval); _exRestInterval = null;
   localStorage.removeItem('rest_timer_end');
+  localStorage.removeItem('ex_rest_id');
   const timerEl = document.getElementById('rest-timer');
   if(timerEl) timerEl.style.display='none';
   cancelRestPush();
