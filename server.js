@@ -183,17 +183,9 @@ function parseHAEPayload(payload) {
   return result;
 }
 
-// ── Health webhook ──
-app.post("/health", async (req, res) => {
-  const payload = req.body;
-  const today = new Date().toISOString().split("T")[0];
-  try { fs.writeFileSync(DEBUG_FILE, JSON.stringify(payload, null, 2)); } catch(e) {}
-  const update = parseHAEPayload(payload);
-  update.date = today;
-  update.lastSync = new Date().toISOString();
-  const healthData = await loadHealthData();
-  // Merge carefully — never overwrite a real value with zero/null from a partial sync
-  const existing = healthData[today] || {};
+// ── Merge a partial health update into a day's record ──
+// Never overwrite a real value with zero/null from a partial sync.
+function mergeHealthUpdate(existing, update) {
   const merged = { ...existing };
   for (const [k, v] of Object.entries(update)) {
     if (k === 'date' || k === 'lastSync') {
@@ -208,8 +200,52 @@ app.post("/health", async (req, res) => {
       merged[k] = v;
     }
   }
+  return merged;
+}
+
+// ── Health webhook (Health Auto Export shape) ──
+app.post("/health", async (req, res) => {
+  const payload = req.body;
+  const today = new Date().toISOString().split("T")[0];
+  try { fs.writeFileSync(DEBUG_FILE, JSON.stringify(payload, null, 2)); } catch(e) {}
+  const update = parseHAEPayload(payload);
+  update.date = today;
+  update.lastSync = new Date().toISOString();
+  const healthData = await loadHealthData();
+  const merged = mergeHealthUpdate(healthData[today] || {}, update);
   await saveHealthDay(today, merged);
   res.json({ success: true, date: today, parsed: update });
+});
+
+// ── Native HealthKit sync (Capacitor iOS app) ──
+// Accepts a flat metrics object read directly from Apple HealthKit on-device,
+// e.g. { steps, sleep, sleepDeep, weight, restingHR, hrv, activeCalories, ... }.
+// Optional `date` (YYYY-MM-DD) lets the app backfill; defaults to today.
+const NATIVE_HEALTH_FIELDS = new Set([
+  "steps", "distance", "activeCalories", "restingHR", "hrv", "respiratoryRate",
+  "weight", "bodyFat", "bmi",
+  "sleep", "sleepDeep", "sleepREM", "sleepCore", "sleepAwake",
+  "protein", "carbs", "fat", "calories", "mindfulMinutes",
+]);
+app.post("/health/native", async (req, res) => {
+  try {
+    const body = req.body || {};
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? body.date
+      : new Date().toISOString().split("T")[0];
+    const update = { date, lastSync: new Date().toISOString() };
+    for (const [k, v] of Object.entries(body)) {
+      if (!NATIVE_HEALTH_FIELDS.has(k)) continue;
+      const n = typeof v === "number" ? v : parseFloat(v);
+      if (!isNaN(n)) update[k] = n;
+    }
+    const healthData = await loadHealthData();
+    const merged = mergeHealthUpdate(healthData[date] || {}, update);
+    await saveHealthDay(date, merged);
+    res.json({ success: true, date, parsed: update });
+  } catch (e) {
+    console.error("native health sync error:", e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── Manual weight update endpoint ──

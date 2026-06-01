@@ -1,0 +1,19 @@
+{
+  "appId": "com.gbono.meridian",
+  "appName": "Meridian",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#0a0a0f"
+  },
+  "server": {
+    "url": "https://gbono2026.github.io/my-schedule/",
+    "cleartext": false
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon",
+      "iconColor": "#3ddc84"
+    }
+  }
+}

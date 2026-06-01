@@ -25,6 +25,8 @@
   --mon:#4d9cff;--tue:#ffd166;--wed:#3ddc84;--thu:#9b6dff;--fri:#ff5c5c;--sat:#2dd4bf;--sun:#f472b6;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+/* Hidden when running inside the native iOS app (HealthKit auto-syncs there). */
+.is-native .is-native-hidden{display:none !important;}
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;}
 
 /* ── BOTTOM NAV ── */
@@ -806,7 +808,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       </div>
     </div>
 
-    <div class="setup-banner" id="setup-banner" style="display:none;">
+    <div class="setup-banner is-native-hidden" id="setup-banner" style="display:none;">
       <div class="setup-title">🔗 Connect Health Auto Export</div>
       <div class="setup-text">Install <strong>Health Auto Export</strong> on iPhone → Automations → REST API → <strong>https://my-schedule-server-production.up.railway.app/health</strong> to auto-sync your Apple Health data daily.</div>
     </div>
@@ -2494,6 +2496,186 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
 <script>
 const SERVER="https://my-schedule-server-production.up.railway.app";
 
+// ── Native bridge (Capacitor iOS app): Apple HealthKit sync + local notifications ──
+// Loaded inside the native shell via window.Capacitor. Safe no-op in a browser/PWA,
+// so the same index.html works as a website and inside the iOS app.
+const Native = (function(){
+  function cap(){ return window.Capacitor || null; }
+  const isNative = !!(cap() && cap().isNativePlatform && cap().isNativePlatform());
+  function plugin(name){ const c=cap(); return (c && c.Plugins && c.Plugins[name]) || null; }
+
+  // HealthKit data types we read (see @capgo/capacitor-health).
+  const READ_TYPES = ['steps','sleep','heartRate','restingHeartRate',
+    'heartRateVariability','weight','calories','distance'];
+
+  function ymd(d){ return d.toISOString().split('T')[0]; }
+  function startOfToday(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+
+  async function aggregate(Health, dataType, startDate, endDate, aggregation){
+    try{
+      const r = await Health.queryAggregated({ dataType, aggregation, bucket:'day',
+        startDate: startDate.toISOString(), endDate: endDate.toISOString() });
+      const samples = (r && r.samples) || [];
+      if(!samples.length) return null;
+      if(aggregation==='sum') return samples.reduce((s,x)=>s+(x.value||0),0);
+      // average: mean of bucket values
+      return samples.reduce((s,x)=>s+(x.value||0),0)/samples.length;
+    }catch(e){ return null; }
+  }
+
+  async function latestSample(Health, dataType, startDate, endDate){
+    try{
+      const r = await Health.readSamples({ dataType, limit:1, ascending:false,
+        startDate: startDate.toISOString(), endDate: endDate.toISOString() });
+      const s = (r && r.samples) || [];
+      return s.length ? s[0] : null;
+    }catch(e){ return null; }
+  }
+
+  // Sum sleep-stage minutes over the window, returned in HOURS to match the
+  // existing Health Auto Export data shape. (Verify units after first sync.)
+  async function readSleep(Health, startDate, endDate){
+    let r;
+    try{
+      r = await Health.readSamples({ dataType:'sleep', limit:500,
+        startDate: startDate.toISOString(), endDate: endDate.toISOString() });
+    }catch(e){ return null; }
+    const samples = (r && r.samples) || [];
+    if(!samples.length) return null;
+    const mins = { deep:0, rem:0, light:0, awake:0, asleep:0 };
+    const add = (state, m) => {
+      if(!m || m<=0) return;
+      if(state==='deep') mins.deep+=m;
+      else if(state==='rem') mins.rem+=m;
+      else if(state==='light'||state==='core') mins.light+=m;
+      else if(state==='awake') mins.awake+=m;
+      else if(state==='asleep') mins.asleep+=m; // unspecified asleep
+      // 'inBed' ignored
+    };
+    for(const s of samples){
+      if(Array.isArray(s.stages) && s.stages.length){
+        for(const st of s.stages) add(st.stage, st.durationMinutes);
+      } else if(s.sleepState){
+        const m = (new Date(s.endDate) - new Date(s.startDate))/60000;
+        add(s.sleepState, m);
+      }
+    }
+    const h = m => Math.round((m/60)*100)/100;
+    const totalMin = mins.deep + mins.rem + mins.light + mins.asleep;
+    if(totalMin<=0 && mins.awake<=0) return null;
+    return {
+      sleep:      h(totalMin),
+      sleepDeep:  h(mins.deep),
+      sleepREM:   h(mins.rem),
+      sleepCore:  h(mins.light),
+      sleepAwake: h(mins.awake),
+    };
+  }
+
+  let _authed = false;
+  async function ensureAuth(){
+    const Health = plugin('Health');
+    if(!Health) return false;
+    if(_authed) return true;
+    try{
+      await Health.requestAuthorization({ read: READ_TYPES });
+      _authed = true;
+      return true;
+    }catch(e){ return false; }
+  }
+
+  // Read today's metrics from HealthKit and push to the server.
+  async function syncHealth(){
+    if(!isNative) return false;
+    const Health = plugin('Health');
+    if(!Health) return false;
+    if(!(await ensureAuth())) return false;
+
+    const end = new Date();
+    const dayStart = startOfToday();
+    // Sleep window: from 6pm yesterday through now, to capture last night.
+    const sleepStart = new Date(dayStart.getTime() - 6*3600*1000);
+
+    const out = { date: ymd(end) };
+    const steps   = await aggregate(Health, 'steps', dayStart, end, 'sum');
+    const cals    = await aggregate(Health, 'calories', dayStart, end, 'sum');
+    const dist    = await aggregate(Health, 'distance', dayStart, end, 'sum');
+    const rhr     = await aggregate(Health, 'restingHeartRate', dayStart, end, 'average');
+    const hrv     = await aggregate(Health, 'heartRateVariability', dayStart, end, 'average');
+    if(steps!=null) out.steps = Math.round(steps);
+    if(cals!=null)  out.activeCalories = Math.round(cals);
+    if(dist!=null)  out.distance = Math.round(dist*100)/100;
+    if(rhr!=null)   out.restingHR = Math.round(rhr);
+    if(hrv!=null)   out.hrv = Math.round(hrv*10)/10;
+
+    const w = await latestSample(Health, 'weight', new Date(dayStart.getTime()-30*86400000), end);
+    if(w && w.value) out.weight = Math.round(w.value*10)/10;
+
+    const sleep = await readSleep(Health, sleepStart, end);
+    if(sleep) Object.assign(out, sleep);
+
+    // Only post if we actually read something beyond the date.
+    if(Object.keys(out).length<=1) return false;
+    try{
+      const res = await fetch(SERVER+'/health/native', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(out)
+      });
+      return res.ok;
+    }catch(e){ return false; }
+  }
+
+  // ── Local notifications (rest timer) — fire reliably when app is backgrounded ──
+  const REST_NOTIF_ID = 7001;
+  let _notifReady = false;
+  async function ensureNotif(){
+    const LN = plugin('LocalNotifications');
+    if(!LN) return false;
+    if(_notifReady) return true;
+    try{
+      let p = await LN.checkPermissions();
+      if(p.display !== 'granted') p = await LN.requestPermissions();
+      _notifReady = (p.display === 'granted');
+      return _notifReady;
+    }catch(e){ return false; }
+  }
+  async function scheduleRest(secs, exName){
+    if(!isNative) return false;
+    const LN = plugin('LocalNotifications');
+    if(!LN || !(await ensureNotif())) return false;
+    try{
+      await LN.schedule({ notifications: [{
+        id: REST_NOTIF_ID,
+        title: 'Rest complete ✓',
+        body: (exName ? exName+' — ' : '') + 'Time for your next set 💪',
+        schedule: { at: new Date(Date.now() + secs*1000), allowWhileIdle: true },
+        sound: 'default'
+      }]});
+      return true;
+    }catch(e){ return false; }
+  }
+  async function cancelRest(){
+    if(!isNative) return;
+    const LN = plugin('LocalNotifications');
+    if(!LN) return;
+    try{ await LN.cancel({ notifications:[{ id: REST_NOTIF_ID }] }); }catch(e){}
+  }
+
+  async function init(){
+    if(!isNative) return;
+    document.documentElement.classList.add('is-native');
+    ensureNotif();
+    // Sync on launch, and again whenever the app returns to the foreground.
+    syncHealth();
+    const App = plugin('App');
+    if(App && App.addListener){
+      App.addListener('appStateChange', (st)=>{ if(st && st.isActive) syncHealth(); });
+    }
+  }
+
+  return { isNative, init, syncHealth, scheduleRest, cancelRest, ensureAuth };
+})();
+
 // ── Web Push (rest-timer alerts that fire even when phone is locked/closed) ──
 const VAPID_PUBLIC="BB9dxV5dDUOumzTDbtLTW7oyVmxf6eowO4ANib5Fcg6gB0pPv2yIENBl2bU-fxdj4rL9Tqzv1baDRtKODNe6174";
 let _swReg = null;
@@ -2614,6 +2796,7 @@ async function scheduleRestPush(secs, exName){
 }
 
 async function cancelRestPush(){
+  if(Native.isNative){ Native.cancelRest(); return; }
   if(!_pushReady) return;
   try{
     await fetch(SERVER+'/cancel-rest-push', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
@@ -4029,8 +4212,10 @@ function completeSet(exIdx, si){
 }
 
 function scheduleRestNotification(secs, exName){
-  // Server-driven push so the alert fires even when the phone is locked or the
-  // app is closed (and mirrors to Apple Watch via the phone). Set up on this tap.
+  // Native iOS app: schedule a real local notification (most reliable in background).
+  if(Native.isNative){ Native.scheduleRest(secs, exName); return; }
+  // Web/PWA: server-driven push so the alert fires even when the phone is locked or
+  // the app is closed (and mirrors to Apple Watch via the phone). Set up on this tap.
   scheduleRestPush(secs, exName);
 }
 
@@ -8865,6 +9050,7 @@ async function fetchWithTimeout(url, options, ms=12000){
   resumeThermalIfActive();
   loadHealthData();
   registerPushSW(); // register early; permission is requested later on a tap
+  Native.init();    // iOS app: HealthKit sync + local-notification permission (no-op on web)
   const now=new Date(),ch=now.getHours(),cp=ch<12?"AM":"PM",cdh=ch===0?12:ch>12?ch-12:ch,target=`${cdh}:00 ${cp}`;
   setTimeout(()=>{document.querySelectorAll(".slot-time").forEach(el=>{if(el.textContent.trim()===target)el.closest(".slot").scrollIntoView({behavior:"smooth",block:"center"});});},400);
 } catch(e) {

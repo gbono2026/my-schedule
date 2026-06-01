@@ -1,0 +1,11 @@
+# Capacitor / Node
+node_modules/
+package-lock.json
+
+# Generated native iOS project (created on the Mac via `npx cap add ios`)
+ios/App/Pods/
+ios/App/App/public/
+ios/App/build/
+ios/DerivedData/
+*.xcuserstate
+.DS_Store

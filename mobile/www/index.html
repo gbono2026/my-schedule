@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Meridian</title>
+<style>
+  html,body{margin:0;height:100%;background:#0a0a0f;color:#eef0f7;
+    font-family:-apple-system,system-ui,sans-serif;
+    display:flex;align-items:center;justify-content:center;text-align:center;}
+  .wrap{padding:24px}
+  h1{font-size:22px;font-weight:700;margin:0 0 8px}
+  p{color:#8892aa;font-size:14px;margin:0}
+  .spin{width:28px;height:28px;border:3px solid #1e2535;border-top-color:#3ddc84;
+    border-radius:50%;margin:0 auto 18px;animation:s 0.9s linear infinite}
+  @keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+  <!-- Fallback shown only if the live app URL cannot be reached.
+       Normal operation loads server.url from capacitor.config.json. -->
+  <div class="wrap">
+    <div class="spin"></div>
+    <h1>Meridian</h1>
+    <p>Connecting&hellip; check your internet connection.</p>
+  </div>
+</body>
+</html>

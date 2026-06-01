@@ -1,0 +1,23 @@
+{
+  "name": "meridian-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Capacitor iOS wrapper for the Meridian wellness app (native HealthKit + notifications).",
+  "scripts": {
+    "add:ios": "cap add ios",
+    "sync": "cap sync",
+    "open:ios": "cap open ios",
+    "icons": "capacitor-assets generate --ios"
+  },
+  "dependencies": {
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
+    "@capacitor/local-notifications": "^8.0.0",
+    "@capgo/capacitor-health": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.0.0"
+  }
+}
