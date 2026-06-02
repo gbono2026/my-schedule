@@ -1,7 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const Anthropic = require("@anthropic-ai/sdk");
-const fs = require("fs");
 const webpush = require("web-push");
 
 // ── Web Push (VAPID) ──
@@ -29,8 +28,6 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const client = new Anthropic({ apiKey: ANTHROPIC_KEY });
-
-const DEBUG_FILE = "/tmp/last_payload.json";
 
 // ── Supabase health data (persistent) ──
 async function loadHealthData() {
@@ -71,118 +68,6 @@ async function saveHealthDay(date, dayData) {
   }
 }
 
-// ── Parse Health Auto Export v2 ──
-// Sleep fix: HAE v2 can send multiple sleep entries (naps, segments).
-// We pick the longest totalSleep entry, or sum all asleep segments.
-function parseSleep(data) {
-  if (!data || data.length === 0) return null;
-
-  // Strategy 1: find entry with the largest totalSleep value
-  let best = null;
-  for (const entry of data) {
-    const total = entry.totalSleep || entry.qty || 0;
-    if (!best || total > (best.totalSleep || best.qty || 0)) {
-      best = entry;
-    }
-  }
-
-  if (!best) return null;
-
-  // HAE v2 uses different field names depending on version/settings
-  // Support both formats
-  return {
-    sleep:      best.totalSleep || best.qty || 0,
-    sleepDeep:  best.deep       || best.sleepDeep  || best.DEEP  || 0,
-    sleepREM:   best.rem        || best.sleepREM   || best.REM   || 0,
-    sleepCore:  best.core       || best.sleepCore  || best.CORE  || best.light || 0,
-    sleepAwake: best.awake      || best.sleepAwake || best.AWAKE || 0,
-  };
-}
-
-function parseHAEPayload(payload) {
-  const metrics = payload?.data?.metrics || [];
-  const result = {};
-  metrics.forEach(metric => {
-    const name = metric.name;
-    const data = metric.data || [];
-    switch(name) {
-      case "weight_body_mass":
-        // Use the most recent entry with a valid non-zero weight
-        if (data.length > 0) {
-          const sorted = [...data].sort((a, b) => {
-            const da = a.date || a.startDate || '';
-            const db = b.date || b.startDate || '';
-            return db.localeCompare(da); // descending — newest first
-          });
-          // Pick the most recent entry with a real weight value
-          const latest = sorted.find(e => e.qty && e.qty > 0);
-          if (latest) result.weight = latest.qty;
-        }
-        break;
-      case "body_fat_percentage":
-        if (data.length > 0) {
-          const sorted = [...data].sort((a,b) => (a.date||'').localeCompare(b.date||''));
-          const latest = sorted[sorted.length - 1];
-          if (latest) result.bodyFat = latest.qty;
-        }
-        break;
-      case "body_mass_index":
-        if (data.length > 0) {
-          const sorted = [...data].sort((a,b) => (a.date||'').localeCompare(b.date||''));
-          const latest = sorted[sorted.length - 1];
-          if (latest) result.bmi = latest.qty;
-        }
-        break;
-      case "step_count":
-        result.steps = data.reduce((s,d) => s + (d.qty||0), 0);
-        break;
-      case "active_energy":
-        result.activeCalories = data.reduce((s,d) => s + (d.qty||0), 0);
-        break;
-      case "heart_rate_variability":
-        if (data.length > 0) {
-          result.hrv = data.reduce((s,d) => s + (d.qty||0), 0) / data.length;
-        }
-        break;
-      case "heart_rate":
-        if (data.length > 0) {
-          result.restingHR = data.reduce((s,d) => s + (d.Avg||d.qty||0), 0) / data.length;
-        }
-        break;
-      case "sleep_analysis": {
-        const parsed = parseSleep(data);
-        if (parsed) Object.assign(result, parsed);
-        break;
-      }
-      case "respiratory_rate":
-        if (data.length > 0) {
-          result.respiratoryRate = data.reduce((s,d) => s + (d.qty||0), 0) / data.length;
-        }
-        break;
-      case "walking_running_distance":
-        result.distance = data.reduce((s,d) => s + (d.qty||0), 0);
-        break;
-      case "dietary_protein":
-        result.protein = data.reduce((s,d) => s + (d.qty||0), 0);
-        break;
-      case "dietary_carbohydrates":
-        result.carbs = data.reduce((s,d) => s + (d.qty||0), 0);
-        break;
-      case "dietary_fat_total":
-        result.fat = data.reduce((s,d) => s + (d.qty||0), 0);
-        break;
-      case "dietary_energy":
-        result.calories = data.reduce((s,d) => s + (d.qty||0), 0);
-        break;
-      case "mindful_minutes":
-      case "mindfulness_minutes":
-        result.mindfulMinutes = data.reduce((s,d) => s + (d.qty||0), 0);
-        break;
-    }
-  });
-  return result;
-}
-
 // ── Merge a partial health update into a day's record ──
 // Never overwrite a real value with zero/null from a partial sync.
 function mergeHealthUpdate(existing, update) {
@@ -202,20 +87,6 @@ function mergeHealthUpdate(existing, update) {
   }
   return merged;
 }
-
-// ── Health webhook (Health Auto Export shape) ──
-app.post("/health", async (req, res) => {
-  const payload = req.body;
-  const today = new Date().toISOString().split("T")[0];
-  try { fs.writeFileSync(DEBUG_FILE, JSON.stringify(payload, null, 2)); } catch(e) {}
-  const update = parseHAEPayload(payload);
-  update.date = today;
-  update.lastSync = new Date().toISOString();
-  const healthData = await loadHealthData();
-  const merged = mergeHealthUpdate(healthData[today] || {}, update);
-  await saveHealthDay(today, merged);
-  res.json({ success: true, date: today, parsed: update });
-});
 
 // ── Native HealthKit sync (Capacitor iOS app) ──
 // Accepts a flat metrics object read directly from Apple HealthKit on-device,
@@ -264,36 +135,6 @@ app.post("/update-weight", async (req, res) => {
   } catch(e) {
     res.status(500).json({ error: e.message });
   }
-});
-
-app.post("/debug", async (req, res) => {
-  try { fs.writeFileSync(DEBUG_FILE, JSON.stringify(req.body, null, 2)); } catch(e) {}
-  const parsed = parseHAEPayload(req.body);
-  res.json({ success: true, parsed });
-});
-
-app.get("/debug", (req, res) => {
-  try {
-    const payload = JSON.parse(fs.readFileSync(DEBUG_FILE, "utf8"));
-    const parsed = parseHAEPayload(payload);
-    
-    // Extract weight entries specifically so we can see their dates
-    const weightMetric = (payload?.data?.metrics||[]).find(m => m.name === 'weight_body_mass');
-    const weightEntries = (weightMetric?.data||[]).map(e => ({
-      date: e.date || e.startDate || 'no date',
-      qty: e.qty,
-      unit: e.units
-    })).sort((a,b) => b.date.localeCompare(a.date));
-    
-    res.json({
-      parsed_weight: parsed.weight,
-      weight_entries: weightEntries,
-      weight_entry_count: weightEntries.length,
-      payload_received_at: payload?.data?.workoutRoute?.startDate || 'unknown',
-      all_metrics: (payload?.data?.metrics||[]).map(m => m.name)
-    });
-  }
-  catch(e) { res.json({ message: "No debug data yet" }); }
 });
 
 app.get("/health", async (req, res) => {

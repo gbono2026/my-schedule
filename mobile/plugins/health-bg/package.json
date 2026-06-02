@@ -1,0 +1,21 @@
+{
+  "name": "meridian-health-bg",
+  "version": "1.0.0",
+  "description": "Native Apple HealthKit background delivery for Meridian — wakes the app on new health data and syncs to the server even when closed.",
+  "license": "MIT",
+  "files": [
+    "ios/Sources",
+    "MeridianHealthBg.podspec",
+    "package.json"
+  ],
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "keywords": [
+    "capacitor",
+    "healthkit",
+    "background-delivery"
+  ]
+}

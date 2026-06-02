@@ -808,11 +808,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',-apple-system,
       </div>
     </div>
 
-    <div class="setup-banner is-native-hidden" id="setup-banner" style="display:none;">
-      <div class="setup-title">🔗 Connect Health Auto Export</div>
-      <div class="setup-text">Install <strong>Health Auto Export</strong> on iPhone → Automations → REST API → <strong>https://my-schedule-server-production.up.railway.app/health</strong> to auto-sync your Apple Health data daily.</div>
-    </div>
-
         <div class="category-header" onclick="toggleSection('section-mind')" style="cursor:pointer;user-select:none;" id="hdr-section-mind">
       <div class="category-header-label" style="color:#a78bfa;">🧘 MIND</div>
       <div class="category-header-line" style="background:linear-gradient(90deg,rgba(167,139,250,0.5),transparent);flex:1;"></div>
@@ -2533,7 +2528,7 @@ const Native = (function(){
   }
 
   // Sum sleep-stage minutes over the window, returned in HOURS to match the
-  // existing Health Auto Export data shape. (Verify units after first sync.)
+  // server's expected data shape. (Verify units after first sync.)
   async function readSleep(Health, startDate, endDate){
     let r;
     try{
@@ -2661,19 +2656,32 @@ const Native = (function(){
     try{ await LN.cancel({ notifications:[{ id: REST_NOTIF_ID }] }); }catch(e){}
   }
 
+  // Arm native HealthKit background delivery (meridian-health-bg plugin) so the
+  // app keeps syncing even when backgrounded/closed. Foreground reads still go
+  // through @capgo/capacitor-health above; this just registers the observers.
+  async function enableBackgroundHealth(){
+    if(!isNative) return false;
+    const HB = plugin('HealthBackground');
+    if(!HB || !HB.enable) return false; // plugin not installed (older build)
+    try{ await HB.enable({ serverUrl: SERVER }); return true; }
+    catch(e){ return false; }
+  }
+
   async function init(){
     if(!isNative) return;
     document.documentElement.classList.add('is-native');
     ensureNotif();
     // Sync on launch, and again whenever the app returns to the foreground.
     syncHealth();
+    // Register HealthKit background delivery after auth so it works when closed.
+    ensureAuth().then(ok => { if(ok) enableBackgroundHealth(); });
     const App = plugin('App');
     if(App && App.addListener){
       App.addListener('appStateChange', (st)=>{ if(st && st.isActive) syncHealth(); });
     }
   }
 
-  return { isNative, init, syncHealth, scheduleRest, cancelRest, ensureAuth };
+  return { isNative, init, syncHealth, scheduleRest, cancelRest, ensureAuth, enableBackgroundHealth };
 })();
 
 // ── Web Push (rest-timer alerts that fire even when phone is locked/closed) ──
@@ -2935,7 +2943,6 @@ async function loadHealthData(){
     if(data.today && Object.keys(data.today).length>0){
       healthToday=data.today;
       try{ localStorage.setItem('health_today_cache', JSON.stringify(healthToday)); }catch(e){}
-      document.getElementById("setup-banner").style.display="none";
     } else {
       // Server returned empty today-data — fall back to cached so it doesn't disappear
       try{
@@ -3696,7 +3703,7 @@ function renderSparkline(history){
 function renderSleepBreakdown(d){
   const wrap = document.getElementById('sleep-breakdown');
   if(!wrap) return;
-  if(!d.sleepDeep && !d.sleepREM){ wrap.innerHTML='<div style="font-size:10px;color:var(--muted);padding:4px 0;">Sleep stages syncing via Health Auto Export</div>'; return; }
+  if(!d.sleepDeep && !d.sleepREM){ wrap.innerHTML='<div style="font-size:10px;color:var(--muted);padding:4px 0;">Sleep stages syncing from Apple Health…</div>'; return; }
   wrap.innerHTML = `
     <div class="sleep-stage"><div class="sleep-stage-val" style="color:var(--purple)">${d.sleepDeep?.toFixed(1)||'—'}</div><div class="sleep-stage-label">Deep</div></div>
     <div class="sleep-stage"><div class="sleep-stage-val" style="color:var(--blue)">${d.sleepREM?.toFixed(1)||'—'}</div><div class="sleep-stage-label">REM</div></div>
