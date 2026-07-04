@@ -4912,18 +4912,20 @@ function parseOFFProduct(p){
 
 async function searchFood(query){
   const results = [];
-  // Search Open Food Facts v2 API — better results, proper brand matching
+  // Search Open Food Facts — US database + English locale so product names
+  // come back in English (the global `world` endpoint returns many French names).
   try{
-    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=20&sort_by=unique_scans_n&fields=product_name,brands,serving_size,nutriments,nutriscore_grade`;
+    const url = `https://us.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=20&sort_by=unique_scans_n&lc=en&fields=product_name,product_name_en,brands,serving_size,nutriments,nutriscore_grade`;
     const r = await fetch(url);
     const data = await r.json();
     if(data.products){
       data.products.forEach(p=>{
-        if(!p.product_name || p.product_name.trim()==='') return;
+        const name = (p.product_name_en || p.product_name || '').trim();
+        if(!name) return;
         const {cals,prot,carbs,fat,serving} = parseOFFProduct(p);
         if(!cals && !prot) return; // skip items with zero nutritional data
         results.push({
-          name: p.product_name.trim(),
+          name,
           brand: (p.brands||'').split(',')[0].trim(), // first brand only
           serving,
           calories: cals,
@@ -6185,21 +6187,21 @@ function searchRecipeIngredient(query){
     const wrap = document.getElementById('recipe-search-results');
     wrap.innerHTML='<div style="font-size:12px;color:var(--muted);padding:6px;">Searching...</div>';
     try{
-      const r = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=8&sort_by=unique_scans_n&fields=product_name,brands,serving_size,nutriments`);
+      const r = await fetch(`https://us.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=8&sort_by=unique_scans_n&lc=en&fields=product_name,product_name_en,brands,serving_size,nutriments`);
       const data = await r.json();
-      const results = (data.products||[]).filter(p=>p.product_name).slice(0,6);
+      const results = (data.products||[]).filter(p=>(p.product_name_en||p.product_name)).slice(0,6);
       if(!results.length){ wrap.innerHTML='<div style="font-size:12px;color:var(--muted);padding:6px;">No results</div>'; return; }
       wrap.innerHTML = results.map((p,i)=>{
         const n = p.nutriments||{};
         const cals = n['energy-kcal_serving']||n['energy-kcal_100g']||0;
         return `<div onclick="addRecipeIngredient(${i})" data-idx="${i}" style="padding:8px 10px;border-radius:8px;cursor:pointer;border-bottom:1px solid var(--border);">
-          <div style="font-size:13px;font-weight:500;">${p.product_name}</div>
+          <div style="font-size:13px;font-weight:500;">${p.product_name_en||p.product_name}</div>
           <div style="font-size:11px;color:var(--muted);">${Math.round(cals)} kcal · ${p.serving_size||'100g'}</div>
         </div>`;
       }).join('');
       window._recipeSearchResults = results.map(p=>{
         const n=p.nutriments||{};
-        return {name:p.product_name,brand:p.brands||'',serving:p.serving_size||'100g',
+        return {name:p.product_name_en||p.product_name,brand:p.brands||'',serving:p.serving_size||'100g',
           calories:n['energy-kcal_serving']||n['energy-kcal_100g']||0,
           protein:n['proteins_serving']||n['proteins_100g']||0,
           carbs:n['carbohydrates_serving']||n['carbohydrates_100g']||0,
