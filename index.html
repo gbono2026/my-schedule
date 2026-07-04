@@ -5989,21 +5989,73 @@ function renderHydration(){
   }
 }
 
+// -- Voice input: works on web (Web Speech API) AND in the native app.
+// Apple blocks the Web Speech API inside wrapped apps (WKWebView), so on native
+// we route through the @capacitor-community/speech-recognition plugin, wrapped in
+// an object that mimics just enough of the SpeechRecognition interface
+// (start/stop + onstart/onresult/onend/onerror) that the callers don't change.
+function _nativeSpeech(){
+  const cap = window.Capacitor;
+  if(cap && cap.isNativePlatform && cap.isNativePlatform() && cap.Plugins && cap.Plugins.SpeechRecognition){
+    return cap.Plugins.SpeechRecognition;
+  }
+  return null;
+}
+function voiceSupported(){
+  if(_nativeSpeech()) return true;
+  return ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window);
+}
+function makeRecognizer(){
+  const Plugin = _nativeSpeech();
+  if(!Plugin){
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR) return null;
+    const r = new SR();
+    r.continuous = false; r.interimResults = true; r.lang = 'en-US';
+    return r;
+  }
+  // Native plugin, adapted to the SpeechRecognition-ish shape the callers expect.
+  // We deliver ONE final transcript (partialResults off) so callers that append
+  // don't get duplicated words. iOS resolves start() with the final matches; a
+  // manual stop() ends listening early and resolves the same promise.
+  const rec = {
+    onstart:null, onresult:null, onend:null, onerror:null,
+    _ended:false,
+    async start(){
+      this._ended = false;
+      try{
+        await Plugin.requestPermissions();
+        if(this.onstart) this.onstart();
+        const res = await Plugin.start({ language:'en-US', partialResults:false, popup:false });
+        const t = (res && res.matches && res.matches[0]) || '';
+        if(t && this.onresult) this.onresult({ results: [[{ transcript: t }]] });
+      }catch(e){
+        if(this.onerror) this.onerror(e);
+      }
+      this._finish();
+    },
+    async stop(){ try{ await Plugin.stop(); }catch(e){} },
+    _finish(){
+      if(this._ended) return;
+      this._ended = true;
+      if(this.onend) this.onend();
+    }
+  };
+  return rec;
+}
+
 // -- Voice Input for AI Logger --
 let voiceRecognition = null;
 let voiceActive = false;
 
 function toggleVoiceInput(){
-  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+  if(!voiceSupported()){
     showToast('Voice not available on this browser');
     return;
   }
   if(voiceActive){ if(voiceRecognition) voiceRecognition.stop(); return; }
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  voiceRecognition = new SR();
-  voiceRecognition.continuous = false;
-  voiceRecognition.interimResults = true;
-  voiceRecognition.lang = 'en-US';
+  voiceRecognition = makeRecognizer();
+  if(!voiceRecognition){ showToast('Voice not available on this browser'); return; }
   const btn = document.getElementById('ai-voice-btn');
   const status = document.getElementById('ai-voice-status');
   const input = document.getElementById('ai-log-input');
@@ -6041,15 +6093,12 @@ let exVoiceRec = null;
 let exVoiceActive = false;
 
 function toggleExVoice(){
-  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+  if(!voiceSupported()){
     showToast('Voice not available on this browser'); return;
   }
   if(exVoiceActive){ if(exVoiceRec) exVoiceRec.stop(); return; }
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  exVoiceRec = new SR();
-  exVoiceRec.continuous = false;
-  exVoiceRec.interimResults = true;
-  exVoiceRec.lang = 'en-US';
+  exVoiceRec = makeRecognizer();
+  if(!exVoiceRec){ showToast('Voice not available on this browser'); return; }
   const btn = document.getElementById('ex-voice-btn');
   const status = document.getElementById('ex-voice-status');
   const input = document.getElementById('ex-search');
@@ -6080,15 +6129,12 @@ let schedVoiceRec = null;
 let schedVoiceActive = false;
 
 function toggleSchedVoice(){
-  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+  if(!voiceSupported()){
     showToast('Voice not available on this browser'); return;
   }
   if(schedVoiceActive){ if(schedVoiceRec) schedVoiceRec.stop(); return; }
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  schedVoiceRec = new SR();
-  schedVoiceRec.continuous = false;
-  schedVoiceRec.interimResults = true;
-  schedVoiceRec.lang = 'en-US';
+  schedVoiceRec = makeRecognizer();
+  if(!schedVoiceRec){ showToast('Voice not available on this browser'); return; }
   const btn = document.getElementById('sched-voice-btn');
   const status = document.getElementById('sched-voice-status');
   const input = document.getElementById('admin-instruction');
@@ -8240,7 +8286,7 @@ let morningVoiceActive = false;
 function toggleMorningVoice(){
   const btn = document.getElementById('morning-voice-btn');
   const input = document.getElementById('morning-log-input');
-  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+  if(!voiceSupported()){
     // iOS Home-Screen web apps don't support the Web Speech API. Send the user
     // to the keyboard's built-in dictation mic, which works in any text field.
     if(input) input.focus();
@@ -8253,8 +8299,8 @@ function toggleMorningVoice(){
     if(btn) btn.textContent = '🎤';
     return;
   }
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  morningVoiceRec = new SR();
+  morningVoiceRec = makeRecognizer();
+  if(!morningVoiceRec){ if(input) input.focus(); showToast('🎤 Tap the mic on your keyboard to dictate'); return; }
   morningVoiceRec.lang = 'en-US';
   morningVoiceRec.continuous = false;
   morningVoiceRec.interimResults = false;

@@ -80,7 +80,7 @@ In Xcode, select the **App** target → **Signing & Capabilities**:
 3. Click **+ Capability** and add **HealthKit**.
    - Leave "Clinical Health Records" and "Background Delivery" unchecked for v1.
 
-### Info.plist — HealthKit usage strings (required, or the app is rejected/crashes)
+### Info.plist — usage strings (required, or the app is rejected/crashes)
 Open `App/Info.plist` (right-click → Open As → Source Code) and add inside the
 top-level `<dict>`:
 
@@ -89,10 +89,24 @@ top-level `<dict>`:
 <string>Meridian reads your steps, sleep, heart rate, HRV, weight and activity from Apple Health to show your daily wellness dashboard.</string>
 <key>NSHealthUpdateUsageDescription</key>
 <string>Meridian does not write to Apple Health.</string>
+<key>NSCameraUsageDescription</key>
+<string>Meridian uses the camera to take progress photos and log meals.</string>
+<key>NSMicrophoneUsageDescription</key>
+<string>Meridian uses the microphone for voice logging of meals, workouts and notes.</string>
+<key>NSSpeechRecognitionUsageDescription</key>
+<string>Meridian converts your voice to text so you can log meals, workouts and notes hands-free.</string>
 ```
 
-> Note: we only **read** HealthKit, so `NSHealthShareUsageDescription` is the one
-> that matters. The Update string is included because Apple's tooling expects it.
+> Why each one:
+> - **Health** — we only **read** HealthKit, so `NSHealthShareUsageDescription` is
+>   the key that matters; the Update string is included because Apple's tooling
+>   expects it.
+> - **Camera** — the progress-photo / meal-photo capture uses the live camera
+>   (`getUserMedia`). Without `NSCameraUsageDescription` the camera silently fails
+>   inside the app (this is why it "didn't work" in the earlier build).
+> - **Microphone + Speech Recognition** — voice logging. Apple blocks the browser's
+>   Web Speech API inside wrapped apps, so the app uses the native
+>   `@capacitor-community/speech-recognition` plugin, which needs both of these.
 
 ### Re-sync after any config change
 ```bash
